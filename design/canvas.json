@@ -1,0 +1,18 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",       "title": "01 · Nordisk minimal",      "x": 0,    "y": 0,   "w": 390, "h": 844 },
+    { "file": "Fintech.dc.html",    "title": "02 · Mørk fintech",         "x": 480,  "y": 0,   "w": 390, "h": 844 },
+    { "file": "Tavlen.dc.html",     "title": "03 · Kridttavlen",          "x": 960,  "y": 0,   "w": 390, "h": 844 },
+    { "file": "Protokol.dc.html",   "title": "04 · Kassererens protokol", "x": 1440, "y": 0,   "w": 390, "h": 844 },
+    { "file": "Brutal.dc.html",     "title": "05 · Neobrutalist",         "x": 1920, "y": 0,   "w": 390, "h": 844 },
+    { "file": "Scoreboard.dc.html", "title": "06 · Bødeligaen",           "x": 0,    "y": 990, "w": 390, "h": 844 },
+    { "file": "Bon.dc.html",        "title": "07 · Kvitteringen",         "x": 480,  "y": 990, "w": 390, "h": 844 },
+    { "file": "Pastel.dc.html",     "title": "08 · Blød og venlig",       "x": 960,  "y": 990, "w": 390, "h": 844 },
+    { "file": "Tidende.dc.html",    "title": "09 · Bødetidende",          "x": 1440, "y": 990, "w": 390, "h": 844 },
+    { "file": "Arcade.dc.html",     "title": "10 · Arkade",               "x": 1920, "y": 990, "w": 390, "h": 844 }
+  ],
+  "annotations": [
+    { "id": "vaelg-retning", "x": 0, "y": -190, "w": 460, "text": "10 retninger for bødekasse-appen — vælg én at bygge videre på.\nAlle viser samme kerneskærm (medlemsoversigt med bødesaldi), så de er nemme at sammenligne.\nRække 1: minimal → fintech → kridttavle → protokol → neobrutalist.\nRække 2: scoreboard → kvittering → blød/venlig → avis → arkade." }
+  ],
+  "launch": { "view": "canvas" }
+}

@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Space Grotesk', 'Helvetica Neue', system-ui, sans-serif; }
+    a { color: #5eead4; } a:hover { color: #99f6e4; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #0b0f14; color: #e6edf3; display: flex; flex-direction: column; box-sizing: border-box; padding: 32px 20px 0 20px">
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 4px">
+    <div style="font-size: 17px; font-weight: 700">Bødekassen</div>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8b98a5" stroke-width="2" stroke-linecap="round"><path d="M12 3a6 6 0 0 1 6 6v3l1.5 3h-15L6 12V9a6 6 0 0 1 6-6z"></path><path d="M10 19a2 2 0 0 0 4 0"></path></svg>
+  </div>
+
+  <div style="margin-top: 24px; background: #121a23; border: 1px solid #1e2936; border-radius: 20px; padding: 24px">
+    <div style="font-size: 13px; color: #8b98a5">Kassens saldo</div>
+    <div style="font-size: 40px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px">4.320,00 kr.</div>
+    <div style="display: flex; gap: 8px; margin-top: 16px">
+      <div style="background: #0d2420; color: #5eead4; font-size: 13px; font-weight: 500; border-radius: 999px; padding: 6px 12px">Udestående 360 kr.</div>
+      <div style="background: #1a2230; color: #9db2ce; font-size: 13px; font-weight: 500; border-radius: 999px; padding: 6px 12px">17 medlemmer</div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 10px; margin-top: 16px">
+    <div style="flex-grow: 1; height: 76px; background: #5eead4; color: #06251f; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+      <div style="font-size: 13px; font-weight: 700">Nyt møde</div>
+    </div>
+    <div style="flex-grow: 1; height: 76px; background: #121a23; border: 1px solid #1e2936; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12m0 0 5-5m-5 5-5-5"></path><path d="M5 20h14"></path></svg>
+      <div style="font-size: 13px; font-weight: 500">Indbetal</div>
+    </div>
+    <div style="flex-grow: 1; height: 76px; background: #121a23; border: 1px solid #1e2936; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f0b45f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"></path></svg>
+      <div style="font-size: 13px; font-weight: 500">Særbøde</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 28px; display: flex; flex-direction: column; flex-grow: 1">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <div style="font-size: 14px; font-weight: 700">Seneste bevægelser</div>
+      <div style="font-size: 13px; color: #5eead4; font-weight: 500">Se alle</div>
+    </div>
+    <div style="display: flex; flex-direction: column; margin-top: 6px">
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 62px; border-bottom: 1px solid #161f2a">
+        <div style="width: 38px; height: 38px; border-radius: 12px; background: #1a2230; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #9db2ce">FR</div>
+        <div style="flex-grow: 1">
+          <div style="font-size: 15px; font-weight: 500">Frederik · For sent</div>
+          <div style="font-size: 12px; color: #8b98a5">Møde #142 · i dag</div>
+        </div>
+        <div style="font-size: 15px; font-weight: 700; color: #f3798d">+20 kr.</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 62px; border-bottom: 1px solid #161f2a">
+        <div style="width: 38px; height: 38px; border-radius: 12px; background: #1a2230; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #9db2ce">MI</div>
+        <div style="flex-grow: 1">
+          <div style="font-size: 15px; font-weight: 500">Mikkel · Telefon ved bordet</div>
+          <div style="font-size: 12px; color: #8b98a5">Møde #142 · i dag</div>
+        </div>
+        <div style="font-size: 15px; font-weight: 700; color: #f3798d">+25 kr.</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 62px; border-bottom: 1px solid #161f2a">
+        <div style="width: 38px; height: 38px; border-radius: 12px; background: #0d2420; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #5eead4">JO</div>
+        <div style="flex-grow: 1">
+          <div style="font-size: 15px; font-weight: 500">Jonas · Indbetaling</div>
+          <div style="font-size: 12px; color: #8b98a5">MobilePay · i går</div>
+        </div>
+        <div style="font-size: 15px; font-weight: 700; color: #5eead4">−50 kr.</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 62px; border-bottom: 1px solid #161f2a">
+        <div style="width: 38px; height: 38px; border-radius: 12px; background: #1a2230; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #9db2ce">SO</div>
+        <div style="flex-grow: 1">
+          <div style="font-size: 15px; font-weight: 500">Sofie · Afbud efter deadline</div>
+          <div style="font-size: 12px; color: #8b98a5">Møde #141 · 24. aug.</div>
+        </div>
+        <div style="font-size: 15px; font-weight: 700; color: #f3798d">+30 kr.</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 62px">
+        <div style="width: 38px; height: 38px; border-radius: 12px; background: #2b2030; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #d8a7f0">CA</div>
+        <div style="flex-grow: 1">
+          <div style="font-size: 15px; font-weight: 500">Camilla · Særbøde: væddemål</div>
+          <div style="font-size: 12px; color: #8b98a5">Møde #141 · 24. aug.</div>
+        </div>
+        <div style="font-size: 15px; font-weight: 700; color: #f3798d">+45 kr.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 78px; border-top: 1px solid #1e2936; display: flex; align-items: center; margin: 0 -20px; padding: 0 12px 8px 12px">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #5eead4">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-8z"></path></svg>
+      <div style="font-size: 11px; font-weight: 500">Hjem</div>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #8b98a5">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="5" width="16" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M4 11h16"></path></svg>
+      <div style="font-size: 11px; font-weight: 500">Møder</div>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #8b98a5">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"></path><path d="M16 9a3 3 0 1 0 2 5.2M21 20c0-2.5-1.5-4.6-3.7-5.5"></path></svg>
+      <div style="font-size: 11px; font-weight: 500">Medlemmer</div>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #8b98a5">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6V3z"></path><path d="M9 9h6M9 13h6M9 17h4"></path></svg>
+      <div style="font-size: 11px; font-weight: 500">Takster</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

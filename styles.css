@@ -317,6 +317,213 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
 .note { font-size: 14px; color: var(--faint); margin-top: 10px; line-height: 1.4; }
 .divider { border: none; border-top: 1px solid var(--line); margin: 20px 0; }
 
+/* ============ Pakke B: atmosfære ============ */
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(251,191,36,0.07) 0%, rgba(16,20,26,0) 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+.layout { position: relative; z-index: 1; }
+.appbar { position: sticky; overflow: hidden; }
+.appbar::after {
+  content: '';
+  position: absolute; right: -30px; top: -20px; width: 90px; height: 200%;
+  background: linear-gradient(90deg, rgba(251,191,36,0.07), rgba(251,191,36,0.02));
+  transform: skewX(-22deg);
+  pointer-events: none;
+}
+.modal-root .scrim { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.sheet { animation: sheet-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.08); }
+@keyframes sheet-in { from { transform: translateY(28px); opacity: 0.6; } to { transform: translateY(0); opacity: 1; } }
+
+.lb-row { position: relative; border-left: none; padding-left: 14px; }
+.lb-row::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; border-radius: 4px 0 0 4px; }
+.lb-row.rank-1::before { background: linear-gradient(180deg, #ffe08a, #fbbf24 45%, #c98f10); }
+.lb-row.rank-2::before { background: linear-gradient(180deg, #e8edf2, #c0c7ce 45%, #8f99a3); }
+.lb-row.rank-3::before { background: linear-gradient(180deg, #d9a877, #b07b45 45%, #7d5530); }
+.lb-row.clean .who .name { text-shadow: 0 0 14px rgba(63,158,99,0.35); }
+
+/* ============ Pakke A: mikrointeraktioner ============ */
+
+.lb-row, .row, .streak-row, .member-cell, .fine-btn, .stat, .chart-card {
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, background 0.12s ease-out, border-color 0.12s ease-out;
+}
+.lb-row:hover, .row:hover, .member-cell:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.35); }
+.lb-row:active, .row:active, .member-cell:active, .fine-btn:active, .btn:active { transform: scale(0.985); }
+.btn { transition: transform 0.1s ease-out, background 0.12s ease-out, box-shadow 0.12s ease-out; }
+.btn:hover { box-shadow: 0 4px 14px rgba(251,191,36,0.25); }
+.btn.secondary:hover, .btn.danger:hover { box-shadow: none; }
+
+.lb-row.rank-1 { animation: gold-pulse 3.2s ease-in-out infinite; position: relative; overflow: hidden; }
+@keyframes gold-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(251,191,36,0); }
+  50% { box-shadow: 0 0 18px rgba(251,191,36,0.22); }
+}
+.lb-row.rank-1::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 46px;
+  background: linear-gradient(105deg, transparent, rgba(255,240,200,0.10), transparent);
+  animation: shimmer 6s linear infinite;
+}
+@keyframes shimmer { 0%, 78% { left: -60px; } 96%, 100% { left: 110%; } }
+
+.flames svg { animation: flicker 0.9s ease-in-out infinite alternate; transform-origin: 50% 90%; }
+.flames svg:nth-child(2) { animation-delay: 0.25s; }
+.flames svg:nth-child(3) { animation-delay: 0.5s; }
+@keyframes flicker { from { transform: scale(1) rotate(-2deg); opacity: 0.85; } to { transform: scale(1.12) rotate(2deg); opacity: 1; } }
+
+.crown svg { animation: crown-glint 8s ease-in-out infinite; }
+@keyframes crown-glint { 0%, 92%, 100% { filter: brightness(1); } 95% { filter: brightness(1.7) drop-shadow(0 0 4px rgba(251,191,36,0.8)); } 98% { filter: brightness(1); } }
+
+.toast { animation: toast-stamp 0.28s cubic-bezier(0.2, 1.2, 0.4, 1); }
+@keyframes toast-stamp { 0% { opacity: 0; transform: translate(-50%, 10px) scale(0.7); } 60% { transform: translate(-50%, 0) scale(1.12); } 100% { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+
+.confetti { position: fixed; inset: 0; z-index: 70; pointer-events: none; overflow: hidden; }
+.confetti i {
+  position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 2px; display: block;
+  animation: confetti-fall 1.15s ease-in forwards;
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(105vh) rotate(560deg); opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ============ Visningstilstand ============ */
+.viewer-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(94,234,212,0.08); border: 1px solid rgba(94,234,212,0.25); color: #5eead4;
+  border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; font-weight: 600;
+}
+
+/* ============ Chips (år-vælger, historikfilter) ============ */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.chips.small { margin: 10px 0 4px; }
+.chip {
+  min-height: 44px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid var(--card-raised); color: var(--muted); font-size: 15px; font-weight: 600;
+  display: flex; align-items: center;
+}
+.chips.small .chip { min-height: 38px; padding: 0 13px; font-size: 14px; }
+.chip:hover { color: var(--text); background: var(--card); }
+.chip.active { background: var(--amber); border-color: var(--amber); color: var(--bg); }
+
+/* ============ Statistik ============ */
+.stats.kpi4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.chart-card { background: var(--card); border-radius: 6px; padding: 14px; margin-bottom: 14px; }
+.chart-title { font-family: var(--display); font-size: 16px; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 10px; }
+.chart-sub { font-family: var(--body); font-size: 12px; color: var(--faint); letter-spacing: 0.08em; margin-left: 6px; }
+.chart { width: 100%; height: auto; display: block; }
+.chart .ax { fill: var(--faint); font-size: 11px; font-family: var(--body); }
+.chart .lbl { fill: var(--text); font-size: 12px; font-weight: 600; font-family: var(--body); }
+
+.hbar-row { display: flex; align-items: center; gap: 10px; min-height: 34px; }
+.hbar-label { width: 148px; font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbar-track { flex-grow: 1; height: 10px; background: var(--line-soft); border-radius: 999px; overflow: hidden; }
+.hbar-fill { height: 100%; border-radius: 999px; min-width: 4px; }
+.hbar-val { width: 56px; text-align: right; font-family: var(--display); font-size: 15px; color: var(--amber); }
+
+.rec-row { display: flex; align-items: center; gap: 12px; min-height: 56px; border-top: 1px solid var(--line-soft); }
+.rec-row:first-of-type { border-top: none; }
+.rec-row .grow { flex-grow: 1; min-width: 0; }
+.rec-row .t { font-size: 16px; font-weight: 600; }
+.rec-row .s { font-size: 13px; color: var(--muted); }
+.rec-ic { width: 34px; height: 34px; border-radius: 8px; background: var(--card-raised); display: flex; align-items: center; justify-content: center; color: var(--amber); flex-shrink: 0; }
+.rec-val { font-family: var(--display); font-size: 18px; color: var(--amber); white-space: nowrap; }
+
+.tbl-wrap { overflow-x: auto; }
+table.cmp { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.cmp th { text-align: left; color: var(--faint); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 10px 8px 0; border-bottom: 1px solid var(--line); }
+table.cmp td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line-soft); }
+table.cmp td:nth-child(3), table.cmp td:nth-child(4) { font-family: var(--display); color: var(--amber); }
+
+/* ============ Badges / hædersbevisninger ============ */
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.award {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(160deg, #2a2415, var(--card));
+  border: 1px solid rgba(251,191,36,0.4); color: var(--amber);
+  border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 700;
+}
+
+/* ============ Streaks ekstra ============ */
+.streak-strip.clean { border-left-color: var(--green); background: linear-gradient(90deg, rgba(63,158,99,0.14), transparent); color: var(--text); }
+.streak-strip.clean svg { color: var(--green); }
+.shield-ic { color: var(--green); display: inline-flex; }
+.streak-row .tag.green { background: var(--green); }
+
+/* ============ Afbudsforslag i bødevælgeren ============ */
+.sug-strip {
+  display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted);
+  background: rgba(251,191,36,0.08); border: 1px dashed rgba(251,191,36,0.4);
+  border-radius: 6px; padding: 9px 12px; margin-bottom: 10px;
+}
+.sug-strip svg { color: var(--amber); flex-shrink: 0; }
+.fine-btn.suggested { border: 1px dashed var(--amber); }
+.sug-tag {
+  position: absolute; top: -8px; left: 10px; background: var(--amber); color: var(--bg);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  border-radius: 3px; padding: 2px 6px;
+}
+
+/* ============ Podium (sæsonafslutning) ============ */
+.podium-row { display: flex; align-items: center; gap: 12px; border-radius: 6px; padding: 12px 14px; margin-bottom: 8px; background: var(--card); }
+.podium-row .grow { flex-grow: 1; }
+.podium-row .t { font-family: var(--display); font-size: 19px; letter-spacing: 0.04em; text-transform: uppercase; }
+.podium-row .s { font-size: 13px; color: var(--muted); }
+.podium-rank { font-family: var(--display); font-size: 26px; width: 38px; text-align: center; }
+.podium-sum { font-family: var(--display); font-size: 20px; }
+.podium-row.guld { background: linear-gradient(160deg, #33290f, var(--card)); border: 1px solid rgba(251,191,36,0.5); }
+.podium-row.guld .podium-rank, .podium-row.guld .podium-sum { color: var(--amber); }
+.podium-row.soelv { border: 1px solid rgba(192,199,206,0.4); }
+.podium-row.soelv .podium-rank, .podium-row.soelv .podium-sum { color: var(--silver); }
+.podium-row.bronze { border: 1px solid rgba(176,123,69,0.5); }
+.podium-row.bronze .podium-rank, .podium-row.bronze .podium-sum { color: var(--bronze); }
+
+/* ============ Tooltip ============ */
+.tip {
+  position: fixed; z-index: 80; max-width: 260px; pointer-events: none;
+  background: #060a0f; color: var(--text); border: 1px solid var(--card-raised);
+  border-radius: 6px; padding: 7px 11px; font-size: 13px; line-height: 1.35;
+  opacity: 0; transition: opacity 0.12s; box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+
+/* ============ Kassererrapport ============ */
+.report-overlay {
+  position: fixed; inset: 0; z-index: 90; overflow-y: auto;
+  background: #2a2f36; padding: 16px;
+}
+.report-toolbar { display: flex; gap: 8px; justify-content: center; max-width: 760px; margin: 0 auto 14px; }
+.report-toolbar .btn { flex-grow: 0; }
+.report-paper {
+  background: #fff; color: #1a1a1a; max-width: 760px; margin: 0 auto 40px;
+  padding: 40px 44px; border-radius: 4px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+.report-paper h1 { font-size: 26px; margin: 0 0 4px; }
+.report-paper h2 { font-size: 17px; margin: 26px 0 8px; border-bottom: 2px solid #1a1a1a; padding-bottom: 4px; }
+.report-paper .rp-sub { color: #666; font-style: italic; }
+.report-paper .rp-kpis { display: flex; flex-wrap: wrap; gap: 22px; margin: 20px 0 6px; }
+.report-paper .rp-kpis b { display: block; font-size: 20px; }
+.report-paper .rp-kpis span { color: #666; font-size: 12px; }
+.report-paper table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.report-paper th, .report-paper td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #ccc; }
+.report-paper th { border-bottom: 2px solid #333; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.report-paper .rp-sign { display: flex; gap: 60px; margin-top: 60px; font-size: 13px; }
+.report-paper .rp-line { border-top: 1px solid #333; width: 190px; margin-bottom: 6px; }
+
+@media print {
+  body::before, .layout, .tabs, .toast, .modal-root, .tip, .confetti, .report-toolbar { display: none !important; }
+  .report-overlay { position: static; background: #fff; padding: 0; overflow: visible; }
+  .report-paper { box-shadow: none; border-radius: 0; max-width: none; margin: 0; padding: 0; }
+  html, body { background: #fff; }
+}
+
 /* Desktop */
 @media (min-width: 900px) {
   .layout { flex-direction: row; }
@@ -336,6 +543,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
   .content { margin-left: 220px; max-width: none; padding: 32px 40px 120px; }
   .content > * { max-width: 860px; }
   .stats { max-width: 860px; grid-template-columns: repeat(3, 220px); }
+  .stats.kpi4 { grid-template-columns: repeat(4, 200px); }
   .member-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .fine-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .modal-root { align-items: center; padding: 24px; }

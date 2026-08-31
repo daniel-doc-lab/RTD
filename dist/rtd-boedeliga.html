@@ -276,7 +276,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
   background: var(--amber); color: var(--bg); font-weight: 700; font-size: 16px;
   border-radius: 999px; padding: 10px 20px; z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   animation: toast-in 0.15s ease-out;
-  pointer-events: none; white-space: nowrap;
+  pointer-events: none; max-width: calc(100vw - 32px); text-align: center;
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
@@ -444,8 +444,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       fines: [],
       payments: []
     };
-    ensureYear(s, 2024);
-    ensureYear(s, 2025);
+    for (var y = 2024; y <= startYearFromDate(null); y++) ensureYear(s, y);
     s.clubYears.forEach(function (cy) { topUpMeetings(s, cy); });
     return s;
   }
@@ -462,12 +461,11 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  function kr(n) {
+  function nf(n) {
     var neg = n < 0;
-    var v = Math.abs(Math.round(n));
-    var s = String(v).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return (neg ? '−' : '') + s + ' kr.';
+    return (neg ? '−' : '') + String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   }
+  function kr(n) { return nf(n) + ' kr.'; }
 
   var MONTHS = ['jan.', 'feb.', 'mar.', 'apr.', 'maj', 'jun.', 'jul.', 'aug.', 'sep.', 'okt.', 'nov.', 'dec.'];
   function fmtDate(iso) {
@@ -513,7 +511,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       maxNo++;
       var m = {
         id: uid(), clubYearId: cy.id, number: maxNo,
-        title: 'Møde ' + maxNo, date: scheduledDate(cy.startYear, maxNo),
+        title: 'Møde ' + maxNo, date: scheduledDate(cy.startYear, mine.length + 1),
         description: '', links: '', closedAt: null
       };
       s.meetings.push(m);
@@ -543,16 +541,32 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
         if (m.description == null) m.description = '';
         if (m.links == null) m.links = '';
       });
-      ensureYear(s, 2024);
-      ensureYear(s, 2025);
+      for (var y = 2024; y <= startYearFromDate(null); y++) ensureYear(s, y);
       s.clubYears.forEach(function (cy) { topUpMeetings(s, cy); });
       s.version = 2;
     }
     if (s.version === 2) {
-      if (s.formandId == null) s.formandId = null;
       if (!s.members || !s.members.length) s.members = seedMembers();
       s.version = 3;
     }
+    return normalize(s);
+  }
+
+  /* Gør vilkårlig (fx importeret) state ufarlig: alle arrays findes, tal er tal */
+  function normalize(s) {
+    ['members', 'fineTypes', 'clubYears', 'meetings', 'fines', 'payments'].forEach(function (k) {
+      if (!Array.isArray(s[k])) s[k] = [];
+    });
+    if (typeof s.clubName !== 'string' || !s.clubName) s.clubName = 'RTD';
+    if (s.formandId === undefined) s.formandId = null;
+    s.fineTypes.forEach(function (t) { t.amount = Number(t.amount) || 0; });
+    s.fines.forEach(function (f) { f.amount = Number(f.amount) || 0; if (!f.ts) f.ts = 0; });
+    s.payments.forEach(function (p) { p.amount = Number(p.amount) || 0; if (!p.ts) p.ts = 0; });
+    s.meetings.forEach(function (m) {
+      if (typeof m.title !== 'string' || !m.title) m.title = 'Møde ' + m.number;
+      if (m.description == null) m.description = '';
+      if (m.links == null) m.links = '';
+    });
     return s;
   }
 
@@ -603,7 +617,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
   function commit() {
     state.updatedAt = Date.now();
     writeLocal();
-    if (artifactNS) dirty = true;
+    dirty = true;
     render();
   }
 
@@ -611,7 +625,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
   function commitQuiet() {
     state.updatedAt = Date.now();
     writeLocal();
-    if (artifactNS) dirty = true;
+    dirty = true;
     renderSaveButtonOnly();
   }
 
@@ -634,18 +648,21 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
     return '<!doctype html>\n' + clone.outerHTML;
   }
 
+  var publishing = false;
   function publishShared() {
-    if (!artifactNS || !dirty) return;
-    var btn = document.getElementById('save-btn');
-    if (btn) btn.setAttribute('disabled', 'disabled');
+    if (!artifactNS || !dirty || publishing) return;
+    publishing = true;
+    renderSaveButtonOnly();
     artifactNS.publish(serializeDocument()).then(function () {
+      publishing = false;
       dirty = false;
       toast('Gemt for alle');
       render();
     }).catch(function (err) {
-      if (btn) btn.removeAttribute('disabled');
+      publishing = false;
+      renderSaveButtonOnly();
       if (err && String(err.code || err).indexOf('conflict') !== -1) {
-        toast('En anden har gemt — siden opdaterer');
+        toast('En anden har gemt — indlæser deres version');
       } else {
         toast('Kunne ikke gemme delt');
       }
@@ -719,35 +736,48 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
     return '';
   }
 
-  /* Afholdte møder = møder med mindst én bøde, kronologisk */
+  /* Afholdte møder = møder med mindst én bøde eller afsluttet, kronologisk */
   function heldMeetings() {
-    return state.meetings.filter(function (m) { return meetingFineCount(m.id) > 0; })
+    return state.meetings.filter(function (m) { return meetingFineCount(m.id) > 0 || m.closedAt; })
       .sort(function (a, b) {
         var d = (a.date || '').localeCompare(b.date || '');
         return d !== 0 ? d : a.number - b.number;
       });
   }
 
-  /* Antal afholdte møder i træk (bagfra) hvor medlemmet har fået bøde */
+  /* Antal afholdte møder i træk (bagfra) hvor medlemmet har fået bøde.
+     Et åbent møde uden bøde til medlemmet bryder ikke streaken endnu. */
   function memberMeetingStreak(mid) {
     var held = heldMeetings();
     var s = 0;
     for (var i = held.length - 1; i >= 0; i--) {
-      var hit = state.fines.some(function (f) { return f.meetingId === held[i].id && f.memberId === mid; });
-      if (hit) s++; else break;
+      var mtg = held[i];
+      var hit = state.fines.some(function (f) { return f.meetingId === mtg.id && f.memberId === mid; });
+      if (hit) s++;
+      else if (!mtg.closedAt) continue;
+      else break;
     }
     return s;
   }
 
-  /* Mest gentagne bødetype for et medlem: {typeId, count} eller null */
+  /* Mest gentagne bødetype for et medlem: {typeId, count} eller null.
+     Ved uafgjort vinder typen med den senest givne bøde. */
   function memberTopType(mid) {
     var counts = {};
     state.fines.forEach(function (f) {
-      if (f.memberId === mid && f.fineTypeId) counts[f.fineTypeId] = (counts[f.fineTypeId] || 0) + 1;
+      if (f.memberId === mid && f.fineTypeId) {
+        var c = counts[f.fineTypeId] || { count: 0, lastTs: 0 };
+        c.count++;
+        c.lastTs = Math.max(c.lastTs, f.ts || 0);
+        counts[f.fineTypeId] = c;
+      }
     });
     var best = null;
     Object.keys(counts).forEach(function (k) {
-      if (!best || counts[k] > best.count) best = { typeId: k, count: counts[k] };
+      var c = counts[k];
+      if (!best || c.count > best.count || (c.count === best.count && c.lastTs > best.lastTs)) {
+        best = { typeId: k, count: c.count, lastTs: c.lastTs };
+      }
     });
     return best;
   }
@@ -785,12 +815,13 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
   /* Forslag til "næste møde" på forsiden: seneste åbne møde med bøder,
      ellers det næste kommende åbne møde i det nyeste klubår. */
   function suggestMeeting() {
+    var withFines = state.meetings.filter(function (m) { return !m.closedAt && meetingFineCount(m.id) > 0; })
+      .sort(function (a, b) { return (a.date || '').localeCompare(b.date || '') || a.number - b.number; });
+    if (withFines.length) return { meeting: withFines[withFines.length - 1], verb: 'Fortsæt' };
     var cy = currentClubYear();
     if (!cy) return null;
     var ms = yearMeetings(cy.id);
     var open = ms.filter(function (m) { return !m.closedAt; });
-    var withFines = open.filter(function (m) { return meetingFineCount(m.id) > 0; });
-    if (withFines.length) return { meeting: withFines[withFines.length - 1], verb: 'Fortsæt' };
     var today = todayISO();
     var upcoming = open.find(function (m) { return m.date >= today; });
     var pick = upcoming || open[0] || ms[ms.length - 1];
@@ -849,7 +880,8 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
     var saveWrap = document.getElementById('save-wrap');
     if (!saveWrap) return;
     saveWrap.innerHTML = artifactNS
-      ? '<button class="btn small' + (dirty ? '' : ' secondary') + '" id="save-btn" data-action="publish">' + IC.save + (dirty ? 'Gem ændringer' : 'Alt gemt') + '</button>'
+      ? '<button class="btn small' + (dirty && !publishing ? '' : ' secondary') + '" id="save-btn" data-action="publish"' + (publishing ? ' disabled' : '') + '>' + IC.save +
+        (publishing ? 'Gemmer …' : (dirty ? 'Gem ændringer' : 'Alt gemt')) + '</button>'
       : '';
   }
 
@@ -884,17 +916,17 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       var streak = memberMeetingStreak(m.id);
       var streakTxt = streak >= 2 ? ' · ' + streak + ' møder i træk' : '';
       if (bal <= 0) {
-        rows += '<button class="lb-row clean" data-action="open-member" data-id="' + m.id + '">' +
+        rows += '<button class="lb-row clean" data-action="open-member" data-id="' + esc(m.id) + '">' +
           '<div class="rank">–</div><div class="who"><div class="name"><span class="nm">' + esc(m.name) + '</span>' + nameIcons(m.id) + '</div>' +
           '<div class="sub">Rent ark' + streakTxt + '</div></div>' +
           '<div class="count">' + cnt + '</div><div class="sum">0</div></button>';
       } else {
-        rows += '<button class="lb-row rank-' + rank + '" data-action="open-member" data-id="' + m.id + '">' +
+        rows += '<button class="lb-row rank-' + rank + '" data-action="open-member" data-id="' + esc(m.id) + '">' +
           '<div class="rank">' + rank + '</div>' +
           '<div class="who"><div class="name"><span class="nm">' + esc(m.name) + '</span>' + nameIcons(m.id) + (streak >= 2 ? flames(streak) : '') + '</div>' +
           '<div class="sub">' + cnt + ' bøde' + (cnt === 1 ? '' : 'r') + ' · betalt ' + kr(memberPaidTotal(m.id)) + streakTxt + '</div></div>' +
           '<div class="count">' + cnt + '</div>' +
-          '<div class="sum">' + Math.round(bal) + '</div></button>';
+          '<div class="sum">' + nf(bal) + '</div></button>';
       }
     });
     var sm = suggestMeeting();
@@ -903,7 +935,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       '<div class="colhead"><div class="c-rank">#</div><div class="c-name">Spiller</div><div class="c-count">Bøder</div><div class="c-sum">Gæld kr.</div></div>' +
       rows +
       (sm
-        ? '<div class="actionbar"><button class="btn" data-action="open-meeting" data-id="' + sm.meeting.id + '">' +
+        ? '<div class="actionbar"><button class="btn" data-action="open-meeting" data-id="' + esc(sm.meeting.id) + '">' +
           sm.verb + ' ' + esc(sm.meeting.title) + ' · ' + esc(meetingYearLabel(sm.meeting)) + '</button></div>'
         : '');
   }
@@ -921,7 +953,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
 
     var rows = '';
     meetStreaks.forEach(function (x) {
-      rows += '<button class="streak-row" data-action="open-member" data-id="' + x.m.id + '">' +
+      rows += '<button class="streak-row" data-action="open-member" data-id="' + esc(x.m.id) + '">' +
         flames(x.streak) +
         '<div class="grow"><div class="t">' + esc(x.m.name) + '</div>' +
         '<div class="s">Bøde i ' + x.streak + ' møder i træk</div></div>' +
@@ -929,7 +961,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
     });
     typeStreaks.forEach(function (x) {
       var t = findFineType(x.top.typeId);
-      rows += '<button class="streak-row" data-action="open-member" data-id="' + x.m.id + '">' +
+      rows += '<button class="streak-row" data-action="open-member" data-id="' + esc(x.m.id) + '">' +
         '<span class="mult">' + x.top.count + '×</span>' +
         '<div class="grow"><div class="t">' + esc(x.m.name) + '</div>' +
         '<div class="s">' + x.top.count + ' gange »' + esc(t ? t.category : '?') + '«</div></div>' +
@@ -946,7 +978,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
     var rows = years.map(function (y) {
       var ms = yearMeetings(y.id);
       var held = ms.filter(function (m) { return meetingFineCount(m.id) > 0 || m.closedAt; }).length;
-      return '<button class="row" data-action="open-year" data-id="' + y.id + '">' +
+      return '<button class="row" data-action="open-year" data-id="' + esc(y.id) + '">' +
         '<div class="grow"><div class="t">Klubår ' + esc(y.label) + '</div>' +
         '<div class="s">' + ms.length + ' møder · ' + held + ' afholdt</div></div>' +
         '<div class="amount">' + kr(yearTotal(y.id)) + '</div></button>';
@@ -969,7 +1001,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       var badge = m.closedAt ? '<span class="badge">Afsluttet</span>'
         : (cnt > 0 ? '<span class="badge live">I gang</span>'
           : (nextUp && m.id === nextUp.id ? '<span class="badge next">Næste</span>' : ''));
-      return '<button class="row" data-action="open-meeting" data-id="' + m.id + '">' +
+      return '<button class="row" data-action="open-meeting" data-id="' + esc(m.id) + '">' +
         '<div class="grow"><div class="t">' + esc(m.title) + '</div>' +
         '<div class="s">' + fmtDate(m.date) + (cnt ? ' · ' + cnt + ' bøde' + (cnt === 1 ? '' : 'r') : '') + '</div></div>' +
         badge +
@@ -981,7 +1013,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       '<div class="grow"><div class="t">Klubår ' + esc(y.label) + '</div><div class="s">' + ms.length + ' møder</div></div>' +
       '<div class="total">' + kr(yearTotal(y.id)) + '</div></div>' +
       rows +
-      '<div class="actionbar"><button class="btn secondary" data-action="add-meeting" data-id="' + y.id + '">' + IC.plus + 'Tilføj ekstra møde</button></div>';
+      '<div class="actionbar"><button class="btn secondary" data-action="add-meeting" data-id="' + esc(y.id) + '">' + IC.plus + 'Tilføj ekstra møde</button></div>';
   }
 
   function renderLinks(links) {
@@ -1007,7 +1039,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
     var grid = members.map(function (m) {
       var sum = perMember[m.id] || 0;
       var n = meetFines.filter(function (f) { return f.memberId === m.id; }).length;
-      return '<button class="member-cell' + (sum > 0 ? ' hit' : '') + '" data-action="pick-fines" data-id="' + m.id + '"' + (meet.closedAt ? ' disabled style="opacity:0.55"' : '') + '>' +
+      return '<button class="member-cell' + (sum > 0 ? ' hit' : '') + '" data-action="pick-fines" data-id="' + esc(m.id) + '"' + (meet.closedAt ? ' disabled style="opacity:0.55"' : '') + '>' +
         '<div class="name">' + esc(m.name) + (state.formandId === m.id ? '<span class="crown">' + IC.crown + '</span>' : '') + '</div>' +
         '<div class="meta">' + (sum > 0 ? n + ' bøde' + (n === 1 ? '' : 'r') + ' · ' + kr(sum) : 'Ingen bøder') + '</div></button>';
     }).join('');
@@ -1017,7 +1049,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       return '<div class="log-item">' +
         '<div class="grow"><div class="t">' + esc(m ? m.name : '?') + ' — ' + esc(fineLabel(f)) + '</div></div>' +
         '<div class="amount' + amtClass(f.amount) + '">' + (f.amount >= HOT_FINE ? IC.zap : '') + kr(f.amount) + '</div>' +
-        (meet.closedAt ? '' : '<button class="x" data-action="remove-fine" data-id="' + f.id + '" aria-label="Fjern bøde">' + IC.x + '</button>') +
+        (meet.closedAt ? '' : '<button class="x" data-action="remove-fine" data-id="' + esc(f.id) + '" aria-label="Fjern bøde">' + IC.x + '</button>') +
         '</div>';
     }).join('');
 
@@ -1029,9 +1061,9 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
     }
 
     return '<div class="meet-head">' +
-      '<button class="iconbtn" data-action="goto" data-view="aar-detalje" data-id="' + meet.clubYearId + '" aria-label="Tilbage">' + IC.left + '</button>' +
+      '<button class="iconbtn" data-action="goto" data-view="aar-detalje" data-id="' + esc(meet.clubYearId) + '" aria-label="Tilbage">' + IC.left + '</button>' +
       '<div class="grow"><div class="t">' + esc(meet.title) + '</div><div class="s">' + esc(meetingYearLabel(meet)) + ' · ' + fmtDate(meet.date) + (meet.closedAt ? ' · afsluttet' : '') + '</div></div>' +
-      '<button class="iconbtn" data-action="edit-meeting" data-id="' + meet.id + '" aria-label="Rediger møde">' + IC.edit + '</button>' +
+      '<button class="iconbtn" data-action="edit-meeting" data-id="' + esc(meet.id) + '" aria-label="Rediger møde">' + IC.edit + '</button>' +
       '<div class="total">' + kr(meetingTotal(meet.id)) + '</div></div>' +
       info +
       (members.length
@@ -1041,16 +1073,16 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       (log || '<div class="note">Ingen bøder registreret endnu.</div>') +
       '<div class="btn-row">' +
       (meet.closedAt
-        ? '<button class="btn secondary" data-action="reopen-meeting" data-id="' + meet.id + '">Genåbn møde</button>'
-        : '<button class="btn secondary" data-action="close-meeting" data-id="' + meet.id + '">Afslut møde</button>') +
-      '<button class="btn danger" data-action="delete-meeting" data-id="' + meet.id + '">Slet møde</button></div>';
+        ? '<button class="btn secondary" data-action="reopen-meeting" data-id="' + esc(meet.id) + '">Genåbn møde</button>'
+        : '<button class="btn secondary" data-action="close-meeting" data-id="' + esc(meet.id) + '">Afslut møde</button>') +
+      '<button class="btn danger" data-action="delete-meeting" data-id="' + esc(meet.id) + '">Slet møde</button></div>';
   }
 
   function viewMembers() {
     var rows = state.members.slice().sort(function (a, b) { return a.name.localeCompare(b.name, 'da'); })
       .map(function (m) {
         var bal = memberBalance(m.id);
-        return '<button class="row' + (m.active ? '' : ' inactive') + '" data-action="open-member" data-id="' + m.id + '">' +
+        return '<button class="row' + (m.active ? '' : ' inactive') + '" data-action="open-member" data-id="' + esc(m.id) + '">' +
           '<div class="grow"><div class="t">' + esc(m.name) + (state.formandId === m.id ? ' <span class="crown">' + IC.crown + '</span>' : '') + '</div>' +
           '<div class="s">' + memberFineCount(m.id) + ' bøder · betalt ' + kr(memberPaidTotal(m.id)) + (m.active ? '' : ' · udmeldt') + '</div></div>' +
           '<div class="amount' + (bal <= 0 ? ' zero' : '') + '">' + kr(Math.max(0, bal)) + '</div></button>';
@@ -1062,7 +1094,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
 
   function viewFineTypes() {
     var rows = state.fineTypes.filter(function (t) { return t.active; }).map(function (t) {
-      return '<button class="row" data-action="edit-finetype" data-id="' + t.id + '">' +
+      return '<button class="row" data-action="edit-finetype" data-id="' + esc(t.id) + '">' +
         '<div class="grow"><div class="t">' + esc(t.category) + '</div><div class="s">' + esc(t.description) + '</div></div>' +
         '<div class="amount">' + kr(t.amount) + '</div></button>';
     }).join('');
@@ -1113,7 +1145,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
     var mySum = mineFines.reduce(function (a, f) { return a + f.amount; }, 0);
 
     var grid = state.fineTypes.filter(function (t) { return t.active; }).map(function (t) {
-      return '<button class="fine-btn' + (t.amount >= HOT_FINE ? ' hot' : '') + '" data-action="give-fine" data-id="' + t.id + '">' +
+      return '<button class="fine-btn' + (t.amount >= HOT_FINE ? ' hot' : '') + '" data-action="give-fine" data-id="' + esc(t.id) + '">' +
         (counts[t.id] ? '<span class="n">' + counts[t.id] + '</span>' : '') +
         '<div class="cat">' + esc(t.category) + '</div>' +
         '<div class="amt' + amtClass(t.amount) + '">' + (t.amount >= HOT_FINE ? IC.zap : '') + kr(t.amount) + '</div></button>';
@@ -1153,7 +1185,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       events.push({ ts: p.ts, html: '<div class="log-item"><div class="grow"><div class="t">Indbetaling' + (p.note ? ' — ' + esc(p.note) : '') + '</div>' +
         '<div class="s">' + fmtDate(p.date) + '</div></div>' +
         '<div class="amount pay">−' + kr(p.amount) + '</div>' +
-        '<button class="x" data-action="remove-payment" data-id="' + p.id + '" aria-label="Slet indbetaling">' + IC.x + '</button></div>' });
+        '<button class="x" data-action="remove-payment" data-id="' + esc(p.id) + '" aria-label="Slet indbetaling">' + IC.x + '</button></div>' });
     });
     events.sort(function (a, b) { return b.ts - a.ts; });
 
@@ -1171,13 +1203,13 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
         ? '<div class="note">Favoritsynd: ' + topType.count + '× »' + esc((findFineType(topType.typeId) || {}).category || '?') + '«</div>'
         : '') +
       '<div class="btn-row">' +
-      '<button class="btn" data-action="pay-form" data-id="' + m.id + '">Registrer indbetaling</button>' +
-      '<button class="btn secondary" data-action="rename-member" data-id="' + m.id + '">Omdøb</button>' +
+      '<button class="btn" data-action="pay-form" data-id="' + esc(m.id) + '">Registrer indbetaling</button>' +
+      '<button class="btn secondary" data-action="rename-member" data-id="' + esc(m.id) + '">Omdøb</button>' +
       (m.active
-        ? '<button class="btn danger" data-action="retire-member" data-id="' + m.id + '">Udmeld</button>'
-        : '<button class="btn secondary" data-action="revive-member" data-id="' + m.id + '">Genindmeld</button>') +
+        ? '<button class="btn danger" data-action="retire-member" data-id="' + esc(m.id) + '">Udmeld</button>'
+        : '<button class="btn secondary" data-action="revive-member" data-id="' + esc(m.id) + '">Genindmeld</button>') +
       '</div>' +
-      '<div class="btn-row"><button class="btn secondary" data-action="toggle-formand" data-id="' + m.id + '">' +
+      '<div class="btn-row"><button class="btn secondary" data-action="toggle-formand" data-id="' + esc(m.id) + '">' +
       (state.formandId === m.id ? 'Fjern som formand' : IC.crown + ' Gør til formand') + '</button></div>' +
       '<div class="section-title"><h2>Historik</h2><div class="hint">' + events.length + ' posteringer</div></div>' +
       '<div class="hist">' + (events.map(function (e) { return e.html; }).join('') || '<div class="note">Ingen posteringer endnu.</div>') + '</div>';
@@ -1197,7 +1229,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       '<input id="pay-date" type="date" value="' + todayISO() + '">' +
       '<label for="pay-note">Note (valgfri)</label>' +
       '<input id="pay-note" type="text" placeholder="fx MobilePay">' +
-      '<div class="btn-row"><button class="btn" data-action="pay-save" data-id="' + m.id + '">Registrer indbetaling</button></div>' +
+      '<div class="btn-row"><button class="btn" data-action="pay-save" data-id="' + esc(m.id) + '">Registrer indbetaling</button></div>' +
       (bal > 0 ? '<div class="note">Udfyldt med hele gælden (' + kr(bal) + ') — ret beløbet ved delvis indbetaling.</div>' : '');
     openModal('Indbetaling', body, esc(m.name) + ' · gæld ' + kr(Math.max(0, bal)));
   }
@@ -1235,7 +1267,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       '<textarea id="meet-desc" rows="3" placeholder="Dagsorden, indlægsholder, sted …">' + esc(m.description) + '</textarea>' +
       '<label for="meet-links">Links (ét pr. linje)</label>' +
       '<textarea id="meet-links" rows="3" placeholder="Referat: https://…&#10;Slides: https://…">' + esc(m.links) + '</textarea>' +
-      '<div class="btn-row"><button class="btn" data-action="meeting-save" data-id="' + m.id + '">Gem møde</button></div>' +
+      '<div class="btn-row"><button class="btn" data-action="meeting-save" data-id="' + esc(m.id) + '">Gem møde</button></div>' +
       '<div class="note">Skriv evt. en etiket før linket, fx &raquo;Referat: https://…&laquo;</div>';
     openModal('Rediger møde', body, esc(meetingYearLabel(m)));
   }
@@ -1249,8 +1281,8 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       '<textarea id="ft-desc" rows="2" placeholder="Hvornår gives bøden?">' + (t ? esc(t.description) : '') + '</textarea>' +
       '<label for="ft-amount">Beløb (kr.)</label>' +
       '<input id="ft-amount" type="number" inputmode="numeric" min="1" step="1" value="' + (t ? t.amount : 50) + '">' +
-      '<div class="btn-row"><button class="btn" data-action="finetype-save" data-id="' + (t ? t.id : '') + '">Gem takst</button>' +
-      (t ? '<button class="btn danger" data-action="finetype-remove" data-id="' + t.id + '">Fjern</button>' : '') +
+      '<div class="btn-row"><button class="btn" data-action="finetype-save" data-id="' + (t ? esc(t.id) : '') + '">Gem takst</button>' +
+      (t ? '<button class="btn danger" data-action="finetype-remove" data-id="' + esc(t.id) + '">Fjern</button>' : '') +
       '</div>' +
       (t ? '<div class="note">At fjerne taksten sletter ikke allerede givne bøder.</div>' : '');
     openModal(t ? 'Rediger takst' : 'Ny takst', body);
@@ -1316,7 +1348,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       if (!m) return;
       var title = val('meet-title').trim();
       if (title) m.title = title;
-      m.date = val('meet-date') || m.date;
+      m.date = val('meet-date');
       m.description = val('meet-desc').trim();
       m.links = val('meet-links').trim();
       closeModal();
@@ -1365,7 +1397,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
       var amount = num('sp-amount');
       var m = findMember(pickerMemberId);
       var meet = findMeeting(view.meetingId);
-      if (!m || !meet || amount <= 0) return;
+      if (!m || !meet || meet.closedAt || amount <= 0) return;
       state.fines.push({ id: uid(), meetingId: meet.id, memberId: m.id, fineTypeId: null, label: label, amount: amount, ts: Date.now() });
       commitQuiet();
       toast(m.name + ': ' + label + ' · ' + kr(amount));
@@ -1388,7 +1420,11 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
     },
     'retire-member': function (el) {
       var m = findMember(el.getAttribute('data-id'));
-      if (m) { m.active = false; closeModal(); commit(); }
+      if (!m) return;
+      m.active = false;
+      if (state.formandId === m.id) { state.formandId = null; toast(m.name + ' udmeldt — klubben mangler en formand'); }
+      closeModal();
+      commit();
     },
     'revive-member': function (el) {
       var m = findMember(el.getAttribute('data-id'));
@@ -1474,7 +1510,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
         reader.onload = function () {
           try {
             var s = JSON.parse(String(reader.result));
-            if (!s || (s.version !== 1 && s.version !== 2) || !Array.isArray(s.members)) throw new Error('bad');
+            if (!s || typeof s.version !== 'number' || s.version < 1 || s.version > 3 || !Array.isArray(s.members)) throw new Error('bad');
             if (!window.confirm('Erstat alle nuværende data med det importerede?')) return;
             state = migrate(s);
             view = { name: 'liga' };
@@ -1535,8 +1571,11 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
     if (e.key === 'Enter' && document.querySelector('.modal-root')) {
       var tag = (e.target.tagName || '').toLowerCase();
       if (tag === 'input') {
-        var primary = document.querySelector('.modal-root .btn-row .btn:not(.secondary):not(.danger)');
-        if (primary) { e.preventDefault(); primary.click(); }
+        // I "Nyt medlem" er Enter = "Tilføj og fortsæt", så hele klubben kan tastes ind i ét stræk
+        var target = e.target.id === 'mem-name'
+          ? document.querySelector('.modal-root [data-action="member-save-more"]')
+          : document.querySelector('.modal-root .btn-row .btn:not(.secondary):not(.danger)');
+        if (target) { e.preventDefault(); target.click(); }
       }
     }
   });

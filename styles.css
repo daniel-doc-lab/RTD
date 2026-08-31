@@ -124,7 +124,9 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
 .lb-row.rank-2 .rank { color: var(--silver); }
 .lb-row.rank-3 .rank { color: var(--bronze); }
 .lb-row .who { flex-grow: 1; padding-left: 6px; min-width: 0; }
-.lb-row .who .name { font-family: var(--display); font-size: 19px; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-row .who .name { font-family: var(--display); font-size: 19px; letter-spacing: 0.04em; text-transform: uppercase; display: flex; align-items: center; min-width: 0; }
+.lb-row .who .name .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-row .who .name .crown, .lb-row .who .name .zaps, .lb-row .who .name .flames { flex-shrink: 0; }
 .lb-row .who .sub { font-size: 13px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px; }
 .lb-row .count { width: 52px; text-align: center; font-size: 17px; color: var(--muted); flex-shrink: 0; }
 .lb-row .sum { width: 76px; text-align: right; font-family: var(--display); font-size: 21px; flex-shrink: 0; }
@@ -274,6 +276,43 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
   pointer-events: none; white-space: nowrap;
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* Krone, streaks og dyre bøder */
+.crown { display: inline-flex; vertical-align: -2px; margin-left: 4px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+.zaps { display: inline-flex; gap: 1px; margin-left: 6px; color: #ff5d5d; vertical-align: -1px; }
+.flames { display: inline-flex; gap: 1px; margin-left: 6px; color: #ff8a3d; vertical-align: -1px; }
+@media (max-width: 480px) {
+  .colhead .c-count, .lb-row .count { display: none; }
+  .lb-row .who .name { font-size: 18px; }
+}
+.amount.amt-mid, .amt.amt-mid { color: #ff9f43; }
+.amount.amt-hot, .amt.amt-hot { color: #ff5d5d; }
+.amount.amt-hot svg, .amt.amt-hot svg { vertical-align: -1px; margin-right: 3px; }
+.fine-btn.hot { border-color: rgba(255,93,93,0.45); background: linear-gradient(160deg, #241a20 0%, var(--card) 60%); }
+.fine-btn.hot:hover { border-color: rgba(255,93,93,0.8); }
+
+.streak-panel { background: var(--card); border-left: 6px solid #ff8a3d; border-radius: 4px; padding: 12px 14px; margin: 0 0 18px; }
+.streak-head { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-size: 17px; letter-spacing: 0.06em; text-transform: uppercase; color: #ff8a3d; margin-bottom: 4px; }
+.streak-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; border-top: 1px solid var(--line-soft); padding: 8px 0; }
+.streak-row:first-of-type { border-top: none; }
+.streak-row .flames { margin-left: 0; }
+.streak-row .mult { font-family: var(--display); font-size: 19px; color: #ff8a3d; min-width: 34px; }
+.streak-row .grow { flex-grow: 1; min-width: 0; text-align: left; }
+.streak-row .t { font-size: 16px; font-weight: 600; }
+.streak-row .s { font-size: 13px; color: var(--muted); }
+.streak-row .tag { font-family: var(--display); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bg); background: #ff8a3d; border-radius: 3px; padding: 4px 8px; }
+.streak-row:hover .t { color: #ff8a3d; }
+.streak-strip { display: flex; align-items: center; gap: 8px; background: linear-gradient(90deg, rgba(255,138,61,0.16), transparent); border-left: 4px solid #ff8a3d; border-radius: 4px; padding: 10px 12px; margin-top: 12px; font-weight: 600; }
+.streak-strip .flames { margin-left: 0; }
+
+/* Mødeinfo (beskrivelse + links) */
+.info-card { background: var(--card); border-radius: 6px; padding: 14px; margin-bottom: 16px; }
+.info-card .desc { font-size: 16px; color: var(--text); white-space: pre-line; line-height: 1.45; }
+.link-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.link-line { display: flex; align-items: center; gap: 8px; min-height: 40px; color: var(--muted); }
+.link-line a { color: var(--amber); font-weight: 600; text-decoration: none; border-bottom: 1px solid rgba(251,191,36,0.35); }
+.link-line a:hover { border-bottom-color: var(--amber); }
+.badge.next { border-color: var(--amber); color: var(--amber); }
 
 .note { font-size: 14px; color: var(--faint); margin-top: 10px; line-height: 1.4; }
 .divider { border: none; border-top: 1px solid var(--line); margin: 20px 0; }

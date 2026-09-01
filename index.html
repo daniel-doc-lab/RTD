@@ -11,8 +11,12 @@
 <script type="application/json" id="rtd-state"></script>
 <div class="layout">
   <header class="appbar">
-    <div class="brand" id="brand-name">RTD Bødeligaen<small>Klubbens bødekasse</small></div>
+    <div class="brand" id="brand-name"><span class="bn">RTD</span><span class="bn-suffix"> Bødeligaen</span><small>Klubbens bødekasse</small></div>
     <div class="tools">
+      <button class="iconbtn" data-action="search" aria-label="Søg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg>
+      </button>
+      <span id="undo-wrap"></span>
       <span id="save-wrap"></span>
       <button class="iconbtn" data-action="settings" aria-label="Indstillinger">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.2 3h-4L9.4 5.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.4 2.7h4l.4-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"></path></svg>

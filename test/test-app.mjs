@@ -156,11 +156,16 @@ await page.waitForSelector('.modal-root', { state: 'detached' });
 if (await page.locator('.row:has-text("Testperson")').count() !== 1) fail('medlem ikke tilføjet');
 await page.click('.row:has-text("Testperson")');
 await page.click('[data-action="retire-member"]');
+if (await page.locator('.row:has-text("Testperson")').count() !== 0) fail('udgået medlem vises stadig under Aktive');
+await page.click('[data-action="member-filter"][data-key="udgaaede"]');
 if (await page.locator('.row.inactive:has-text("Testperson")').count() !== 1) fail('udmeldelse virker ikke');
+if (!(await page.locator('.row:has-text("Testperson") .s').textContent()).includes('Med i')) fail('udgået medlem viser ikke sine klubår');
 await page.click('.row:has-text("Testperson")');
 await page.click('[data-action="revive-member"]');
+await page.click('[data-action="member-filter"][data-key="aktive"]');
 if (await page.locator('.row.inactive').count() !== 0) fail('genindmeldelse virker ikke');
-ok('medlems-CRUD virker');
+if (await page.locator('.row:has-text("Testperson")').count() !== 1) fail('genindmeldt medlem mangler');
+ok('medlems-CRUD + filtre virker');
 
 // 12) Nyt klubår 2026/27
 await page.click('[data-tab="aar"]');
@@ -275,13 +280,129 @@ ok('afbudsforslag virker');
 // 22) Historikfilter i medlemsprofil
 await page.click('[data-tab="liga"]');
 await page.click('.lb-row:has-text("Martin")');
-await page.waitForSelector('.chips.small');
-await page.locator('.chips.small .chip:has-text("2025/26")').click();
-await page.waitForSelector('.chips.small .chip.active:has-text("2025/26")');
+await page.waitForSelector('.hist-chips');
+await page.locator('.hist-chips .chip:has-text("2025/26")').click();
+await page.waitForSelector('.hist-chips .chip.active:has-text("2025/26")');
 const hist = await page.locator('.hist').textContent();
 if (!hist.includes('Møde')) fail('historikfilter: ingen poster for 2025/26');
 await page.click('.sheet-close');
 ok('historikfilter virker');
+
+// 23) Bulk-bøde: én takst til flere medlemmer på én gang
+await page.click('[data-tab="aar"]');
+await page.click('.row:has-text("2026/27")');
+await page.click('.row:has-text("Møde 2")');
+await page.waitForSelector('.member-grid');
+const beforeBulk = await page.locator('.log-item').count();
+await page.click('[data-action="bulk-open"]');
+await page.waitForSelector('.fine-grid.compact');
+await page.click('.fine-btn:has-text("Nål")');
+await page.waitForSelector('.bulk-grid');
+if (!(await page.locator('.bulk-picked').textContent()).includes('Nål')) fail('bulk: valgt takst vises ikke');
+await page.click('[data-action="bulk-all"]');
+const picked = await page.locator('.bulk-cell.on').count();
+if (picked < 5) fail('bulk: for få valgte medlemmer, ' + picked);
+await page.click('[data-action="bulk-save"]');
+await page.waitForSelector('.modal-root', { state: 'detached' });
+const afterBulk = await page.locator('.log-item').count();
+if (afterBulk !== beforeBulk + picked) fail('bulk-bøde gav ' + (afterBulk - beforeBulk) + ' bøder, ventede ' + picked);
+ok('bulk-bøde virker');
+
+// 24) Fortryd og gendan
+await page.click('[data-action="undo"]');
+if (await page.locator('.log-item').count() !== beforeBulk) fail('fortryd rullede ikke bulk-bøden tilbage');
+// Gendan-knappen viger på telefon — tastaturgenvejen skal virke
+await page.keyboard.press('Control+Shift+Z');
+await page.waitForTimeout(80);
+if (await page.locator('.log-item').count() !== afterBulk) fail('gendan (Ctrl+Shift+Z) virker ikke');
+await page.keyboard.press('Control+z');
+await page.waitForTimeout(80);
+if (await page.locator('.log-item').count() !== beforeBulk) fail('anden fortryd virker ikke');
+ok('fortryd og gendan virker');
+
+// 25) Søg og spring til
+await page.click('[data-action="search"]');
+await page.fill('#search-q', 'Miki');
+await page.waitForSelector('.search-results .row');
+await page.click('.search-results .row:has-text("Miki")');
+await page.waitForSelector('.sheet-head:has-text("Miki")');
+await page.click('.sheet-close');
+ok('søgning springer til medlem');
+
+// 26) Udgift fra kassen trækkes fra beholdningen
+await page.click('[data-tab="statistik"]');
+await page.waitForSelector('.chart-card:has(.cash-row)');
+const potBefore = await page.locator('.cash-row.total b').textContent();
+await page.click('[data-action="expense-form"]');
+await page.fill('#exp-note', 'Klubtur');
+await page.fill('#exp-amount', '200');
+await page.click('[data-action="expense-save"]');
+await page.waitForSelector('.modal-root', { state: 'detached' });
+const potAfter = await page.locator('.cash-row.total b').textContent();
+if (potBefore === potAfter) fail('udgift ændrede ikke kassebeholdningen: ' + potBefore);
+if (!(await page.locator('.chart-card:has(.cash-row)').textContent()).includes('Klubtur')) fail('udgiftspost mangler i kassen');
+if (await page.locator('.chart-card:has-text("Betalingsdisciplin")').count() !== 1) fail('betalingsdisciplin-kort mangler');
+ok('udgifter og betalingsdisciplin virker');
+
+// 27) Regelark under Takster
+await page.click('[data-tab="takster"]');
+await page.waitForSelector('.rules-card');
+await page.click('[data-action="rules-edit"]');
+await page.fill('#rules-text', 'Bøden betales samme aften.\nFormanden har altid ret.');
+await page.click('[data-action="rules-save"]');
+await page.waitForSelector('.modal-root', { state: 'detached' });
+if (!(await page.locator('.rules-card').textContent()).includes('Formanden har altid ret')) fail('regelark ikke gemt');
+if (await page.locator('.rules-card .rules-list li').count() !== 2) fail('regelark: forkert antal regler');
+ok('regelark virker');
+
+// 28) Årsopgørelse ved sæsonskifte: gæld kan afskrives
+await page.click('[data-tab="aar"]');
+await page.click('.row:has-text("2025/26")');
+await page.click('[data-action="season-close"]');
+await page.waitForSelector('.sheet-head:has-text("Sæsonen 2025/26 er slut")');
+await page.click('[data-action="settle-open"]');
+await page.waitForSelector('.sheet-head:has-text("Årsopgørelse")');
+const owing = await page.locator('[data-action="settle-writeoff"]').count();
+if (owing < 1) fail('årsopgørelse: ingen med gæld');
+await page.locator('[data-action="settle-writeoff"]').first().click();
+await page.waitForSelector('.sheet-head:has-text("Årsopgørelse")');
+if (await page.locator('[data-action="settle-writeoff"]').count() !== owing - 1) fail('afskrivning nulstillede ikke gælden');
+await page.click('.sheet-close');
+await page.click('[data-action="season-reopen"]');
+ok('årsopgørelse med afskrivning virker');
+
+// 29) Prospects: eget ikon og eget filter
+await page.click('[data-tab="medlemmer"]');
+await page.click('.row:has-text("Testperson")');
+await page.click('[data-action="toggle-prospect"]');
+await page.waitForSelector('.sheet-head:has-text("Testperson")');
+await page.click('.sheet-close');
+await page.click('[data-action="member-filter"][data-key="prospects"]');
+if (await page.locator('.row:has-text("Testperson")').count() !== 1) fail('prospect-filter virker ikke');
+if (await page.locator('.row .sprout').count() !== 1) fail('prospect-ikon mangler');
+await page.click('[data-action="member-filter"][data-key="aktive"]');
+if (await page.locator('.row:has-text("Testperson")').count() !== 0) fail('prospect vises stadig under Aktive');
+ok('prospects virker');
+
+// 30) Medlemskab pr. klubår: slå et år fra uden at miste regnskabet
+await page.click('[data-action="member-filter"][data-key="alle"]');
+await page.click('.row:has-text("Martin Mollerup")');
+await page.waitForSelector('.year-chips');
+const yearsOn = await page.locator('.year-chips .chip.active').count();
+await page.locator('.year-chips .chip:has-text("2026/27")').click();
+await page.waitForSelector('.year-chips');
+if (await page.locator('.year-chips .chip.active').count() !== yearsOn - 1) fail('klubår kunne ikke slås fra');
+await page.click('.sheet-close');
+await page.click('[data-tab="aar"]');
+await page.click('.row:has-text("2026/27")');
+await page.click('.row:has-text("Møde 3")');
+await page.waitForSelector('.member-grid');
+if (await page.locator('.member-cell:has-text("Martin Mollerup")').count() !== 0) fail('medlem uden for klubåret står stadig på mødetavlen');
+if (await page.locator('.member-cell:has-text("Miki")').count() !== 1) fail('øvrige medlemmer forsvandt fra mødetavlen');
+await page.click('[data-tab="liga"]');
+await page.waitForSelector('.lb-row');
+if (await page.locator('.lb-row:has-text("Martin Mollerup")').count() !== 1) fail('medlem forsvandt fra ligaen');
+ok('medlemskab pr. klubår virker');
 
 // 15) Desktop-visning
 await page.setViewportSize({ width: 1440, height: 900 });

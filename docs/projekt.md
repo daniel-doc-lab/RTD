@@ -37,12 +37,17 @@ state = {
   meetings:  [{ id, clubYearId, number, title, date, description, links, closedAt }],
   fines:     [{ id, meetingId, memberId, fineTypeId|null, label|null, amount, ts }],
   payments:  [{ id, memberId, amount, date, note, ts }],
+  expenses:  [{ id, amount, date, note, ts }],              // v5: udgifter afholdt af kassen
+  writeoffs: [{ id, memberId, clubYearId, amount, date, ts }], // v5: gæld afskrevet ved årsopgørelsen
+  rules:     "…",                     // v5: regelark, én regel pr. linje
   audit:     [{ ts, text }],          // revisionslog, nyeste først, maks 800
   trash:     [{ id, kind, deletedAt, ... }]  // møder/medlemmer, ryddes efter 30 dage
 }
 ```
 
-Regler: saldo = bøder − indbetalinger pr. medlem; "afholdt møde" = har bøder eller er afsluttet; streaks tælles bagfra over afholdte møder (åbne møder bryder ikke); `migrate()` løfter v1→v4 og `normalize()` reparerer manglende felter, så gamle backups og delt state altid kan indlæses.
+Medlemmer har fra v5 `prospect: bool` og `years: [clubYearId]`. Medlemskab er altså pr. klubår: et medlem kan være med i nogle år og ikke i andre, og bøder fra fravalgte år bliver stående i regnskabet. Mødetavlen viser årets aktive medlemmer plus enhver, der allerede har fået bøde i mødet.
+
+Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeholdning = indbetalinger − udgifter; "afholdt møde" = har bøder eller er afsluttet; streaks tælles bagfra over afholdte møder (åbne møder bryder ikke); `migrate()` løfter v1→v5 og `normalize()` reparerer manglende felter, så gamle backups og delt state altid kan indlæses.
 
 ## Status: implementeret
 
@@ -55,14 +60,28 @@ Regler: saldo = bøder − indbetalinger pr. medlem; "afholdt møde" = har bøde
 - Statistik pr. klubår: søjler (bøder pr. møde), kurve (kassebeholdning), top bødetyper, sæsonrekorder, årssammenligning.
 - Kassererrapport (print/PDF/fil), afbudsforslag, visningstilstand, papirkurv, revisionslog, JSON-eksport/-import.
 - Visuel Pakke A (mikrointeraktioner) + Pakke B (atmosfære) fra `docs/visuelt-oplaeg.md`.
-- Ende-til-ende testsuite (`test/test-app.mjs`, 25 tjek) — alle grønne.
+- Ende-til-ende testsuite (`test/test-app.mjs`) — alle grønne.
 - To QA-gennemgange med rettelser (se git-historikken for detaljer).
+
+### Runde 5 (1. sep. 2026)
+
+- **Bulk-bøde**: vælg takst, vælg medlemmer, giv bøden til alle på én gang.
+- **Fortryd-stak**: undo/redo over de seneste 20 dataændringer, knapper i toppen + Ctrl/Cmd+Z og Ctrl+Shift+Z. Snapshots tages centralt i `runAction()` og lever kun i hukommelsen.
+- **Søg og spring til**: ét søgefelt på tværs af medlemmer, møder og takster.
+- **Kassen**: udgiftsposter trækkes fra beholdningen; ind/ud/beholdning og udgiftsliste på statistiksiden, med i kassererrapporten, og kurven "kassebeholdning over tid" tæller nu både ind og ud.
+- **Betalingsdisciplin**: gennemsnitlige dage fra bøde til betaling pr. medlem (FIFO-fordeling af indbetalinger), plus rekorden "hurtigste betaler".
+- **Regelark**: klubbens bødevedtægter under Takster, redigerbare og med i kassererrapporten.
+- **Årsopgørelse**: ved sæsonafslutning kan restgæld pr. medlem afskrives eller overføres til næste klubår.
+- **Medlemskab pr. klubår** + medlemsfiltre (Aktive som udgangspunkt, Prospects, Udgåede med årstal, Skylder, Alle).
+- **Prospects**: egen status og eget spire-ikon ved siden af formandens krone.
+- **Delevejledning** i indstillinger: hvordan ligaen deles med kun læseadgang.
 
 ## Udestående / kendte begrænsninger
 
 - Telefonens tilbage-knap lukker ikke dialoger (history-håndtering ikke implementeret).
 - Delt gem er "sidste skriver vinder" — fint med én bødemester, ikke bygget til samtidig redigering.
-- Uimplementerede idéer: se `docs/feature-ideer.md` (bl.a. MobilePay-genvej, rykkerbesked, PWA, fremmøderegistrering) og Pakke C i `docs/visuelt-oplaeg.md`.
+- Uimplementerede idéer: se `docs/feature-ideer.md` (bl.a. MobilePay-genvej, rykkerbesked, PWA, fremmøderegistrering, mødeskabelon, flettende import) og `docs/visuelle-ideer.md` runde 3.
+- Fortryd-stakken lever kun i hukommelsen: den nulstilles ved genindlæsning af siden.
 
 ## Sådan arbejder du videre (ny computer / ny sæson)
 

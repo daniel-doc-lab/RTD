@@ -553,7 +553,12 @@ table.cmp td:nth-child(3), table.cmp td:nth-child(4) { font-family: var(--displa
   }
   .tab { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 0 12px; min-height: 48px; font-size: 15px; flex-grow: 0; flex-basis: auto; }
   .tab.active { background: var(--card); }
-  .appbar .tools { position: fixed; left: 20px; bottom: 20px; }
+  /* Værktøjerne stables nederst i sidebaren: ikonrække + gem-knap under */
+  .appbar .tools {
+    position: fixed; left: 12px; bottom: 58px; width: 196px;
+    flex-wrap: wrap; gap: 2px; align-items: center;
+  }
+  .appbar .tools #save-wrap { flex-basis: 100%; padding-left: 8px; }
   .content { margin-left: 220px; width: calc(100% - 220px); max-width: none; padding: 32px 40px 130px; }
   .bottombar {
     position: fixed; left: 220px; right: 0; bottom: 0; margin-top: 0;
@@ -784,7 +789,131 @@ body { overflow-x: clip; max-width: 100%; }
 @media (min-width: 900px) {
   /* På desktop bor menuen i sidebaren — krediteringen sidder nederst til venstre der */
   .credit {
-    position: fixed; left: 20px; bottom: 72px; z-index: 21;
+    position: fixed; left: 20px; bottom: 20px; z-index: 21;
     background: none; padding: 0; max-width: 180px; line-height: 1.35;
   }
+}
+
+/* ============ Prospects, udgåede medlemmer og filtre ============ */
+.sprout { display: inline-flex; vertical-align: -2px; margin-left: 4px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+.lb-row .who .name .sprout { flex-shrink: 0; }
+.tag-gone {
+  display: inline-block; vertical-align: 1px; margin-left: 6px;
+  background: var(--card-raised); color: var(--faint);
+  border-radius: 4px; padding: 2px 7px; font-size: 11px;
+  font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.tag-ok { font-family: var(--display); font-size: 16px; color: var(--faint); white-space: nowrap; }
+.row.inactive .t { color: var(--muted); }
+.member-cell.gone { border-style: dashed; }
+.chip-n {
+  margin-left: 7px; background: rgba(255,255,255,0.09); color: inherit;
+  border-radius: 999px; padding: 1px 7px; font-size: 12px; font-weight: 700;
+}
+.chip.active .chip-n { background: rgba(0,0,0,0.18); }
+.chip.year-chip.active { background: var(--yc); border-color: var(--yc); }
+.chip[disabled] { opacity: 0.6; }
+
+/* ============ Kassen: ind, ud og beholdning ============ */
+.cash-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 7px 0; font-size: 15px; color: var(--muted);
+}
+.cash-row b { font-family: var(--display); font-size: 19px; color: var(--text); }
+.cash-row b.green { color: var(--green); }
+.cash-row .out, .amount.out { color: var(--red); }
+.cash-row.total { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 10px; color: var(--text); }
+.cash-row.total b { font-size: 23px; color: var(--amber); }
+.cash-row.total b.out { color: var(--red); }
+.rank-mini {
+  width: 34px; height: 34px; border-radius: 8px; background: var(--card-raised);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-family: var(--display); font-size: 15px; color: var(--faint);
+}
+
+/* ============ Regelark ============ */
+.chart-title { display: flex; align-items: center; gap: 8px; }
+.chart-title .chart-sub { margin-left: auto; }
+.chart-title .btn.small { margin-left: auto; }
+.chart-title svg { color: var(--amber); flex-shrink: 0; }
+.rules-list { margin: 4px 0 0; padding-left: 22px; color: var(--muted); font-size: 15px; }
+.rules-list li { margin-bottom: 7px; line-height: 1.4; }
+.rules-list li::marker { color: var(--amber); font-family: var(--display); }
+
+/* ============ Bulk-bøde ============ */
+.bulk-step {
+  display: flex; align-items: center; gap: 9px; margin: 18px 0 9px;
+  font-family: var(--display); font-size: 16px; letter-spacing: 0.05em; text-transform: uppercase;
+}
+.bulk-step:first-child { margin-top: 4px; }
+.bulk-step .n {
+  width: 24px; height: 24px; border-radius: 999px; background: var(--amber); color: var(--bg);
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.bulk-step .btn.small { margin-left: auto; }
+.fine-grid.compact .fine-btn { min-height: 84px; padding: 9px; }
+.bulk-picked {
+  display: flex; align-items: center; gap: 11px; margin: 4px 0 2px;
+  background: linear-gradient(160deg, #2a2415, var(--card));
+  border: 1px solid rgba(251,191,36,0.4); border-radius: 8px; padding: 11px 12px;
+}
+.bulk-picked .grow { flex-grow: 1; min-width: 0; }
+.bulk-picked .t { font-family: var(--display); font-size: 18px; letter-spacing: 0.03em; text-transform: uppercase; }
+.bulk-picked .s { font-size: 14px; color: var(--amber); }
+.fine-btn.picked { border-color: var(--amber); background: linear-gradient(160deg, #2a2415, var(--card)); }
+.bulk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.bulk-cell {
+  display: flex; align-items: center; gap: 9px; min-height: 52px; padding: 0 11px;
+  background: var(--card); border: 1px solid var(--card-raised); border-radius: 6px;
+}
+.bulk-cell .nm { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bulk-cell .box {
+  width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0;
+  border: 2px solid var(--card-raised); display: flex; align-items: center; justify-content: center;
+}
+.bulk-cell.on { border-color: var(--amber); background: linear-gradient(160deg, #2a2415, var(--card)); }
+.bulk-cell.on .box { background: var(--amber); border-color: var(--amber); color: var(--bg); }
+
+/* ============ Søgning ============ */
+.search-results { margin-top: 14px; max-height: 52vh; overflow-y: auto; }
+.search-results .row { width: 100%; }
+
+/* ============ Deling med medlemmerne ============ */
+.share-help { background: var(--card); border-radius: 6px; padding: 13px 15px; }
+.sh-head {
+  display: flex; align-items: center; gap: 8px; color: var(--amber);
+  font-family: var(--display); font-size: 16px; letter-spacing: 0.05em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.share-help .rules-list { font-size: 14px; }
+.share-help b { color: var(--text); }
+
+/* ============ Afkrydsning i formularer ============ */
+label.check {
+  display: flex; align-items: center; gap: 10px; min-height: 48px;
+  text-transform: none; letter-spacing: 0; font-size: 16px; color: var(--text); margin: 14px 0 0;
+}
+label.check input { width: 22px; height: 22px; min-height: 22px; flex-shrink: 0; accent-color: var(--amber); padding: 0; }
+label.check span { display: flex; align-items: center; gap: 6px; }
+
+/* ============ Værktøjer i toppen ============ */
+.tools .iconbtn[disabled] { opacity: 0.32; cursor: default; }
+#undo-wrap { display: flex; }
+
+/* Gem-knappen har både en lang og en kort etiket — CSS vælger den der er plads til */
+.lbl-short { display: none; }
+
+@media (max-width: 480px) {
+  /* Plads i toppen: gendan-knappen er sjælden nok til at vige på telefon */
+  .appbar { padding: 16px 10px 10px; gap: 6px; }
+  .appbar .tools { gap: 0; }
+  .appbar .tools [data-action="redo"] { display: none; }
+  .lbl-long { display: none; }
+  .lbl-short { display: inline; }
+  #save-btn { padding: 0 10px; }
+}
+@media (max-width: 380px) {
+  /* På de smalleste skærme står klubnavnet alene i toppen */
+  .bn-suffix { display: none; }
+  .hbar-label { width: 104px; }
 }

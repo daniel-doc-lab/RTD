@@ -1248,15 +1248,6 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
 .mc-msg { margin: 0; font-size: 14px; line-height: 1.35; color: var(--text); overflow-wrap: anywhere; }
 .mc-msg.fade { animation: mc-fade 0.4s ease-out; }
 @keyframes mc-fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
-.mc-tools { display: flex; gap: 6px; margin-top: 7px; }
-.mc-btn {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--faint); border: 1px solid var(--card-raised); border-radius: 999px;
-  padding: 4px 10px; min-height: 26px;
-}
-.mc-btn:hover { color: var(--amber); border-color: var(--amber); }
-.mc-btn.ai { color: var(--amber); border-color: rgba(251,191,36,0.4); }
-.mc-btn[disabled] { opacity: 0.5; cursor: default; }
 
 /* På telefon står maskotten på forsiden, på desktop i sidebaren */
 #mascot-side { display: none; }
@@ -1308,11 +1299,4 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
   #mascot-side.tight .mc-bubble { padding: 7px 9px 6px; }
   #mascot-side.tight .mc-bubble::before { left: -6px; top: 12px; border: none; border-left: 1px solid var(--card-raised); border-bottom: 1px solid var(--card-raised); }
   #mascot-side.tight .mc-msg { font-size: 12.5px; }
-  #mascot-side.tight .mc-tools { margin-top: 5px; }
-}
-@media (min-width: 900px) {
-  /* I kompakt tilstand klippes replikken til to linjer, så den aldrig vokser ud */
-  #mascot-side.tight .mc-msg {
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-  }
 }

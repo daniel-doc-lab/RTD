@@ -466,7 +466,9 @@
       if (ns) downloadsNS = ns;
     }).catch(function () { /* ikke tilgængelig */ });
     window.claude.use('sample').then(function (ns) {
-      if (ns) { sampleNS = ns; renderMascot(); }
+      if (!ns) return;
+      sampleNS = ns;
+      setTimeout(fetchCompanionLines, 25000);
     }).catch(function () { /* ikke tilgængelig */ });
   }
 
@@ -1163,13 +1165,17 @@
 
   /* ---------- Bødemesteren: kække replikker ud fra klubbens data ---------- */
 
-  /* Replikkerne bygges af klubbens egne tal, så de altid passer på virkeligheden.
-     Kun linjer der har data bag sig kommer med i puljen. */
+  /* Replikkerne bygges af klubbens egne tal med flere formuleringer pr. fakta,
+     så puljen bliver stor nok til at man kan sidde med appen i lang tid uden
+     at se det samme to gange. Kun linjer med data bag sig kommer med. */
   function mascotLines() {
     var out = [];
     var members = activeMembers();
     var held = heldMeetings();
     var f1 = function (m) { return firstName(m.name); };
+    var add = function () {
+      for (var i = 0; i < arguments.length; i++) if (arguments[i]) out.push(arguments[i]);
+    };
 
     // Seneste afholdte møde
     var last = held[held.length - 1];
@@ -1181,39 +1187,72 @@
       var topId = null;
       Object.keys(per).forEach(function (k) { if (!topId || per[k] > per[topId]) topId = k; });
       var tm = topId && findMember(topId);
-      if (tm && per[topId] >= 3) out.push('Typisk ' + f1(tm) + ' at få ' + per[topId] + ' bøder på ét møde. Det er satme ringe.');
-      else if (tm && per[topId] === 2) out.push(f1(tm) + ' nåede to bøder i ' + last.title + '. Ambitiøst, men ikke imponerende.');
+      if (tm && per[topId] >= 3) {
+        add('Typisk ' + f1(tm) + ' at få ' + per[topId] + ' bøder på ét møde. Det er satme ringe.',
+          f1(tm) + ' tog ' + per[topId] + ' bøder på én aften. Det er ikke uheld, det er en forretningsmodel.',
+          per[topId] + ' bøder til ' + f1(tm) + ' på ét møde. Har du overvejet en anden klub?');
+      } else if (tm && per[topId] === 2) {
+        add(f1(tm) + ' nåede to bøder i ' + last.title + '. Ambitiøst. Ikke imponerende, men ambitiøst.',
+          'To bøder til ' + f1(tm) + '. Han varmer bare op.');
+      }
       var lastTotal = meetingTotal(last.id);
-      if (lastTotal > 0) out.push(last.title + ' kostede klubben ' + kr(lastTotal) + ' Nogen skulle have holdt sig hjemme.');
-      if (lastTotal === 0 && last.closedAt) out.push(last.title + ' gav ikke én bøde. Enten var I artige, eller også sov bødemesteren.');
+      if (lastTotal > 0) {
+        add(last.title + ' kostede jer ' + kr(lastTotal) + ' Nogen skulle være blevet hjemme.',
+          kr(lastTotal) + ' på ét møde. I opfører jer som om pengene er gratis.');
+      }
+      if (lastTotal === 0 && last.closedAt) {
+        add(last.title + ' gav ikke én bøde. Enten var I artige, eller også sov bødemesteren i timen.');
+      }
     }
 
-    // Gæld
+    // Gæld og kasse
     var debt = members.slice().sort(function (a, b) { return memberBalance(b.id) - memberBalance(a.id); })[0];
     if (debt && memberBalance(debt.id) > 0) {
-      out.push(f1(debt) + ' skylder ' + kr(memberBalance(debt.id)) + ' Kassereren kan hans telefonnummer udenad.');
-      out.push('Hvis ' + f1(debt) + ' betalte sin gæld, kunne vi købe øl. Bare sådan rent hypotetisk.');
+      var d = kr(memberBalance(debt.id));
+      add(f1(debt) + ' skylder ' + d + ' Jeg har set kviklån med bedre moral.',
+        f1(debt) + ' skylder ' + d + ' Kassereren sover dårligt, og det er ikke kaffens skyld.',
+        'Hvis ' + f1(debt) + ' betalte sine ' + d + ', kunne vi holde fest. Nu bliver det filterkaffe.',
+        f1(debt) + ' har ' + d + ' udestående. På et tidspunkt hedder det ikke glemsomhed længere.');
     }
     var tot = outstandingTotal();
-    if (tot > 0) out.push('Der mangler ' + kr(tot) + ' i kassen. Det er ikke pengene, det er princippet. Okay, det er også pengene.');
-    if (potTotal() > 0) out.push('Kassen står på ' + kr(potTotal()) + ' Prøv at lade være med at bruge dem på flere bøder.');
+    if (tot > 0) {
+      add('Der mangler ' + kr(tot) + ' i kassen. Jeg nævner ingen navne. Jeg kigger bare.',
+        kr(tot) + ' udestående. Det er ikke pengene, det er princippet. Okay, det er også pengene.');
+    }
+    if (potTotal() > 0) {
+      add('Kassen står på ' + kr(potTotal()) + ' Det er ikke opsparing, det er jeres dårlige opførsel i tal.',
+        kr(potTotal()) + ' i kassen. Tak for bidraget, I har været flittige.');
+    }
+    if (expenseTotal() > 0) add('I har brugt ' + kr(expenseTotal()) + ' af kassen. Håber det var det værd.');
 
-    // Streaks
+    // Streaks og vaner
     members.forEach(function (m) {
       var st = memberMeetingStreak(m.id);
-      if (st >= 3) out.push(f1(m) + ' har bøde i ' + st + ' møder i træk. Det er ikke uheld længere, det er en livsstil.');
-      else if (st === 2) out.push(f1(m) + ' er oppe på to møder i træk. Hattrick lurer.');
+      if (st >= 3) {
+        add(f1(m) + ' har bøde i ' + st + ' møder i træk. Det er ikke uheld længere, det er en livsstil.',
+          st + ' møder i træk med bøde til ' + f1(m) + '. Han er holdt op med at prøve.');
+      } else if (st === 2) {
+        add(f1(m) + ' er oppe på to i træk. Hattrick lurer, og han ved det godt.');
+      }
       var cl = memberCleanStreak(m.id);
-      if (cl >= 3) out.push(f1(m) + ' har været bødefri i ' + cl + ' møder. Mistænkeligt. Holder han overhovedet med os?');
+      if (cl >= 3) {
+        add(f1(m) + ' har været bødefri i ' + cl + ' møder. Enten et bedre menneske — eller også er han holdt op med at komme.',
+          cl + ' møder uden en bøde til ' + f1(m) + '. Mistænkeligt pænt. Jeg holder øje.');
+      }
       var hot = memberHotFineCount(m.id);
-      if (hot >= 2) out.push(f1(m) + ' har taget ' + hot + ' dyre bøder. Han køber vist abonnement.');
+      if (hot >= 2) {
+        add(f1(m) + ' har taget ' + hot + ' dyre bøder. Han køber vist abonnement.',
+          hot + ' store bøder til ' + f1(m) + '. Det må være en principsag.');
+      }
       var top = memberTopType(m.id);
       if (top && top.count >= 3) {
         var t = findFineType(top.typeId);
-        if (t) out.push(f1(m) + ' har fået »' + t.category + '« ' + top.count + ' gange. På et tidspunkt må man kalde det en hobby.');
+        if (t) add(f1(m) + ' har fået »' + t.category + '« ' + top.count + ' gange. På et tidspunkt er det en hobby.',
+          top.count + '× »' + t.category + '« til ' + f1(m) + '. Han har fundet sin niche.');
       }
       if (memberFineCount(m.id) === 0 && held.length >= 2) {
-        out.push(f1(m) + ' har ikke fået én eneste bøde. Enten et forbillede — eller også er han aldrig dukket op.');
+        add(f1(m) + ' har ikke fået én eneste bøde. Enten et forbillede — eller også har ingen opdaget, han er med.',
+          'Nul bøder til ' + f1(m) + '. Det er enten disciplin eller fravær. Jeg har min mistanke.');
       }
     });
 
@@ -1221,82 +1260,119 @@
     var fm = state.formandId && findMember(state.formandId);
     if (fm) {
       var fc = memberFineCount(fm.id);
-      if (fc > 0) out.push('Formand ' + f1(fm) + ' har selv ' + fc + ' bøder. Kronen sidder løst.');
-      else out.push('Formand ' + f1(fm) + ' er helt ren. Enten er han dygtig, eller også tør ingen give ham en bøde.');
+      if (fc > 0) {
+        add('Formand ' + f1(fm) + ' har selv ' + fc + ' bøder. Kronen sidder løst.',
+          'Formanden har ' + fc + ' bøder. Godt han skal gå foran med et godt eksempel. Nå.');
+      } else {
+        add('Formand ' + f1(fm) + ' er helt ren. Enten dygtig — eller også tør ingen give ham en bøde.');
+      }
     }
     members.filter(function (m) { return m.prospect; }).forEach(function (m) {
       var pp = prospectProgress(m);
       if (!pp) return;
-      if (pp.klar) out.push(f1(m) + ' har klaret sine ' + pp.goal + ' møder. Velkommen til, nu koster det rigtige penge.');
-      else out.push(f1(m) + ' er prospect: ' + pp.done + ' af ' + pp.goal + ' møder. Han aner ikke, hvad der venter.');
+      if (pp.klar) add(f1(m) + ' har klaret sine ' + pp.goal + ' møder. Velkommen til, nu koster det rigtige penge.');
+      else add(f1(m) + ' er prospect: ' + pp.done + ' af ' + pp.goal + ' møder. Nyd det, mens bøderne stadig overrasker.');
     });
 
-    // Takster og betaling
+    // Takster og rekorder
     var perType = {};
-    state.fines.forEach(function (f) {
-      var k = fineLabel(f);
-      perType[k] = (perType[k] || 0) + 1;
-    });
+    state.fines.forEach(function (f) { var k = fineLabel(f); perType[k] = (perType[k] || 0) + 1; });
     var favk = null;
     Object.keys(perType).forEach(function (k) { if (!favk || perType[k] > perType[favk]) favk = k; });
-    if (favk && perType[favk] >= 3) out.push('»' + favk + '« er klubbens yndlingssynd — ' + perType[favk] + ' gange indtil videre.');
+    if (favk && perType[favk] >= 3) {
+      add('»' + favk + '« er givet ' + perType[favk] + ' gange. I er ikke en klub, I er en gentagelsesforbrydelse.',
+        'Yndlingssynden er »' + favk + '« — ' + perType[favk] + ' gange. Fantasien fejler ikke noget.');
+    }
     var big = null;
     state.fines.forEach(function (f) { if (!big || f.amount > big.amount) big = f; });
     if (big && big.amount >= HOT_FINE) {
       var bm = findMember(big.memberId);
-      if (bm) out.push('Rekorden er ' + kr(big.amount) + ' til ' + f1(bm) + ' for »' + fineLabel(big) + '«. Den står stadig.');
+      if (bm) add('Rekorden er ' + kr(big.amount) + ' til ' + f1(bm) + ' for »' + fineLabel(big) + '«. Den står stadig.',
+        kr(big.amount) + ' på én bøde. ' + f1(bm) + ' husker det stadig. Det gør jeg også.');
     }
     var fastest = null;
     members.forEach(function (m) {
       var sp = paymentSpeed(m.id);
       if (sp && (!fastest || sp.days < fastest.sp.days)) fastest = { m: m, sp: sp };
     });
-    if (fastest) out.push(f1(fastest.m) + ' betaler på ' + Math.round(fastest.sp.days) + ' dage i snit. Sådan en burde I alle sammen have været.');
+    if (fastest) add(f1(fastest.m) + ' betaler på ' + Math.round(fastest.sp.days) + ' dage i snit. Sådan en burde I alle sammen have været.');
 
-    // Altid noget at sige
-    out.push('Jeg holder øje. Det er hele mit job.');
-    out.push('Husk: en bøde er ikke en straf. Det er en donation med attitude.');
-    out.push('Klubben har afholdt ' + held.length + ' møde' + (held.length === 1 ? '' : 'r') + '. Jeg har set ting.');
-    out.push(members.length + ' medlemmer, og ikke én af jer har lært at komme til tiden.');
-    out.push('Bødekassen lyver aldrig. Det gør undskyldningerne til gengæld.');
+    // Altid noget på lager
+    add('Jeg holder øje. Det er hele mit job, og I gør det nemt.',
+      'En bøde er ikke en straf. Det er en donation med attitude.',
+      'Klubben har afholdt ' + held.length + ' møde' + (held.length === 1 ? '' : 'r') + '. Jeg har set ting.',
+      members.length + ' medlemmer, og ikke én kan møde til tiden. Imponerende konsekvent.',
+      'Bødekassen lyver aldrig. Undskyldningerne gør.',
+      'Jeg er bare en kasse. Alligevel er jeg den mest ansvarlige her.',
+      'Hver gang I siger »det var lige før«, bliver jeg lidt tungere.',
+      'I kalder det uheld. Regnskabet kalder det et mønster.',
+      'Jeg har hørt bedre undskyldninger fra en femårig.',
+      'Det er ikke mig, der giver bøderne. Jeg nyder dem bare.',
+      'Ingen af jer har nogensinde sagt »den bøde var fortjent«. Ingen.',
+      'Jeg husker alt. Det er derfor, I ikke kan lide mig.',
+      'Trafikken. Arbejdet. Bilen. Jeg har hørt dem alle sammen i år.',
+      'Der er to slags medlemmer: dem der betaler, og dem vi taler om.',
+      'I skylder ikke mig noget. I skylder hinanden en undskyldning.',
+      'Kom nu. Jeg har plads til meget mere end det her.',
+      'Det er ikke en bødekasse. Det er et arkiv over dårlige beslutninger.',
+      'Mit eneste ønske: én aften hvor ingen finder på noget.',
+      'Statistisk set gør en af jer noget dumt inden for en time.',
+      'Jeg dømmer ikke. Jeg noterer bare. Meget grundigt.',
+      'Andre klubber har vedtægter. I har mig.',
+      'Hvis god vilje var penge, ville kassen stadig være tom.');
     return out;
   }
 
   var mascotMsg = '';
-  var mascotBusy = false;
+  var mascotQueue = [];
   var mascotTimer = null;
+  var mascotMax = 0;      // 0 = ingen grænse (mobil), ellers maks. tegn der er plads til
   var aiLines = [];
+  var aiAsked = false;
+
+  /* Hvor lang en replik der er plads til i sidebarens ledige felt */
+  function mascotFit(gap, tight) {
+    var perLine = tight ? 22 : 25;
+    var avail = tight ? gap - 8 : gap - 63;
+    var lines = Math.floor((avail - 18) / 18);
+    return lines > 0 ? lines * perLine : 0;
+  }
+
+  /* Kø der spiller hele puljen igennem i tilfældig rækkefølge, før den gentager */
+  function refillQueue() {
+    var pool = mascotLines().concat(aiLines).filter(function (t) {
+      return !mascotMax || t.length <= mascotMax;
+    });
+    for (var i = pool.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+    }
+    if (pool.length > 1 && pool[0] === mascotMsg) pool.push(pool.shift());
+    mascotQueue = pool;
+  }
 
   function mascotPick() {
-    var pool = mascotLines().concat(aiLines);
-    if (!pool.length) return '';
-    for (var i = 0; i < 8; i++) {
-      var pick = pool[Math.floor(Math.random() * pool.length)];
-      if (pick !== mascotMsg) return pick;
-    }
-    return pool[0];
+    if (!mascotQueue.length) refillQueue();
+    return mascotQueue.length ? mascotQueue.shift() : '';
   }
 
   function mascotBox(cls) {
     return '<div class="mascot' + (cls ? ' ' + cls : '') + '">' + ART.buddy +
-      '<div class="mc-bubble"><p class="mc-msg">' + esc(mascotMsg) + '</p>' +
-      '<div class="mc-tools">' +
-      '<button class="mc-btn" data-action="mascot-next" aria-label="Ny bemærkning">Ny</button>' +
-      (sampleNS ? '<button class="mc-btn ai" data-action="mascot-ai"' + (mascotBusy ? ' disabled' : '') + '>' +
-        (mascotBusy ? 'Tænker …' : 'Spørg AI') + '</button>' : '') +
-      '</div></div></div>';
+      '<div class="mc-bubble"><p class="mc-msg">' + esc(mascotMsg) + '</p></div></div>';
   }
 
   /* Tegner maskotten begge steder: i sidebaren på desktop, på forsiden på mobil */
   function renderMascot() {
     if (!mascotMsg) mascotMsg = mascotPick();
+    if (mascotMax && mascotMsg.length > mascotMax) { mascotQueue = []; mascotMsg = mascotPick(); }
     var side = document.getElementById('mascot-side');
     if (side) side.innerHTML = mascotBox('side');
     var inline = document.getElementById('mascot-inline');
     if (inline) inline.innerHTML = mascotBox('inline');
+    if (reducedMotion) return;
     var msgs = document.querySelectorAll('.mc-msg');
     for (var i = 0; i < msgs.length; i++) {
-      if (!reducedMotion) { msgs[i].classList.remove('fade'); void msgs[i].offsetWidth; msgs[i].classList.add('fade'); }
+      msgs[i].classList.remove('fade'); void msgs[i].offsetWidth; msgs[i].classList.add('fade');
     }
   }
 
@@ -1307,10 +1383,11 @@
 
   function startMascot() {
     if (mascotTimer) clearInterval(mascotTimer);
-    mascotTimer = setInterval(nextMascotMsg, 18000);
+    mascotTimer = setInterval(nextMascotMsg, 14000);
   }
 
-  /* Ægte AI-replik: koster et kald og spørger brugeren om lov, så den sker kun på klik */
+  /* Én gang pr. besøg hentes en portion friske replikker fra Claude, som blandes
+     ind i rotationen. Kaldet sker først når siden har stået stille et stykke tid. */
   function clubFacts() {
     var held = heldMeetings();
     var last = held[held.length - 1];
@@ -1323,40 +1400,34 @@
           (t ? ', oftest »' + t.category + '« (' + top.count + '×)' : '') +
           (state.formandId === m.id ? ', ER FORMAND' : '') + (m.prospect ? ', er prospect' : '');
       });
-    return 'Klub: ' + state.clubName + '\\n' +
-      'Møder afholdt: ' + held.length + (last ? '. Seneste: ' + last.title + ' (' + kr(meetingTotal(last.id)) + ')' : '') + '\\n' +
-      'I kassen: ' + kr(potTotal()) + ' Udestående: ' + kr(outstandingTotal()) + '\\n' +
-      'Medlemmer:\\n' + lines.join('\\n');
+    return 'Klub: ' + state.clubName + '\n' +
+      'Møder afholdt: ' + held.length + (last ? '. Seneste: ' + last.title + ' (' + kr(meetingTotal(last.id)) + ')' : '') + '\n' +
+      'I kassen: ' + kr(potTotal()) + ' Udestående: ' + kr(outstandingTotal()) + '\n' +
+      'Medlemmer:\n' + lines.join('\n');
   }
 
-  function askCompanion() {
-    if (!sampleNS || mascotBusy) return;
-    mascotBusy = true;
-    renderMascot();
+  function fetchCompanionLines() {
+    if (!sampleNS || aiAsked) return;
+    aiAsked = true;
+    var maks = mascotMax ? Math.min(120, mascotMax) : 120;
     var prompt = 'Du er »Bødemesteren«, en kæk maskot i en dansk klub-bødekasse-app. ' +
-      'Skriv ÉN kort, drilsk bemærkning på dansk om klubben eller et enkelt medlem, ' +
-      'baseret på tallene herunder. Maks 130 tegn. Ingen anførselstegn, ingen emoji, ingen forklaring — kun replikken. ' +
-      'Tonen er varm klubhumor mellem venner: driller gerne folk for bøder, gæld og dårlige undskyldninger, ' +
-      'men aldrig om udseende, familie, helbred eller andet personligt.\\n\\n' + clubFacts();
-    sampleNS(prompt, { modelTier: 'quick', cache: false }).then(function (r) {
-      var t = String((r && r.text) || '').trim().replace(/^[»"']+|[«"']+$/g, '').split('\n')[0].trim();
-      mascotBusy = false;
-      if (t) {
-        if (aiLines.indexOf(t) === -1) aiLines.push(t);
-        if (aiLines.length > 25) aiLines.shift();
-        mascotMsg = t;
-      }
-      renderMascot();
-      startMascot();
-    }).catch(function (err) {
-      mascotBusy = false;
-      var code = String((err && err.code) || err || '');
-      if (code.indexOf('not_granted') !== -1) sampleNS = null;
-      renderMascot();
-      toast(code.indexOf('rate_limited') !== -1 ? 'Bødemesteren skal lige puste ud' : 'Kunne ikke hente en ny replik');
-    });
+      'Skriv 10 korte, drilske one-linere på dansk om klubben og de enkelte medlemmer, ' +
+      'baseret på tallene herunder. Hver replik maks ' + maks + ' tegn, ingen anførselstegn og ingen emoji. ' +
+      'Tonen er hård, tør klubhumor mellem venner: driller for bøder, gæld, forsinkelser og elendige undskyldninger. ' +
+      'Aldrig om udseende, familie, helbred, politik eller andet personligt. Brug rigtige navne fra listen. ' +
+      'Svar som JSON: {"lines": ["...", "..."]}\n\n' + clubFacts();
+    sampleNS.json(prompt, { modelTier: 'quick' }).then(function (r) {
+      var arr = (r && (r.lines || r)) || [];
+      if (!Array.isArray(arr)) return;
+      arr.forEach(function (t) {
+        t = String(t || '').trim().replace(/^[»"']+|[«"']+$/g, '');
+        if (t && t.length <= 160 && aiLines.indexOf(t) === -1) aiLines.push(t);
+      });
+      if (aiLines.length) mascotQueue = [];   // bland de nye ind med det samme
+    }).catch(function () { /* ingen AI-replikker denne gang — puljen kører videre */ });
   }
 
+  /* ---------- UI-tilstand ---------- */
   /* ---------- UI-tilstand ---------- */
 
   var view = { name: 'liga' };
@@ -1460,8 +1531,16 @@
     root.style.setProperty('--mascot-bottom', Math.round(window.innerHeight - bottom) + 'px');
     // Lidt plads: maskotten lægger sig vandret. Meget lidt: den viger helt.
     var gap = bottom - top;
-    side.classList.toggle('tight', gap >= 62 && gap < 150);
+    var tight = gap >= 62 && gap < 150;
+    side.classList.toggle('tight', tight);
     side.classList.toggle('cramped', gap < 62);
+    // Replikkerne må aldrig blive længere end der er plads til
+    var fit = gap < 62 ? 0 : mascotFit(gap, tight);
+    if (fit !== mascotMax) {
+      mascotMax = fit;
+      mascotQueue = [];
+      if (mascotMsg && mascotMax && mascotMsg.length > mascotMax) { mascotMsg = ''; renderMascot(); }
+    }
   }
   window.addEventListener('resize', layoutSidebar);
 
@@ -2944,9 +3023,6 @@
       if (kind === 'season') { var y = findYear(id); if (y) { openSeasonResult(y, true); return; } }
       closeModal(); pickerMemberId = null; render();
     },
-
-    'mascot-next': function () { nextMascotMsg(); startMascot(); },
-    'mascot-ai': function () { askCompanion(); },
 
     'search': function () { openSearch(); },
     'search-go': function (el) {

@@ -530,23 +530,24 @@ await page.click('.sheet-close');
 await page.click('[data-action="member-filter"][data-key="aktive"]');
 ok('tilbage-pil og luk-kryds virker');
 
-// 39) Bødemesteren: kække replikker ud fra klubbens data
+// 39) Bødemesteren: roterer selv, uden knapper, og teksten klippes aldrig
 await page.click('[data-tab="liga"]');
 await page.waitForSelector('#mascot-inline .mascot');
-const replikker = new Set();
-for (let i = 0; i < 10; i++) {
-  replikker.add((await page.locator('#mascot-inline .mc-msg').textContent()).trim());
-  await page.click('#mascot-inline [data-action="mascot-next"]');
-  await page.waitForTimeout(50);
-}
-if (replikker.size < 4) fail('maskotten gentager sig: kun ' + replikker.size + ' replikker');
-const navne = await page.evaluate(() => [...document.querySelectorAll('.lb-row .nm, .pod-name')].map(e => e.textContent.trim().split(' ')[0]));
-const dataDrevet = [...replikker].some(t => navne.some(n => n && t.includes(n)));
-if (!dataDrevet) fail('ingen replik nævner et medlem: ' + [...replikker][0]);
-if ([...replikker].some(t => t.includes('kr..'))) fail('dobbelt punktum i replik');
-// AI-knappen vises kun når sample-capability er tilgængelig (den er den ikke på file://)
-if (await page.locator('#mascot-inline [data-action="mascot-ai"]').count() !== 0) fail('AI-knap vist uden capability');
-ok('bødemesteren roterer replikker');
+if (await page.locator('.mc-btn').count() !== 0) fail('maskotten har stadig knapper');
+const forste = (await page.locator('#mascot-inline .mc-msg').textContent()).trim();
+if (!forste) fail('maskotten viser ingen replik');
+if (/\.\./.test(forste) || / \./.test(forste)) fail('tegnsætningsfejl i replik: ' + forste);
+if (!/[.!?]$/.test(forste)) fail('replik slutter ikke på et punktum: ' + forste);
+const klippet = await page.evaluate(() => {
+  const m = document.querySelector('#mascot-inline .mc-msg');
+  return m.scrollHeight - m.clientHeight;
+});
+if (klippet > 1) fail('replikken er klippet af');
+// Rotationen kører af sig selv hvert 14. sekund
+await page.waitForTimeout(15000);
+const anden = (await page.locator('#mascot-inline .mc-msg').textContent()).trim();
+if (anden === forste) fail('maskotten roterede ikke af sig selv');
+ok('bødemesteren roterer af sig selv uden knapper');
 
 // 15) Desktop-visning
 await page.setViewportSize({ width: 1440, height: 900 });

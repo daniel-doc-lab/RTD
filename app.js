@@ -181,7 +181,7 @@
     s.clubYears.forEach(function (y) { if (y.closedAt === undefined) y.closedAt = null; });
     if (typeof s.clubName !== 'string' || !s.clubName) s.clubName = 'RTD';
     if (s.formandId === undefined) s.formandId = null;
-    s.fineTypes.forEach(function (t) { t.amount = Number(t.amount) || 0; });
+    s.fineTypes.forEach(function (t) { t.amount = Number(t.amount) || 0; if (typeof t.icon !== 'string') t.icon = ''; });
     s.fines.forEach(function (f) { f.amount = Number(f.amount) || 0; if (!f.ts) f.ts = 0; });
     s.payments.forEach(function (p) { p.amount = Number(p.amount) || 0; if (!p.ts) p.ts = 0; });
     s.meetings.forEach(function (m) {
@@ -390,6 +390,91 @@
   }
   function currentClubYear() {
     return state.clubYears.reduce(function (a, y) { return !a || y.startYear > a.startYear ? y : a; }, null);
+  }
+
+
+  /* ---------- Bøde-ikoner ---------- */
+
+  /* Ikonbibliotek til takster. Nøgleordene matcher mod kategori + beskrivelse,
+     så nye og redigerede bøder automatisk får et passende ikon. */
+  var FI = {
+    mobil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"></rect><path d="M10.5 5.5h3"></path><circle cx="12" cy="18" r="1"></circle><path d="M19.5 6.5c1 1 1 3 0 4M21.5 4.5c2 2 2 6 0 8" opacity="0.7"></path></svg>',
+    attitude: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M8.5 15.5c1-1.4 5.5-1.4 7 0"></path><path d="M8 9.5l2 1M16 9.5l-2 1"></path></svg>',
+    krone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 17.5 3 7.5l4.5 3L12 4.5l4.5 6 4.5-3-1 10z"></path><path d="M4.5 20.5h15" stroke-linecap="round"></path></svg>',
+    kaos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h7M4 12h5M4 18h9"></path><path d="M15 5l5 5M20 5l-5 5"></path><circle cx="17.5" cy="16.5" r="3"></circle></svg>',
+    kalender: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M8 3v4M16 3v4M3.5 10h17"></path><path d="M9.5 14.5l5 4M14.5 14.5l-5 4"></path></svg>',
+    stopur: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"></circle><path d="M12 9.5v4l2.5 1.5M9.5 2.5h5M18.5 7l1.5-1.5"></path></svg>',
+    kaede: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.5c-1 2.5-1 5 1 7M17 4.5c1 2.5 1 5-1 7"></path><path d="M8 11.5h8"></path><circle cx="12" cy="16.5" r="3.2"></circle><path d="M12 13.3v-1.8"></path></svg>',
+    rejsesig: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5.5" r="2.5"></circle><path d="M9 8.5v6M6.5 21l2.5-6.5L11.5 21M6 11.5h6"></path><path d="M17.5 14V6M15 8.5l2.5-2.5L20 8.5"></path></svg>',
+    afbryd: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5h9a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H7l-4 3z"></path><path d="M17 5l4 4M21 5l-4 4"></path></svg>',
+    dokument: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"></path><path d="M14 3v4h4M9 11h6M9 14.5h6M9 18h3.5"></path></svg>',
+    ghost: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V10a7 7 0 0 1 14 0v10l-2.3-2-2.4 2-2.3-2-2.4 2z"></path><path d="M9.5 9.5h.01M14.5 9.5h.01"></path></svg>',
+    naal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"></circle><path d="M12 11.5V21M9.5 13.5h5"></path></svg>',
+    toilet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V4"></path><path d="M4.5 4h15M9.5 17.5 8 21M14.5 17.5 16 21"></path></svg>',
+    pligt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4.5h6v2.5H9z"></path><path d="M6 6.5h12v14H6z"></path><path d="M9 12l2 2 4-4"></path></svg>',
+    loeb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="4.8" r="2.2"></circle><path d="M12.5 9 9 12l2.5 3 1 5M12.5 9l4 2 1.5 3M9 12l-3.5 1M12 15l-3.5 4"></path></svg>',
+    glemsom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-3 11.2V17h6v-2.8A6 6 0 0 0 12 3z"></path><path d="M9.5 20h5"></path><path d="M10.2 9.5a1.9 1.9 0 1 1 2.3 2c-.5.2-.7.6-.7 1.1"></path></svg>',
+    plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v13H4z"></path><path d="M4 9.5h16"></path><path d="M8.5 13h2.5M8.5 16h6"></path><path d="M17 13.5l2.5 2.5-2.5 2.5" opacity="0.65"></path></svg>',
+    penge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M14.5 9c-.7-.9-1.7-1.3-2.8-1.3-1.9 0-3.2 1.2-3.2 3s1.3 3 3.2 3c1.1 0 2.1-.4 2.8-1.3M8 11.2h5M8 13.2h4"></path></svg>',
+    hammer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 6.5 17 3l4 4-3.5 3.5z"></path><path d="M15.5 8.5 6 18l-2-2 9.5-9.5"></path><path d="M3 21h8"></path></svg>',
+    fest: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.5 9.5 9l5.5 5.5z"></path><path d="M14 3.5v2M18.5 6l1.5-1.5M17 10.5h2.5M13 8.5l1.5 1.5"></path></svg>',
+    stjerne: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m12 3.8 2.5 5.3 5.7.8-4.2 4 1 5.7-5-2.8-5 2.8 1-5.7-4.2-4 5.7-.8z"></path></svg>'
+  };
+
+  /* Nøgleord/fraser → ikon (adskilt af |). Første match vinder,
+     derfor står de mest specifikke regler øverst. */
+  var FINE_ICON_RULES = [
+    ['mobil|telefon|skærm|skaerm|sms', 'mobil'],
+    ['formandskæde|formandskaede|kæde|kaede', 'kaede'],
+    ['formand', 'krone'],
+    ['nål|naal|emblem', 'naal'],
+    ['toilet|wc|diarré|diarre', 'toilet'],
+    ['fremmøde|fremmode|fremmødt|udeblev|udebliver|mødte ikke op|modte ikke op', 'ghost'],
+    ['afmelding|afmelder|afbud|framelding', 'kalender'],
+    ['for sent|forsinket|forsinkelse|to late|kommer sent', 'stopur'],
+    ['referat|rapport|skriftlig|notat', 'dokument'],
+    ['rejse sig|rejser sig|oprejst|stå op|staa op', 'rejsesig'],
+    ['afbryd|i munden|taler i', 'afbryd'],
+    ['planlægning|planlaegning|planlagt|planlægger|planlaegger|god tid', 'plan'],
+    ['pligt|tjans|opgave', 'pligt'],
+    ['glemt|glemmer|glemsom|husker ikke', 'glemsom'],
+    ['adfærd|adfaerd|opførsel|opforsel|arrogance|respektløs|respektlos|dumme', 'attitude'],
+    ['diverse|blander|rod', 'kaos'],
+    ['væddemål|vaeddemaal|odds|spil om', 'penge'],
+    ['bøde|boede|straf', 'hammer'],
+    ['fest|øl|oel|drukket|skål|skaal', 'fest'],
+    ['løb|loeb|sport|træning|traening|motion', 'loeb']
+  ];
+
+  /* Vælger ikon for en takst — matcher på kategori først, derefter beskrivelse.
+     Uden match gives et neutralt stjerne-ikon, så alle bøder altid har grafik. */
+  function fineIconKey(category, description) {
+    var cat = String(category || '').toLowerCase();
+    var desc = String(description || '').toLowerCase();
+    for (var pass = 0; pass < 2; pass++) {
+      var hay = pass === 0 ? cat : cat + ' ' + desc;
+      for (var i = 0; i < FINE_ICON_RULES.length; i++) {
+        var phrases = FINE_ICON_RULES[i][0].split('|');
+        for (var w = 0; w < phrases.length; w++) {
+          if (phrases[w] && hay.indexOf(phrases[w]) !== -1) return FINE_ICON_RULES[i][1];
+        }
+      }
+    }
+    return 'stjerne';
+  }
+
+  function fineIcon(t, cls) {
+    var key = (t && t.icon && FI[t.icon]) ? t.icon : fineIconKey(t && t.category, t && t.description);
+    return '<span class="fine-ic' + (cls ? ' ' + cls : '') + '">' + FI[key] + '</span>';
+  }
+
+  /* Ikon for en given bøde (takstbaseret eller særbøde) */
+  function fineIconFor(f) {
+    if (f.fineTypeId) {
+      var t = findFineType(f.fineTypeId);
+      if (t) return fineIcon(t);
+    }
+    return '<span class="fine-ic">' + FI[fineIconKey(f.label, '')] + '</span>';
   }
 
   /* ---------- Streaks og dyre bøder ---------- */
@@ -652,6 +737,13 @@
     else if (view.name === 'takster') html += viewFineTypes();
     else if (view.name === 'statistik') html += viewStats();
     app.innerHTML = html;
+    // Flyt CTA-knappen ned i bundbjælken, så den aldrig svæver oven på indholdet
+    var slot = document.getElementById('cta-slot');
+    if (slot) {
+      slot.innerHTML = '';
+      var ab = app.querySelector('.actionbar');
+      if (ab) slot.appendChild(ab);
+    }
     runCountUps();
 
     var tabs = document.querySelectorAll('.tab');
@@ -894,6 +986,7 @@
     var log = meetFines.slice().reverse().map(function (f) {
       var m = findMember(f.memberId);
       return '<div class="log-item">' +
+        fineIconFor(f) +
         '<div class="grow"><div class="t">' + esc(m ? m.name : '?') + ' — ' + esc(fineLabel(f)) + '</div></div>' +
         '<div class="amount' + amtClass(f.amount) + '">' + (f.amount >= HOT_FINE ? IC.zap : '') + kr(f.amount) + '</div>' +
         (meet.closedAt || viewerMode ? '' : '<button class="x" data-action="remove-fine" data-id="' + esc(f.id) + '" aria-label="Fjern bøde">' + IC.x + '</button>') +
@@ -943,8 +1036,9 @@
   function viewFineTypes() {
     var rows = state.fineTypes.filter(function (t) { return t.active; }).map(function (t) {
       return '<button class="row" data-action="edit-finetype" data-id="' + esc(t.id) + '">' +
+        fineIcon(t, 'big' + (t.amount >= HOT_FINE ? ' hot' : '')) +
         '<div class="grow"><div class="t">' + esc(t.category) + '</div><div class="s">' + esc(t.description) + '</div></div>' +
-        '<div class="amount">' + kr(t.amount) + '</div></button>';
+        '<div class="amount' + amtClass(t.amount) + '">' + kr(t.amount) + '</div></button>';
     }).join('');
     return '<div class="section-title"><h2>Takster</h2><div class="hint">' + (viewerMode ? 'Visning' : 'Klik for at redigere') + '</div></div>' + rows +
       (viewerMode ? '' : '<div class="actionbar"><button class="btn" data-action="add-finetype">' + IC.plus + 'Ny takst</button></div>');
@@ -1034,6 +1128,7 @@
     var max = items.reduce(function (a, x) { return Math.max(a, x.sum); }, 0) || 1;
     return items.map(function (x) {
       return '<div class="hbar-row" data-tip="' + esc(x.label + ' · ' + x.count + ' stk. · ' + kr(x.sum)) + '">' +
+        '<span class="fine-ic">' + FI[fineIconKey(x.label, '')] + '</span>' +
         '<div class="hbar-label">' + esc(x.label) + '</div>' +
         '<div class="hbar-track"><div class="hbar-fill" style="width: ' + Math.max(2, Math.round(100 * x.sum / max)) + '%; background: ' + color + '"></div></div>' +
         '<div class="hbar-val">' + nf(x.sum) + '</div></div>';
@@ -1209,6 +1304,7 @@
       return '<button class="fine-btn' + (t.amount >= HOT_FINE ? ' hot' : '') + (isSug ? ' suggested' : '') + '" data-action="give-fine" data-id="' + esc(t.id) + '">' +
         (counts[t.id] ? '<span class="n">' + counts[t.id] + '</span>' : '') +
         (isSug ? '<span class="sug-tag">Foreslået</span>' : '') +
+        fineIcon(t) +
         '<div class="cat">' + esc(t.category) + '</div>' +
         '<div class="amt' + amtClass(t.amount) + '">' + (t.amount >= HOT_FINE ? IC.zap : '') + kr(t.amount) + '</div></button>';
     }).join('') +
@@ -1247,7 +1343,7 @@
       if (f.memberId !== m.id) return;
       var meet = findMeeting(f.meetingId);
       if (fy && (!meet || meet.clubYearId !== fy.id)) return;
-      events.push({ ts: f.ts, html: '<div class="log-item"><div class="grow"><div class="t">' + esc(fineLabel(f)) + '</div>' +
+      events.push({ ts: f.ts, html: '<div class="log-item">' + fineIconFor(f) + '<div class="grow"><div class="t">' + esc(fineLabel(f)) + '</div>' +
         '<div class="s">' + (meet ? esc(meet.title) + ' · ' + esc(meetingYearLabel(meet)) + ' · ' + fmtDate(meet.date) : '') + '</div></div>' +
         '<div class="amount' + amtClass(f.amount) + '">+' + kr(f.amount) + '</div></div>' });
     });
@@ -1371,7 +1467,23 @@
     openModal('Rediger møde', body, esc(meetingYearLabel(m)));
   }
 
+  /* Ikonvælger: 'Auto' følger navnet, ellers vælges et fast ikon */
+  var pickedIcon = null;
+  function iconPicker(t) {
+    var auto = fineIconKey(t ? t.category : '', t ? t.description : '');
+    var cur = pickedIcon !== null ? pickedIcon : ((t && t.icon) || '');
+    var out = '<div class="icon-picker" id="icon-picker">' +
+      '<button class="icon-opt' + (cur === '' ? ' active' : '') + '" data-action="pick-icon" data-icon="" title="Automatisk">' +
+      '<span class="fine-ic">' + FI[auto] + '</span><span class="io-lbl">Auto</span></button>';
+    Object.keys(FI).forEach(function (k) {
+      out += '<button class="icon-opt' + (cur === k ? ' active' : '') + '" data-action="pick-icon" data-icon="' + k + '" title="' + k + '">' +
+        '<span class="fine-ic">' + FI[k] + '</span></button>';
+    });
+    return out + '</div>';
+  }
+
   function openFineTypeForm(typeId) {
+    pickedIcon = typeId ? null : '';
     var t = typeId ? findFineType(typeId) : null;
     var body =
       '<label for="ft-cat">Bødekategori</label>' +
@@ -1380,6 +1492,8 @@
       '<textarea id="ft-desc" rows="2" placeholder="Hvornår gives bøden?">' + (t ? esc(t.description) : '') + '</textarea>' +
       '<label for="ft-amount">Beløb (kr.)</label>' +
       '<input id="ft-amount" type="number" inputmode="numeric" min="1" step="1" value="' + (t ? t.amount : 50) + '">' +
+      '<label>Ikon <span class="lbl-hint">(vælges automatisk ud fra navnet — klik for at ændre)</span></label>' +
+      iconPicker(t) +
       '<div class="btn-row"><button class="btn" data-action="finetype-save" data-id="' + (t ? esc(t.id) : '') + '">Gem takst</button>' +
       (t ? '<button class="btn danger" data-action="finetype-remove" data-id="' + esc(t.id) + '">Fjern</button>' : '') +
       '</div>' +
@@ -1720,6 +1834,13 @@
       if (p) openMemberSheet(p.memberId);
     },
 
+    'pick-icon': function (el) {
+      pickedIcon = el.getAttribute('data-icon');
+      var opts = document.querySelectorAll('#icon-picker .icon-opt');
+      for (var i = 0; i < opts.length; i++) {
+        opts[i].className = 'icon-opt' + (opts[i].getAttribute('data-icon') === pickedIcon ? ' active' : '');
+      }
+    },
     'add-finetype': function () { openFineTypeForm(null); },
     'edit-finetype': function (el) { openFineTypeForm(el.getAttribute('data-id')); },
     'finetype-save': function (el) {
@@ -1728,8 +1849,15 @@
       if (!cat || amount <= 0) { toast('Udfyld kategori og beløb'); return; }
       var id = el.getAttribute('data-id');
       var t = id ? findFineType(id) : null;
-      if (t) { t.category = cat; t.description = val('ft-desc').trim(); t.amount = amount; }
-      else state.fineTypes.push({ id: uid(), category: cat, description: val('ft-desc').trim(), amount: amount, active: true });
+      var icon = pickedIcon !== null ? pickedIcon : (t && t.icon) || '';
+      if (t) {
+        t.category = cat; t.description = val('ft-desc').trim(); t.amount = amount; t.icon = icon;
+        log('Redigerede taksten »' + cat + '« (' + kr(amount) + ')');
+      } else {
+        state.fineTypes.push({ id: uid(), category: cat, description: val('ft-desc').trim(), amount: amount, active: true, icon: icon });
+        log('Oprettede taksten »' + cat + '« (' + kr(amount) + ')');
+      }
+      pickedIcon = null;
       closeModal();
       commit();
     },

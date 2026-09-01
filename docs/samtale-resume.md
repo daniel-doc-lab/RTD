@@ -37,6 +37,9 @@ Daniel bad om fuld dokumentation i GitHub til videre arbejde i ny sæson fra and
 ### 9. Kommentar-rettelser fra live-appen (1. sep. 2026)
 To kommentarer i artifact-tråden: (a) "nogle medlemmer mangler i dette view" og (b) "Ligaen-menuen rækker ind over teksten bagved". Samme rodårsag: `.content` havde kun 108 px bundplads, mens den faste knap-bjælke (bottom 64 px + ~72 px høj) plus fanebjælken fylder ~136 px — så nederste række på ranglisten lå skjult bag knappen, selv når der var scrollet helt ned. Rettet: bundplads → `calc(160px + env(safe-area-inset-bottom))`, knap-bjælken løftet til `calc(76px + safe-area)`, fanebjælken fik mere luft (8 px), desktop-padding 120 → 130 px. Verificeret med de rigtige 12 medlemmer på 360/390/768/1440 px: intet element overlapper længere. Begge tråde besvaret og markeret løst.
 
+### 10. Ikoner + strukturel menu-rettelse (1. sep. 2026)
+Opfølgende kommentar: menubjælken overlappede stadig indholdet i Claude-desktop-appen. Årsag: `position: fixed` opfører sig anderledes i appens indlejrede visning end i en browser — afstands-justeringer hjalp derfor ikke. Løst strukturelt: CTA-knap og faner er samlet i `.bottombar`, som er `position: sticky` i normalt flow (mobil) og fixed i sidebar-layoutet (≥900 px); `render()` flytter viewets `.actionbar` ned i `#cta-slot`. Bjælken optager nu rigtig plads og kan ikke overlappe. Samtidig: **bøde-ikoner** — 21 inline-SVG'er (`FI`) og et regelsæt (`FINE_ICON_RULES`, frase-match på kategori → beskrivelse) giver hver takst sit eget ikon i Takster, bødevælger, mødeliste, historik og statistik; nye/ændrede takster får automatisk ikon, og `t.icon` kan sættes manuelt via ikonvælgeren. 15 nye visuelle idéer i `docs/visuelle-ideer.md`.
+
 ## Rettelseslog (alle QA-/reviewrunder samlet)
 
 1. **Mockup-review:** Tidende-overløb; Scoreboard manglende kolonne + forskudt header; Kridttavle-tallies matchede ikke beløb; Protokol-stempel-overlap; da. stavning (ajour, særbøde, væddemål, "11 flere"); dato-konsistens på tværs af mockups; dingbat→SVG.
@@ -45,11 +48,14 @@ To kommentarer i artifact-tråden: (a) "nogle medlemmer mangler i dette view" og
 4. **Artifact-viewer:** JSON-eksport via download-link virker ikke i sandboxen → `downloads`-capability med blob-fallback (også brugt af kassererrapporten).
 5. **Tælle-animation:** startværdier renderes nu i HTML (intet tomt felt før animation).
 6. **Bundplads (fra artifact-kommentarer):** faste bjælker i bunden dækkede nederste indhold — bundplads og bjælke-placering rettet, verificeret på fire skærmbredder.
+7. **Menubjælke i indlejret visning:** `position: fixed` virkede ikke som forventet i Claude-appen → bjælken lagt i normalt flow (sticky). Strukturel løsning frem for afstands-plaster.
+8. **Ikon-match:** første udgave splittede nøgleord på mellemrum, så "Ikke rejse sig" matchede ordet "ikke" fra en anden regel → frase-match (`|`-adskilt) indført.
 
 ## Nuværende tilstand (pr. 1. sep. 2026)
 
 - State-version **4**; live-data: klub "RT 11 Frederiksberg", 12 medlemmer (Romanas Markovas kom til), formand = Marco Brøndsted, 3 klubår (2024/25, 2025/26, 2026/27 à 20 møder), "Møde 1 - Fisketur" i gang med 8 registrerede bøder, ingen indbetalinger endnu.
 - Testsuite `test/test-app.mjs`: 32 tjek, alle grønne.
+- Visuelle idéer: `docs/visuelle-ideer.md` (15 stk., nr. 1 implementeret).
 - Uimplementerede idéer: `docs/feature-ideer.md` uden ✅ (MobilePay-genvej, rykkerbesked, fortryd-i-toast, avisnotits, formandens dobbelttakst, fremmøderegistrering, notifikationer, PWA) + Pakke C-rest i `docs/visuelt-oplaeg.md`.
 
 ## Instruks til en ny model

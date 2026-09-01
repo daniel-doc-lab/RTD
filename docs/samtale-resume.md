@@ -34,6 +34,9 @@ Implementeret: historikfilter pr. klubår i profilen; sæsonafslutning (låser �
 ### 8. Arkivering (denne fase)
 Daniel bad om fuld dokumentation i GitHub til videre arbejde i ny sæson fra anden computer, samt dette komprimerede samtale-resumé. Undervejs gemte Daniel igen data i live-appen (kronede **Marco Brøndsted som formand**) — flettet ind og bevaret ved republicering.
 
+### 9. Kommentar-rettelser fra live-appen (1. sep. 2026)
+To kommentarer i artifact-tråden: (a) "nogle medlemmer mangler i dette view" og (b) "Ligaen-menuen rækker ind over teksten bagved". Samme rodårsag: `.content` havde kun 108 px bundplads, mens den faste knap-bjælke (bottom 64 px + ~72 px høj) plus fanebjælken fylder ~136 px — så nederste række på ranglisten lå skjult bag knappen, selv når der var scrollet helt ned. Rettet: bundplads → `calc(160px + env(safe-area-inset-bottom))`, knap-bjælken løftet til `calc(76px + safe-area)`, fanebjælken fik mere luft (8 px), desktop-padding 120 → 130 px. Verificeret med de rigtige 12 medlemmer på 360/390/768/1440 px: intet element overlapper længere. Begge tråde besvaret og markeret løst.
+
 ## Rettelseslog (alle QA-/reviewrunder samlet)
 
 1. **Mockup-review:** Tidende-overløb; Scoreboard manglende kolonne + forskudt header; Kridttavle-tallies matchede ikke beløb; Protokol-stempel-overlap; da. stavning (ajour, særbøde, væddemål, "11 flere"); dato-konsistens på tværs af mockups; dingbat→SVG.
@@ -42,9 +45,6 @@ Daniel bad om fuld dokumentation i GitHub til videre arbejde i ny sæson fra and
 4. **Artifact-viewer:** JSON-eksport via download-link virker ikke i sandboxen → `downloads`-capability med blob-fallback (også brugt af kassererrapporten).
 5. **Tælle-animation:** startværdier renderes nu i HTML (intet tomt felt før animation).
 6. **Bundplads (fra artifact-kommentarer):** faste bjælker i bunden dækkede nederste indhold — bundplads og bjælke-placering rettet, verificeret på fire skærmbredder.
-
-### 9. Kommentar-rettelser fra live-appen (1. sep. 2026)
-To kommentarer i artifact-tråden: (a) "nogle medlemmer mangler i dette view" og (b) "Ligaen-menuen rækker ind over teksten bagved". Samme rodårsag: `.content` havde kun 108 px bundplads, mens den faste knap-bjælke (bottom 64 px + ~72 px høj) plus fanebjælken fylder ~136 px — så nederste række på ranglisten lå skjult bag knappen, selv når der var scrollet helt ned. Rettet: bundplads → `calc(160px + env(safe-area-inset-bottom))`, knap-bjælken løftet til `calc(76px + safe-area)`, fanebjælken fik mere luft (8 px), desktop-padding 120 → 130 px. Verificeret med de rigtige 12 medlemmer på 360/390/768/1440 px: intet element overlapper længere. Begge tråde besvaret og markeret løst.
 
 ## Nuværende tilstand (pr. 1. sep. 2026)
 

@@ -1370,13 +1370,14 @@
     var cols = order.map(function (x) {
       var bal = memberBalance(x.m.id);
       var streak = memberMeetingStreak(x.m.id);
+      // Medaljen sidder nede i selve podiet — den er både rangtal og ikon
       return '<button class="pod pod-' + x.r + '" data-action="open-member" data-id="' + esc(x.m.id) + '">' +
-        '<div class="pod-top">' + medal(x.r) + avatar(x.m) +
+        '<div class="pod-top">' + avatar(x.m) +
         '<div class="pod-name">' + esc(firstName(x.m.name)) + nameIcons(x.m.id) +
         (streak >= 2 ? flames(streak) : '') + '</div>' +
         '<div class="pod-sum">' + nf(bal) + '</div>' +
         '<div class="pod-sub">' + memberFineCount(x.m.id) + ' bøder</div></div>' +
-        '<div class="pod-box"><span class="pod-rank">' + x.r + '</span>' +
+        '<div class="pod-box"><span class="pod-medal">' + medal(x.r) + '</span>' +
         '<span class="pod-title">' + names[x.r] + '</span></div></button>';
     }).join('');
     return '<div class="podium">' + cols + '</div>';

@@ -567,9 +567,8 @@ table.cmp td:nth-child(3), table.cmp td:nth-child(4) { font-family: var(--displa
     position: fixed; left: 220px; right: 0; bottom: 0; margin-top: 0;
     background: linear-gradient(0deg, var(--bg) 62%, rgba(16,20,26,0)); padding-bottom: 18px;
   }
-  .content > * { max-width: 860px; }
   /* Flydende kort, så de aldrig bliver bredere end pladsen ved siden af sidebaren */
-  .stats { max-width: 860px; grid-template-columns: repeat(auto-fit, minmax(160px, 220px)); }
+  .stats { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
   .stats.kpi4 { grid-template-columns: repeat(auto-fit, minmax(140px, 200px)); }
   .member-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .fine-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -725,7 +724,7 @@ table.cmp td:nth-child(3), table.cmp td:nth-child(4) { font-family: var(--displa
 /* ============ Responsivt: aldrig vandret scroll ============ */
 html { overflow-x: clip; }
 body { overflow-x: clip; max-width: 100%; }
-.content, .chart-card, .stats, .streak-panel, .info-card { max-width: 100%; }
+.content { max-width: 100%; }
 .chart-card { overflow: hidden; }
 
 /* Sammenlign klubår: tabel på brede skærme, kort på smalle */
@@ -937,7 +936,16 @@ label.check span { display: flex; align-items: center; gap: 6px; }
 }
 .pod { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
 .pod-top { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; min-width: 0; }
-.pod-top .rank.medal svg { width: 30px; height: 37px; }
+/* Medaljen bor i podiet — en mørk plade bag den, så metallet ikke drukner i metal */
+.pod-medal {
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(8,11,16,0.30); border-radius: 9px;
+  padding: 3px 8px 1px; margin-top: -2px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.35);
+}
+.pod-medal .rank.medal { width: auto; }
+.pod-medal .rank.medal svg { width: 30px; height: 37px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+.pod-1 .pod-medal .rank.medal svg { width: 34px; height: 42px; }
 .pod-name {
   font-family: var(--display); font-size: 15px; letter-spacing: 0.03em; text-transform: uppercase;
   display: flex; align-items: center; justify-content: center; gap: 2px;
@@ -951,14 +959,15 @@ label.check span { display: flex; align-items: center; gap: 6px; }
   padding: 8px 4px 10px; gap: 2px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
 }
-.pod-rank { font-family: var(--display); font-size: 22px; line-height: 1; color: rgba(0,0,0,0.45); }
+/* Rangtallet står nu inde i medaljen */
 .pod-title {
   font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
   color: rgba(0,0,0,0.55); text-align: center; line-height: 1.15;
 }
-.pod-1 .pod-box { height: 74px; background: linear-gradient(180deg, #ffe08a, #fbbf24 55%, #c98f10); }
-.pod-2 .pod-box { height: 56px; background: linear-gradient(180deg, #e8edf2, #c0c7ce 55%, #8f99a3); }
-.pod-3 .pod-box { height: 44px; background: linear-gradient(180deg, #d9a877, #b07b45 55%, #7d5530); }
+.pod-box { padding: 7px 4px 9px; gap: 4px; }
+.pod-1 .pod-box { height: 88px; background: linear-gradient(180deg, #ffe08a, #fbbf24 55%, #c98f10); }
+.pod-2 .pod-box { height: 74px; background: linear-gradient(180deg, #e8edf2, #c0c7ce 55%, #8f99a3); }
+.pod-3 .pod-box { height: 66px; background: linear-gradient(180deg, #d9a877, #b07b45 55%, #7d5530); }
 .pod-1 .pod-sum { font-size: 25px; }
 .pod-1 .avatar { width: 42px; height: 42px; font-size: 16px; }
 .pod:hover .pod-top { transform: translateY(-2px); }
@@ -1158,6 +1167,10 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
   .pod-sum { font-size: 18px; }
   .pod-1 .pod-sum { font-size: 21px; }
   .pod-sub { font-size: 11px; }
+  .pod-medal { padding: 2px 5px 0; }
+  .pod-medal .rank.medal svg { width: 26px; height: 32px; }
+  .pod-1 .pod-medal .rank.medal svg { width: 29px; height: 36px; }
+  .pod-title { font-size: 9.5px; }
   .mcard-name { font-size: 23px; }
 }
 
@@ -1179,6 +1192,19 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
   .tab { font-size: 9px; }
   .tab svg { width: 17px; height: 17px; }
 }
+
+
+/* ============ Indholdssøjlen: én bredde til alle blokke ============ */
+/* Søjlen fylder skærmen ud, men aldrig mere end --col, og hver blok i
+   indholdet deler den samme bredde — ellers stikker statstriben og
+   streak-panelet ud i forhold til resten af siden på brede skærme. */
+:root { --col: 1040px; }
+.content > *, .content .stats, .content .streak-panel, .content .chart-card, .content .info-card {
+  max-width: min(100%, var(--col));
+  margin-inline: auto;
+}
+/* Grafkortenes indhold må stadig ikke sprænge kortet */
+.chart-card > *, .sheet-body .stats { max-width: 100%; }
 
 </style>
 
@@ -2606,13 +2632,14 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
     var cols = order.map(function (x) {
       var bal = memberBalance(x.m.id);
       var streak = memberMeetingStreak(x.m.id);
+      // Medaljen sidder nede i selve podiet — den er både rangtal og ikon
       return '<button class="pod pod-' + x.r + '" data-action="open-member" data-id="' + esc(x.m.id) + '">' +
-        '<div class="pod-top">' + medal(x.r) + avatar(x.m) +
+        '<div class="pod-top">' + avatar(x.m) +
         '<div class="pod-name">' + esc(firstName(x.m.name)) + nameIcons(x.m.id) +
         (streak >= 2 ? flames(streak) : '') + '</div>' +
         '<div class="pod-sum">' + nf(bal) + '</div>' +
         '<div class="pod-sub">' + memberFineCount(x.m.id) + ' bøder</div></div>' +
-        '<div class="pod-box"><span class="pod-rank">' + x.r + '</span>' +
+        '<div class="pod-box"><span class="pod-medal">' + medal(x.r) + '</span>' +
         '<span class="pod-title">' + names[x.r] + '</span></div></button>';
     }).join('');
     return '<div class="podium">' + cols + '</div>';

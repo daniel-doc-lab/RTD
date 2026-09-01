@@ -513,6 +513,34 @@ if (await page.locator('.log-wrap').count() !== 1) fail('strygningen kunne ikke 
 await page.click('[data-action="undo"]');
 ok('stryg for at fortryde virker');
 
+// 38) To udgange i arkets hoved: tilbage til profilen eller helt ud
+await page.click('[data-tab="medlemmer"]');
+await page.click('[data-action="member-filter"][data-key="alle"]');
+await page.click('.row:has-text("Miki")');
+await page.waitForSelector('.sheet-body');
+if (await page.locator('.sheet-back').count() !== 0) fail('profilen skal ikke have tilbage-pil');
+await page.click('[data-action="pay-form"]');
+await page.waitForSelector('.sheet-head:has-text("Indbetaling")');
+if (await page.locator('.sheet-back').count() !== 1) fail('indbetaling mangler tilbage-pil');
+await page.click('[data-action="sheet-back"]');
+await page.waitForSelector('.sheet-head:has-text("Miki")');
+if (await page.locator('[data-action="pay-form"]').count() !== 1) fail('tilbage-pilen førte ikke til profilen');
+// Krydset lukker stadig hele vejen ud
+await page.click('[data-action="member-card"]');
+await page.waitForSelector('.mcard');
+if (await page.locator('.sheet-back').count() !== 1) fail('medlemskortet mangler tilbage-pil');
+await page.click('.sheet-close');
+await page.waitForSelector('.modal-root', { state: 'detached' });
+// Papirkurv og revisionslog fører tilbage til indstillinger
+await page.click('[data-action="settings"]');
+await page.click('[data-action="audit-open"]');
+await page.waitForSelector('.sheet-head:has-text("Revisionslog")');
+await page.click('[data-action="sheet-back"]');
+await page.waitForSelector('.sheet-head:has-text("Indstillinger")');
+await page.click('.sheet-close');
+await page.click('[data-action="member-filter"][data-key="aktive"]');
+ok('tilbage-pil og luk-kryds virker');
+
 // 15) Desktop-visning
 await page.setViewportSize({ width: 1440, height: 900 });
 await page.click('[data-tab="liga"]');

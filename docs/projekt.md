@@ -41,6 +41,7 @@ state = {
   writeoffs: [{ id, memberId, clubYearId, amount, date, ts }], // v5: gæld afskrevet ved årsopgørelsen
   rules:     "…",                     // v5: regelark, én regel pr. linje
   formandHistory: [{ memberId, from, to }],  // v6: formandsrækken til Hall of Fame
+  // v7 på members: prospectGoal (måneder, std. 3), prospectFrom (ISO), prospectDone (null = beregn selv)
   audit:     [{ ts, text }],          // revisionslog, nyeste først, maks 800
   trash:     [{ id, kind, deletedAt, ... }]  // møder/medlemmer, ryddes efter 30 dage
 }
@@ -48,7 +49,7 @@ state = {
 
 Medlemmer har fra v5 `prospect: bool` og `years: [clubYearId]`. Medlemskab er altså pr. klubår: et medlem kan være med i nogle år og ikke i andre, og bøder fra fravalgte år bliver stående i regnskabet. Mødetavlen viser årets aktive medlemmer plus enhver, der allerede har fået bøde i mødet.
 
-Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeholdning = indbetalinger − udgifter; "afholdt møde" = har bøder eller er afsluttet; streaks tælles bagfra over afholdte møder (åbne møder bryder ikke); `migrate()` løfter v1→v6 og `normalize()` reparerer manglende felter, så gamle backups og delt state altid kan indlæses.
+Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeholdning = indbetalinger − udgifter; "afholdt møde" = har bøder eller er afsluttet; streaks tælles bagfra over afholdte møder (åbne møder bryder ikke); `migrate()` løfter v1→v7 og `normalize()` reparerer manglende felter, så gamle backups og delt state altid kan indlæses.
 
 ## Status: implementeret
 
@@ -88,6 +89,8 @@ Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeho
 - **Medlemskort**: profilen som samlekort, der kan gemmes som SVG og deles.
 - **Levende baggrund pr. fane**: `html[data-view]` styrer et svagt, drivende lysskær i fanens farve.
 - **Ikoner der reagerer**: bødeikonet vipper, kronen glimter når formanden får en bøde, og spiren vokser med prospektets fremdrift (5 møder til optagelse).
+- **To udgange i modalerne**: tilbage-pil i arkets hoved (ét skridt tilbage, fx til medlemmets profil) ved siden af krydset, der lukker helt ud.
+- **Prospect-forløb i måneder**: »x af 3 måneder« med startdato, valgfri længde og manuel overstyring af de gennemførte måneder.
 - **Hall of Fame**: egen fane efter Takster med alle tiders rekorder, kårede pr. sæson, formandsrækken (ny `formandHistory`) og alle uddelte hædersbevisninger.
 
 ## Udestående / kendte begrænsninger

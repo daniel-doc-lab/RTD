@@ -41,7 +41,8 @@
 
   function seedMembers() {
     return SEED_MEMBERS.map(function (n) {
-      return { id: uid(), name: n, active: true, prospect: false, years: [], createdAt: Date.now() };
+      return { id: uid(), name: n, active: true, prospect: false, years: [], createdAt: Date.now(),
+        prospectGoal: 3, prospectFrom: null, prospectDone: null };
     });
   }
 
@@ -56,7 +57,7 @@
 
   function freshState() {
     var s = {
-      version: 6,
+      version: 7,
       updatedAt: Date.now(),
       clubName: 'RTD',
       formandId: null,
@@ -204,6 +205,15 @@
       if (s.formandId) s.formandHistory.push({ memberId: s.formandId, from: null, to: null });
       s.version = 6;
     }
+    if (s.version === 6) {
+      // v7: prospect-forløbet måles i måneder og kan sættes manuelt pr. medlem
+      (s.members || []).forEach(function (m) {
+        if (m.prospectGoal === undefined) m.prospectGoal = PROSPECT_MONTHS;
+        if (m.prospectFrom === undefined) m.prospectFrom = null;
+        if (m.prospectDone === undefined) m.prospectDone = null;
+      });
+      s.version = 7;
+    }
     return normalize(s);
   }
 
@@ -222,6 +232,11 @@
       if (typeof m.prospect !== 'boolean') m.prospect = false;
       if (!Array.isArray(m.years)) m.years = yearIds.slice();
       m.years = m.years.filter(function (id) { return yearIds.indexOf(id) !== -1; });
+      var pg = Number(m.prospectGoal);
+      m.prospectGoal = pg > 0 ? Math.round(pg) : PROSPECT_MONTHS;
+      if (typeof m.prospectFrom !== 'string' || !m.prospectFrom) m.prospectFrom = null;
+      m.prospectDone = (m.prospectDone === null || m.prospectDone === undefined || m.prospectDone === '')
+        ? null : Math.max(0, Math.round(Number(m.prospectDone) || 0));
     });
     s.fineTypes.forEach(function (t) { t.amount = Number(t.amount) || 0; if (typeof t.icon !== 'string') t.icon = ''; });
     s.fines.forEach(function (f) { f.amount = Number(f.amount) || 0; if (!f.ts) f.ts = 0; });
@@ -321,7 +336,8 @@
     'bulk-open': 1, 'bulk-type': 1, 'bulk-toggle': 1, 'bulk-all': 1, 'bulk-save': 1,
     'expense-form': 1, 'expense-save': 1, 'remove-expense': 1,
     'rules-edit': 1, 'rules-save': 1,
-    'settle-writeoff': 1, 'toggle-prospect': 1, 'toggle-member-year': 1
+    'settle-writeoff': 1, 'toggle-prospect': 1, 'toggle-member-year': 1,
+    'prospect-edit': 1, 'prospect-save': 1, 'prospect-auto': 1
   };
 
   function commit() {
@@ -1048,21 +1064,40 @@
     return '<span class="flames">' + out + '</span>';
   }
 
-  /* Prospect-forløb: spiren vokser et hak for hvert møde mod optagelse */
-  var PROSPECT_GOAL = 5;
+  /* Prospect-forløb: måles i måneder fra startdatoen. Spiren vokser et hak
+     undervejs, og både længden og de gennemførte måneder kan sættes manuelt. */
+  var PROSPECT_MONTHS = 3;
+
+  /* Hele måneder mellem to ISO-datoer */
+  function monthsBetween(fromISO, toISO) {
+    var a = String(fromISO || '').split('-'), b = String(toISO || '').split('-');
+    if (a.length !== 3 || b.length !== 3) return 0;
+    var n = (parseInt(b[0], 10) - parseInt(a[0], 10)) * 12 + (parseInt(b[1], 10) - parseInt(a[1], 10));
+    if (parseInt(b[2], 10) < parseInt(a[2], 10)) n--;
+    return Math.max(0, n);
+  }
+
+  function prospectStart(m) {
+    if (m.prospectFrom) return m.prospectFrom;
+    return m.createdAt ? isoOf(new Date(m.createdAt)) : todayISO();
+  }
+
   function prospectProgress(m) {
     if (!m || !m.prospect) return null;
-    var since = m.createdAt || 0;
-    var n = heldMeetings().filter(function (mt) {
-      var t = mt.date ? new Date(mt.date + 'T12:00:00').getTime() : 0;
-      return t >= since || state.fines.some(function (f) { return f.meetingId === mt.id && f.memberId === m.id; });
-    }).length;
-    return { done: Math.min(PROSPECT_GOAL, n), goal: PROSPECT_GOAL, grow: Math.min(3, Math.floor(3 * n / PROSPECT_GOAL)) };
+    var goal = Math.max(1, Number(m.prospectGoal) || PROSPECT_MONTHS);
+    var manual = m.prospectDone !== null && m.prospectDone !== undefined && m.prospectDone !== '';
+    var raw = manual ? Math.max(0, Number(m.prospectDone) || 0) : monthsBetween(prospectStart(m), todayISO());
+    var done = Math.min(goal, raw);
+    return {
+      done: done, raw: raw, goal: goal, manual: manual, from: prospectStart(m),
+      klar: raw >= goal,
+      grow: Math.min(3, Math.floor(3 * done / goal))
+    };
   }
   function sproutIcon(m) {
     var p = prospectProgress(m);
     if (!p) return '';
-    return '<span class="sprout" data-grow="' + p.grow + '" title="Prospect — ' + p.done + ' af ' + p.goal + ' møder">' + IC.sprout + '</span>';
+    return '<span class="sprout" data-grow="' + p.grow + '" title="Prospect — ' + p.done + ' af ' + p.goal + ' måneder">' + IC.sprout + '</span>';
   }
 
   function nameIcons(mid) {
@@ -2020,12 +2055,18 @@
 
   /* ---------- Modals ---------- */
 
-  function openModal(title, bodyHtml, subtitle) {
+  /* Et ark kan have to udgange: pilen fører ét skridt tilbage (fx til
+     medlemmets profil), krydset lukker helt ud til siden bagved. */
+  function openModal(title, bodyHtml, subtitle, back) {
     closeModal();
+    var backBtn = back
+      ? '<button class="sheet-back" data-action="sheet-back" data-kind="' + esc(back.kind) + '" data-id="' + esc(back.id || '') +
+        '" aria-label="' + esc(back.label) + '" title="' + esc(back.label) + '">' + IC.left + '</button>'
+      : '';
     var root = h('<div class="modal-root">' +
       '<div class="scrim" data-action="close-modal"></div>' +
-      '<div class="sheet"><div class="sheet-head"><div class="t">' + title + (subtitle ? '<div class="s" style="font-family:var(--body); font-weight:400; text-transform:none; letter-spacing:0">' + subtitle + '</div>' : '') + '</div>' +
-      '<button class="sheet-close" data-action="close-modal" aria-label="Luk">' + IC.x + '</button></div>' +
+      '<div class="sheet"><div class="sheet-head">' + backBtn + '<div class="t">' + title + (subtitle ? '<div class="s" style="font-family:var(--body); font-weight:400; text-transform:none; letter-spacing:0">' + subtitle + '</div>' : '') + '</div>' +
+      '<button class="sheet-close" data-action="close-modal" aria-label="Luk helt" title="Luk">' + IC.x + '</button></div>' +
       '<div class="sheet-body">' + bodyHtml + '</div></div></div>').firstChild;
     document.body.appendChild(root);
     var f = root.querySelector('input, textarea');
@@ -2228,7 +2269,7 @@
           kr(owing.reduce(function (a, x) { return a + x.bal; }, 0)) + '. Gælden følger med ind i næste klubår, medmindre den afskrives her.</div>' +
           (viewerMode ? '' : '<div class="btn-row"><button class="btn secondary" data-action="settle-carry">Overfør al gæld til næste år</button></div>')
         : '<div class="note">Alle er ajour — sæsonen kan lukkes med rank ryg.</div>'),
-      'Gælden overføres som udgangspunkt');
+      'Gælden overføres som udgangspunkt', { kind: 'season', id: y.id, label: 'Tilbage til sæsonresultatet' });
   }
   function mer(n) { return n === 1 ? '' : 'mer'; }
 
@@ -2296,10 +2337,14 @@
         var pp = prospectProgress(m);
         if (!pp) return '';
         var pct = Math.round(100 * pp.done / pp.goal);
-        return '<div class="prospect-strip">' + sproutIcon(m) +
-          '<div class="grow"><div class="t">Prospect — ' + pp.done + ' af ' + pp.goal + ' møder</div>' +
-          '<div class="pp-track"><i style="width: ' + pct + '%"></i></div></div>' +
-          '<div class="pp-pct">' + pct + '%</div></div>';
+        return '<div class="prospect-strip' + (pp.klar ? ' klar' : '') + '">' + sproutIcon(m) +
+          '<div class="grow"><div class="t">Prospect — ' + pp.done + ' af ' + pp.goal + ' måneder' +
+          (pp.klar ? ' · klar til optagelse' : '') + '</div>' +
+          '<div class="pp-track"><i style="width: ' + pct + '%"></i></div>' +
+          '<div class="pp-meta">' + (pp.manual ? 'Sat manuelt' : 'Fra ' + fmtDate(pp.from)) + '</div></div>' +
+          (viewerMode ? '<div class="pp-pct">' + pct + '%</div>'
+            : '<button class="btn small secondary" data-action="prospect-edit" data-id="' + esc(m.id) + '">Ret</button>') +
+          '</div>';
       })() +
       (topType && topType.count >= 2
         ? '<div class="note">Favoritsynd: ' + topType.count + '× »' + esc((findFineType(topType.typeId) || {}).category || '?') + '«</div>'
@@ -2317,7 +2362,7 @@
         (state.formandId === m.id ? 'Fjern som formand' : IC.crown + ' Gør til formand') + '</button>' +
         '<button class="btn secondary" data-action="toggle-prospect" data-id="' + esc(m.id) + '">' +
         (m.prospect ? 'Gør til fuldgyldigt medlem' : IC.sprout + ' Markér som prospect') + '</button>' +
-        '<button class="btn danger" data-action="delete-member" data-id="' + esc(m.id) + '">' + IC.bin + 'Slet helt</button></div>') +
+        '<button class="btn danger" data-action="delete-member" data-id="' + esc(m.id) + '">' + IC.bin + 'Slet</button></div>') +
       yearMembershipBlock(m) +
       '<div class="section-title"><h2>Historik</h2><div class="hint">' + events.length + ' posteringer</div></div>' +
       histChips +
@@ -2390,7 +2435,7 @@
       (viewerMode ? '' : '<div class="btn-row"><button class="btn secondary" data-action="card-save" data-id="' + esc(m.id) + '">' + IC.save + 'Gem kortet som billede</button></div>') +
       '<div class="note">Kortet gemmes som SVG — det kan deles direkte i klubbens gruppechat.</div>';
 
-    openModal('Medlemskort', body, esc(m.name));
+    openModal('Medlemskort', body, esc(m.name), { kind: 'member', id: m.id, label: 'Tilbage til ' + m.name });
   }
 
   /* Samme kort som selvstændig SVG-fil, så det kan deles som billede */
@@ -2444,6 +2489,26 @@
     return out + '</svg>';
   }
 
+  /* Prospect-forløb: startdato, længde og en manuel tælling der slår automatikken fra */
+  function openProspectForm(memberId) {
+    var m = findMember(memberId);
+    if (!m) return;
+    var p = prospectProgress(m) || { goal: PROSPECT_MONTHS, from: prospectStart(m), manual: false, raw: 0 };
+    var body =
+      '<label for="pr-from">Startdato for forløbet</label>' +
+      '<input id="pr-from" type="date" value="' + esc(p.from) + '">' +
+      '<label for="pr-goal">Forløbets længde (måneder)</label>' +
+      '<input id="pr-goal" type="number" inputmode="numeric" min="1" max="60" step="1" value="' + p.goal + '">' +
+      '<label for="pr-done">Gennemførte måneder</label>' +
+      '<input id="pr-done" type="number" inputmode="numeric" min="0" max="60" step="1" placeholder="Beregnes automatisk" value="' +
+      (p.manual ? p.raw : '') + '">' +
+      '<div class="btn-row"><button class="btn" data-action="prospect-save" data-id="' + esc(m.id) + '">Gem forløb</button>' +
+      (p.manual ? '<button class="btn secondary" data-action="prospect-auto" data-id="' + esc(m.id) + '">Beregn automatisk igen</button>' : '') +
+      '</div>' +
+      '<div class="note">Lad feltet »Gennemførte måneder« stå tomt, så tælles månederne selv fra startdatoen. Udfylder du det, overstyrer tallet beregningen.</div>';
+    openModal('Prospect-forløb', body, esc(m.name), { kind: 'member', id: m.id, label: 'Tilbage til ' + m.name });
+  }
+
   function openPayForm(memberId) {
     var m = findMember(memberId);
     if (!m) return;
@@ -2457,7 +2522,8 @@
       '<input id="pay-note" type="text" placeholder="fx MobilePay">' +
       '<div class="btn-row"><button class="btn" data-action="pay-save" data-id="' + esc(m.id) + '">Registrer indbetaling</button></div>' +
       (bal > 0 ? '<div class="note">Udfyldt med hele gælden (' + kr(bal) + ') — ret beløbet ved delvis indbetaling.</div>' : '');
-    openModal('Indbetaling', body, esc(m.name) + ' · gæld ' + kr(Math.max(0, bal)));
+    openModal('Indbetaling', body, esc(m.name) + ' · gæld ' + kr(Math.max(0, bal)),
+      { kind: 'member', id: m.id, label: 'Tilbage til ' + m.name });
   }
 
   function openSpecialFineForm() {
@@ -2468,7 +2534,8 @@
       '<input id="sp-amount" type="number" inputmode="numeric" min="1" step="1" value="50">' +
       '<div class="btn-row"><button class="btn" data-action="special-save">Giv særbøden</button></div>';
     var m = findMember(pickerMemberId);
-    openModal('Særbøde', body, m ? 'Til ' + esc(m.name) : '');
+    openModal('Særbøde', body, m ? 'Til ' + esc(m.name) : '',
+      m ? { kind: 'picker', id: m.id, label: 'Tilbage til bøderne for ' + m.name } : null);
   }
 
   function openMemberForm() {
@@ -2574,7 +2641,7 @@
   }
 
   /* Sæsonafslutning: kåring af årets syndere (#5) */
-  function openSeasonResult(y) {
+  function openSeasonResult(y, quiet) {
     var totals = state.members.map(function (m) { return { m: m, sum: yearFineTotalFor(m.id, y.id) }; })
       .sort(function (a, b) { return b.sum - a.sum; });
     var top = totals.filter(function (t) { return t.sum > 0; }).slice(0, 3);
@@ -2587,7 +2654,7 @@
         '<div class="grow"><div class="t">' + esc(t.m.name) + '</div><div class="s">' + titles[i] + '</div></div>' +
         '<div class="podium-sum">' + kr(t.sum) + '</div></div>';
     }).join('');
-    spawnConfetti();
+    if (!quiet) spawnConfetti();
     openModal(IC.trophy + ' Sæsonen ' + esc(y.label) + ' er slut',
       (rows || '<div class="note">Ingen bøder blev givet i denne sæson. Imponerende. Eller bekymrende.</div>') +
       (nice ? '<div class="streak-strip clean" style="margin-top: 16px">' + IC.shield + '<span>Mest artige: ' + esc(nice.m.name) + ' — kun ' + kr(nice.sum) + ' i bøder.</span></div>' : '') +
@@ -2607,7 +2674,8 @@
         '<button class="btn small secondary" data-action="trash-restore" data-id="' + esc(t.id) + '">Gendan</button></div>';
     }).join('');
     openModal('Papirkurv', (rows || emptyState('kasse', 'Papirkurven er tom', 'Intet fortrudt. Endnu.')) +
-      '<div class="note">Slettede møder og medlemmer gendannes med alt indhold. Ryddes automatisk efter ' + TRASH_DAYS + ' dage.</div>');
+      '<div class="note">Slettede møder og medlemmer gendannes med alt indhold. Ryddes automatisk efter ' + TRASH_DAYS + ' dage.</div>',
+      '', { kind: 'settings', label: 'Tilbage til indstillinger' });
   }
 
   function openAudit() {
@@ -2616,7 +2684,8 @@
         '<div class="s">' + fmtDateTime(e.ts) + '</div></div></div>';
     }).join('');
     openModal('Revisionslog', (rows || emptyState('dommer', 'Ingen registreringer endnu', 'Loggen sover trygt.')) +
-      '<div class="note">Viser de seneste 200 hændelser.</div>');
+      '<div class="note">Viser de seneste 200 hændelser.</div>',
+      '', { kind: 'settings', label: 'Tilbage til indstillinger' });
   }
 
   /* ---------- Handlinger ---------- */
@@ -2636,6 +2705,16 @@
     'settings': function () { openSettings(); },
     'undo': function () { undo(); },
     'redo': function () { redo(); },
+
+    /* Pilen i arkets hoved: ét skridt tilbage i stedet for helt ud */
+    'sheet-back': function (el) {
+      var kind = el.getAttribute('data-kind'), id = el.getAttribute('data-id');
+      if (kind === 'member') { openMemberSheet(id); return; }
+      if (kind === 'picker' && !viewerMode) { openFinePicker(id); return; }
+      if (kind === 'settings') { openSettings(); return; }
+      if (kind === 'season') { var y = findYear(id); if (y) { openSeasonResult(y, true); return; } }
+      closeModal(); pickerMemberId = null; render();
+    },
 
     'search': function () { openSearch(); },
     'search-go': function (el) {
@@ -2739,10 +2818,35 @@
       openSettlement(y.id);
     },
 
+    'prospect-edit': function (el) { openProspectForm(el.getAttribute('data-id')); },
+    'prospect-save': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (!m) return;
+      var goal = num('pr-goal');
+      var doneRaw = val('pr-done').trim();
+      m.prospectGoal = goal > 0 ? goal : PROSPECT_MONTHS;
+      m.prospectFrom = val('pr-from') || null;
+      m.prospectDone = doneRaw === '' ? null : Math.max(0, num('pr-done'));
+      log('Rettede prospect-forløbet for ' + m.name + ' (' + m.prospectGoal + ' måneder' +
+        (m.prospectDone === null ? '' : ', ' + m.prospectDone + ' gennemført') + ')');
+      commitQuiet();
+      toast('Forløbet er opdateret');
+      openMemberSheet(m.id);
+    },
+    'prospect-auto': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (!m) return;
+      m.prospectDone = null;
+      log('Prospect-forløbet for ' + m.name + ' beregnes igen automatisk');
+      commitQuiet();
+      openProspectForm(m.id);
+    },
+
     'toggle-prospect': function (el) {
       var m = findMember(el.getAttribute('data-id'));
       if (!m) return;
       m.prospect = !m.prospect;
+      if (m.prospect && !m.prospectFrom) m.prospectFrom = todayISO();
       log(m.prospect ? m.name + ' blev markeret som prospect' : m.name + ' blev fuldgyldigt medlem');
       commitQuiet();
       toast(m.prospect ? m.name + ' er nu prospect' : 'Velkommen i klubben, ' + m.name + '!');
@@ -3103,7 +3207,7 @@
         reader.onload = function () {
           try {
             var s = JSON.parse(String(reader.result));
-            if (!s || typeof s.version !== 'number' || s.version < 1 || s.version > 6 || !Array.isArray(s.members)) throw new Error('bad');
+            if (!s || typeof s.version !== 'number' || s.version < 1 || s.version > 7 || !Array.isArray(s.members)) throw new Error('bad');
             if (!window.confirm('Erstat alle nuværende data med det importerede?')) return;
             pushUndo(JSON.stringify(state), 'import af data');
             state = migrate(s);
@@ -3159,7 +3263,8 @@
     var cy = currentClubYear();
     state.members.push({
       id: uid(), name: name, active: true, prospect: prospect,
-      years: cy ? [cy.id] : [], createdAt: Date.now()
+      years: cy ? [cy.id] : [], createdAt: Date.now(),
+      prospectGoal: PROSPECT_MONTHS, prospectFrom: todayISO(), prospectDone: null
     });
     log('Tilføjede ' + (prospect ? 'prospectet ' : 'medlemmet ') + name + (cy ? ' i ' + cy.label : ''));
     if (keepOpen) {

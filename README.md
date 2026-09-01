@@ -63,4 +63,4 @@ node test/test-app.mjs
 
 ## Videre arbejde
 
-Se `docs/projekt.md` (mål, beslutninger, status) og `docs/feature-ideer.md` (resterende idéer). Ny sæson startes i appen med "Opret klubår"-knappen — der kræves ingen kodeændringer.
+Se `docs/samtale-resume.md` (komprimeret udviklingshistorik — startpunkt for en ny AI-session), `docs/projekt.md` (mål, beslutninger, status) og `docs/feature-ideer.md` (resterende idéer). Ny sæson startes i appen med "Opret klubår"-knappen — der kræves ingen kodeændringer.

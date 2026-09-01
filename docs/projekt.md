@@ -1,6 +1,7 @@
 # Projekt: RTD Bødeligaen — mål, beslutninger og status
 
 Arkivdokument, så arbejdet kan genoptages fra enhver computer. Sidst opdateret: 31. august 2026.
+Den fulde udviklingshistorik og rettelseslog ligger komprimeret i `docs/samtale-resume.md` — start dér ved overlevering til en ny model/session.
 
 ## Målsætning
 

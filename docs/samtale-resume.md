@@ -43,6 +43,9 @@ Opfølgende kommentar: menubjælken overlappede stadig indholdet i Claude-deskto
 ### 11. Visuelt løft, runde 2 (1. sep. 2026)
 Daniel valgte 10 af de 15 visuelle idéer: medlems-avatarer (monogram, farve fra id-hash), rang-medaljer som SVG med bånd, mini-sparkline (seneste 6 afholdte møder, vises fra 3 møder), fremskridtsbjælke (betalt/bøder), sæsonfarve pr. klubår (`YEAR_COLORS`, følger med i årsliste, header, statistik-chips og grafer), dybde på kort (inset-highlight + skygge), "BØDE!"-fuldskærmsoverlay ved 500 kr.+ (`BIG_FINE`), animeret podie 3→2→1, rangskifte-fremhævning (`lastRanks`) og pulserende live-tæller. Ranglisten blev samtidig strammet: sparkline flyttet under navnet, kortere undertekst, mindre typografi på mobil — ingen navne afkortes længere. Ny idérunde i `docs/visuelle-ideer.md` (15 nye). Bemærk: serialiseringen ryddede ikke midlertidige overlays — `.tip`, `.confetti`, `.bigfine` og `.report-overlay` fjernes nu også, så de ikke gemmes med i den delte version.
 
+### 12. Responsivitet: ingen vandret scroll (1. sep. 2026)
+Kommentar: vandret scroll på statistiksiden. Systematisk måling af hvert element ved 320/360/390/430/768/1024 px — også i dialoger, møde, bødevælger og rapport — fandt fem årsager: (1) sammenlignings-tabellen (5 kolonner) → foldes nu til kort under 620 px via `data-l`-etiketter og CSS; (2) fanebjælken kunne ikke være der ved 320 px → skalerende typografi under 400/344 px; (3) knaprækker i medlemsprofilen stak ud → `flex-wrap` + `flex-basis: 140px`; (4) kassererrapporten var for bred på telefon → mindre marginer/typografi, `rp-sign` ombryder; (5) desktop-indholdet blev bredere end pladsen ved sidebaren → `width: calc(100% - 220px)` og flydende KPI-kort (`repeat(auto-fit, minmax(…))`). Desuden `overflow-x: clip` på html/body som sikkerhedsnet og `overflow-wrap: anywhere` på tekstflader.
+
 ## Rettelseslog (alle QA-/reviewrunder samlet)
 
 1. **Mockup-review:** Tidende-overløb; Scoreboard manglende kolonne + forskudt header; Kridttavle-tallies matchede ikke beløb; Protokol-stempel-overlap; da. stavning (ajour, særbøde, væddemål, "11 flere"); dato-konsistens på tværs af mockups; dingbat→SVG.
@@ -55,10 +58,11 @@ Daniel valgte 10 af de 15 visuelle idéer: medlems-avatarer (monogram, farve fra
 8. **Ikon-match:** første udgave splittede nøgleord på mellemrum, så "Ikke rejse sig" matchede ordet "ikke" fra en anden regel → frase-match (`|`-adskilt) indført.
 9. **Rangliste-plads:** avatar + medalje + sparkline gjorde rækken for trang (7 af 12 navne afkortet) → sparkline flyttet under navnet, kolonnebredder og typografi strammet på mobil.
 10. **Efterladte overlays i gemt dokument:** `serializeDocument()` fjernede kun modal og toast → nu også tooltip, konfetti, BØDE-overlay og rapport.
+11. **Vandret scroll:** fem årsager fundet ved systematisk måling på seks skærmbredder (se afsnit 12) — alle rettet, verificeret uden overløb nogen steder.
 
 ## Nuværende tilstand (pr. 1. sep. 2026)
 
-- State-version **4**; live-data: klub "RT 11 Frederiksberg", 15 medlemmer, formand = Marco Brøndsted, 3 klubår (2024/25, 2025/26, 2026/27 à 20 møder), "Møde 1 - Fisketur" afsluttet med 1.250 kr., i alt 15 bøder registreret, ingen indbetalinger endnu.
+- State-version **4**; live-data: klub "RT 11 Frederiksberg", 15 medlemmer, formand = Marco Brøndsted, 3 klubår (2024/25, 2025/26, 2026/27 à 20 møder), "Møde 1 - Fisketur" (1.250 kr.) og "Møde 2 - Formuepleje" (510 kr.) afsluttet, i alt 15 bøder registreret, ingen indbetalinger endnu.
 - Testsuite `test/test-app.mjs`: 32 tjek, alle grønne.
 - Visuelle idéer: `docs/visuelle-ideer.md` — runde 1 (11 implementeret) + runde 2 (15 nye forslag).
 - Uimplementerede idéer: `docs/feature-ideer.md` uden ✅ (MobilePay-genvej, rykkerbesked, fortryd-i-toast, avisnotits, formandens dobbelttakst, fremmøderegistrering, notifikationer, PWA) + Pakke C-rest i `docs/visuelt-oplaeg.md`.

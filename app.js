@@ -1301,9 +1301,11 @@
         var s = yearFineTotalFor(m.id, y.id);
         if (s > 0 && (!worst || s > worst.s)) worst = { m: m, s: s };
       });
-      return '<tr><td><span class="ydot" style="background: ' + yearColor(y) + '"></span>' + esc(y.label) + '</td><td>' + yheld + '</td><td>' + nf(yt) + '</td>' +
-        '<td>' + nf(yheld ? Math.round(yt / yheld) : 0) + '</td>' +
-        '<td>' + (worst ? esc(worst.m.name) : '–') + '</td></tr>';
+      return '<tr><td data-l="Klubår"><span class="ydot" style="background: ' + yearColor(y) + '"></span>' + esc(y.label) + '</td>' +
+        '<td data-l="Møder">' + yheld + '</td>' +
+        '<td data-l="Bøder kr.">' + nf(yt) + '</td>' +
+        '<td data-l="Gns./møde">' + nf(yheld ? Math.round(yt / yheld) : 0) + '</td>' +
+        '<td data-l="Værste synder">' + (worst ? esc(worst.m.name) : '–') + '</td></tr>';
     }).join('');
 
     return '<div class="section-title"><h2>Statistik</h2><div class="hint">Klubår ' + esc(sel.label) + '</div></div>' +

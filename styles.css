@@ -168,8 +168,8 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
 .btn.secondary:hover { background: var(--card); }
 .btn.danger { background: none; border: 2px solid var(--red); color: var(--red); font-family: var(--body); font-weight: 600; }
 .btn.small { min-height: 44px; font-size: 15px; padding: 0 14px; width: auto; }
-.btn-row { display: flex; gap: 10px; margin-top: 18px; }
-.btn-row .btn { flex-grow: 1; width: auto; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.btn-row .btn { flex-grow: 1; flex-basis: 140px; width: auto; min-width: 0; }
 
 /* Fixed action bar above tabs */
 /* Bundbjælke: CTA-knap + faner. Sticky og i normalt flow, så den ALDRIG
@@ -554,14 +554,15 @@ table.cmp td:nth-child(3), table.cmp td:nth-child(4) { font-family: var(--displa
   .tab { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 0 12px; min-height: 48px; font-size: 15px; flex-grow: 0; flex-basis: auto; }
   .tab.active { background: var(--card); }
   .appbar .tools { position: fixed; left: 20px; bottom: 20px; }
-  .content { margin-left: 220px; max-width: none; padding: 32px 40px 130px; }
+  .content { margin-left: 220px; width: calc(100% - 220px); max-width: none; padding: 32px 40px 130px; }
   .bottombar {
     position: fixed; left: 220px; right: 0; bottom: 0; margin-top: 0;
     background: linear-gradient(0deg, var(--bg) 62%, rgba(16,20,26,0)); padding-bottom: 18px;
   }
   .content > * { max-width: 860px; }
-  .stats { max-width: 860px; grid-template-columns: repeat(3, 220px); }
-  .stats.kpi4 { grid-template-columns: repeat(4, 200px); }
+  /* Flydende kort, så de aldrig bliver bredere end pladsen ved siden af sidebaren */
+  .stats { max-width: 860px; grid-template-columns: repeat(auto-fit, minmax(160px, 220px)); }
+  .stats.kpi4 { grid-template-columns: repeat(auto-fit, minmax(140px, 200px)); }
   .member-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .fine-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .modal-root { align-items: center; padding: 24px; }
@@ -712,3 +713,61 @@ table.cmp td:nth-child(3), table.cmp td:nth-child(4) { font-family: var(--displa
   .bf-word { font-size: 52px; }
   .bf-amt { font-size: 32px; }
 }
+
+/* ============ Responsivt: aldrig vandret scroll ============ */
+html { overflow-x: clip; }
+body { overflow-x: clip; max-width: 100%; }
+.content, .chart-card, .stats, .streak-panel, .info-card { max-width: 100%; }
+.chart-card { overflow: hidden; }
+
+/* Sammenlign klubår: tabel på brede skærme, kort på smalle */
+@media (max-width: 620px) {
+  .tbl-wrap { overflow-x: visible; }
+  table.cmp thead { display: none; }
+  table.cmp, table.cmp tbody, table.cmp tr, table.cmp td { display: block; width: 100%; }
+  table.cmp tr {
+    background: var(--card-raised); border-radius: 6px;
+    padding: 10px 12px; margin-bottom: 8px;
+  }
+  table.cmp td {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    padding: 3px 0; border-bottom: none; text-align: right;
+  }
+  table.cmp td::before {
+    content: attr(data-l); color: var(--faint); font-size: 12px;
+    letter-spacing: 0.08em; text-transform: uppercase; text-align: left; flex-shrink: 0;
+  }
+  table.cmp td:first-child {
+    font-family: var(--display); font-size: 18px; letter-spacing: 0.04em;
+    padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line);
+  }
+  table.cmp td:first-child::before { display: none; }
+  table.cmp td:first-child { justify-content: flex-start; text-align: left; }
+}
+
+/* Fanebjælken skal kunne være der helt ned til 320 px */
+.tab { min-width: 0; padding: 0 2px; }
+@media (max-width: 400px) {
+  .tab { font-size: 11px; letter-spacing: 0.01em; }
+}
+@media (max-width: 344px) {
+  .tab { font-size: 9.5px; letter-spacing: 0; gap: 2px; }
+  .tab svg { width: 18px; height: 18px; }
+}
+
+/* Lange ord må aldrig sprænge en flade */
+.row .t, .row .s, .rec-row .t, .rec-row .s, .log-item .t, .log-item .s,
+.info-card .desc, .streak-row .t, .streak-row .s, .award { overflow-wrap: anywhere; }
+
+/* Kassererrapporten skal også kunne læses på en telefon */
+@media (max-width: 620px) {
+  .report-overlay { padding: 10px; }
+  .report-paper { padding: 24px 16px; }
+  .report-paper h1 { font-size: 21px; }
+  .report-paper table { font-size: 12px; }
+  .report-paper th, .report-paper td { padding: 4px 5px; overflow-wrap: anywhere; }
+  .report-paper .rp-kpis { gap: 14px; }
+  .report-toolbar { flex-wrap: wrap; }
+}
+.report-paper .rp-sign { flex-wrap: wrap; gap: 28px 60px; }
+.report-paper .rp-line { width: min(190px, 60vw); }

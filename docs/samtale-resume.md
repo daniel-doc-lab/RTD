@@ -41,10 +41,14 @@ Daniel bad om fuld dokumentation i GitHub til videre arbejde i ny sæson fra and
 3. **QA-runde 1:** se afsnit 6 ovenfor (H1, H2 + 9 mellem + 8 lav rettet).
 4. **Artifact-viewer:** JSON-eksport via download-link virker ikke i sandboxen → `downloads`-capability med blob-fallback (også brugt af kassererrapporten).
 5. **Tælle-animation:** startværdier renderes nu i HTML (intet tomt felt før animation).
+6. **Bundplads (fra artifact-kommentarer):** faste bjælker i bunden dækkede nederste indhold — bundplads og bjælke-placering rettet, verificeret på fire skærmbredder.
 
-## Nuværende tilstand (pr. 31. aug. 2026)
+### 9. Kommentar-rettelser fra live-appen (1. sep. 2026)
+To kommentarer i artifact-tråden: (a) "nogle medlemmer mangler i dette view" og (b) "Ligaen-menuen rækker ind over teksten bagved". Samme rodårsag: `.content` havde kun 108 px bundplads, mens den faste knap-bjælke (bottom 64 px + ~72 px høj) plus fanebjælken fylder ~136 px — så nederste række på ranglisten lå skjult bag knappen, selv når der var scrollet helt ned. Rettet: bundplads → `calc(160px + env(safe-area-inset-bottom))`, knap-bjælken løftet til `calc(76px + safe-area)`, fanebjælken fik mere luft (8 px), desktop-padding 120 → 130 px. Verificeret med de rigtige 12 medlemmer på 360/390/768/1440 px: intet element overlapper længere. Begge tråde besvaret og markeret løst.
 
-- State-version **4**; live-data: klub "RT 11 Frederiksberg", 11 medlemmer, formand = Marco Brøndsted, 3 klubår (2024/25, 2025/26, 2026/27 à 20 møder), endnu ingen bøder/indbetalinger registreret.
+## Nuværende tilstand (pr. 1. sep. 2026)
+
+- State-version **4**; live-data: klub "RT 11 Frederiksberg", 12 medlemmer (Romanas Markovas kom til), formand = Marco Brøndsted, 3 klubår (2024/25, 2025/26, 2026/27 à 20 møder), "Møde 1 - Fisketur" i gang med 8 registrerede bøder, ingen indbetalinger endnu.
 - Testsuite `test/test-app.mjs`: 32 tjek, alle grønne.
 - Uimplementerede idéer: `docs/feature-ideer.md` uden ✅ (MobilePay-genvej, rykkerbesked, fortryd-i-toast, avisnotits, formandens dobbelttakst, fremmøderegistrering, notifikationer, PWA) + Pakke C-rest i `docs/visuelt-oplaeg.md`.
 

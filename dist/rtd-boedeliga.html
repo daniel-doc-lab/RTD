@@ -921,9 +921,268 @@ label.check span { display: flex; align-items: center; gap: 6px; }
   .hbar-label { width: 104px; }
 }
 
+/* ============ Farvetema pr. bødekategori ============ */
+/* --fc = gruppens farve, --fcb = samme farve som svag baggrund */
+.fine-ic { color: var(--fc, var(--amber)); background: var(--fcb, var(--card-raised)); }
+.fine-ic.hot { color: #ff5d5d; background: rgba(255,93,93,0.12); }
+.row:hover .fine-ic { background: var(--fcb, var(--line)); filter: brightness(1.25); }
+.glegend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.gl { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+.gl i { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+/* ============ Podie på forsiden ============ */
+.podium {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  align-items: end; margin: 0 0 18px;
+}
+.pod { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.pod-top { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; min-width: 0; }
+.pod-top .rank.medal svg { width: 30px; height: 37px; }
+.pod-name {
+  font-family: var(--display); font-size: 15px; letter-spacing: 0.03em; text-transform: uppercase;
+  display: flex; align-items: center; justify-content: center; gap: 2px;
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pod-sum { font-family: var(--display); font-size: 21px; color: var(--amber); line-height: 1.1; }
+.pod-sub { font-size: 12px; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+.pod-box {
+  width: 100%; border-radius: 6px 6px 0 0; position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  padding: 8px 4px 10px; gap: 2px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.pod-rank { font-family: var(--display); font-size: 22px; line-height: 1; color: rgba(0,0,0,0.45); }
+.pod-title {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: rgba(0,0,0,0.55); text-align: center; line-height: 1.15;
+}
+.pod-1 .pod-box { height: 74px; background: linear-gradient(180deg, #ffe08a, #fbbf24 55%, #c98f10); }
+.pod-2 .pod-box { height: 56px; background: linear-gradient(180deg, #e8edf2, #c0c7ce 55%, #8f99a3); }
+.pod-3 .pod-box { height: 44px; background: linear-gradient(180deg, #d9a877, #b07b45 55%, #7d5530); }
+.pod-1 .pod-sum { font-size: 25px; }
+.pod-1 .avatar { width: 42px; height: 42px; font-size: 16px; }
+.pod:hover .pod-top { transform: translateY(-2px); }
+.pod-top { transition: transform 0.14s ease-out; }
+.pod-1 .pod-box { animation: pod-shimmer 5s ease-in-out infinite; }
+@keyframes pod-shimmer { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.12); } }
+
+/* ============ Tegnede tomme tilstande ============ */
+.art-empty { padding: 26px 16px 30px; color: var(--faint); }
+.art { width: 148px; height: auto; margin: 0 auto 10px; display: block; color: var(--muted); opacity: 0.75; }
+.art-empty .big { margin-bottom: 4px; }
+.art-sub { font-size: 15px; color: var(--faint); }
+.chart-card .art-empty { padding: 12px 8px 6px; }
+.chart-card .art { width: 116px; }
+.sheet-body .art { width: 120px; }
+
+/* ============ Metalliske hædersbevisninger ============ */
+.award {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 7px;
+  border-radius: 999px; padding: 7px 14px 7px 9px;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.02em;
+  border: 1px solid rgba(255,255,255,0.28);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -2px 6px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.4);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.25);
+}
+.award::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay; opacity: 0.5;
+}
+.award .aw-ic { display: inline-flex; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4)); }
+.award .aw-lbl { position: relative; z-index: 1; }
+.award.guld { background: linear-gradient(155deg, #ffeaa8 0%, #e0a91c 42%, #8a6108 100%); color: #2a1f04; }
+.award.soelv { background: linear-gradient(155deg, #f6f9fc 0%, #b6bec7 42%, #6f7880 100%); color: #1c2126; }
+.award.ild { background: linear-gradient(155deg, #ffc59a 0%, #f0722e 45%, #8d3510 100%); color: #2a1105; }
+.award.groen { background: linear-gradient(155deg, #b8f2cd 0%, #35a35f 45%, #14562f 100%); color: #06210f; }
+.badge-row.tight { gap: 6px; margin-top: 8px; }
+.badge-row.tight .award { font-size: 12px; padding: 5px 11px 5px 8px; }
+
+/* ============ Stryg for at fortryde ============ */
+.fine-log { position: relative; }
+.log-wrap { position: relative; overflow: hidden; }
+.log-wrap .log-item { position: relative; z-index: 1; background: var(--bg); }
+.log-wrap.swiping { touch-action: pan-y; }
+.swipe-back {
+  position: absolute; inset: 0; z-index: 0;
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  padding-right: 20px; background: linear-gradient(90deg, transparent, rgba(224,92,110,0.28));
+  color: var(--red); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; font-size: 13px;
+}
+.log-wrap.armed .swipe-back { background: var(--red); color: #fff; }
+.log-wrap.armed .swipe-back svg { color: #fff; }
+
+/* ============ Kasseapparat-rulning ============ */
+.dgt { display: inline-block; height: 1em; overflow: hidden; vertical-align: bottom; }
+.dgt i { display: block; font-style: normal; animation: dgt-roll 0.75s cubic-bezier(0.2, 0.85, 0.25, 1) forwards; }
+.dgt i b { display: block; height: 1em; line-height: 1em; font-weight: inherit; }
+.dgt-s { display: inline-block; }
+@keyframes dgt-roll { from { transform: translateY(0); } to { transform: translateY(var(--to)); } }
+
+/* ============ Ikoner der reagerer ============ */
+.fine-ic.pop { animation: ic-pop 0.5s cubic-bezier(0.2, 1.3, 0.35, 1); }
+@keyframes ic-pop {
+  0% { transform: scale(1) rotate(0deg); }
+  35% { transform: scale(1.35) rotate(-12deg); }
+  65% { transform: scale(1.1) rotate(8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+body.crown-glint .crown svg { animation: crown-flash 1.4s ease-out; }
+@keyframes crown-flash {
+  0% { filter: brightness(1); transform: scale(1) rotate(0deg); }
+  18% { filter: brightness(2.2) drop-shadow(0 0 8px rgba(251,191,36,0.95)); transform: scale(1.3) rotate(-10deg); }
+  45% { filter: brightness(1.4); transform: scale(1.1) rotate(6deg); }
+  100% { filter: brightness(1); transform: scale(1) rotate(0deg); }
+}
+.sprout { transition: transform 0.3s ease-out; transform-origin: 50% 90%; }
+.sprout[data-grow="1"] { transform: scale(1.08); }
+.sprout[data-grow="2"] { transform: scale(1.18); }
+.sprout[data-grow="3"] { transform: scale(1.3); filter: drop-shadow(0 0 5px rgba(159,232,112,0.6)); }
+.prospect-strip {
+  display: flex; align-items: center; gap: 10px; margin-top: 12px;
+  background: linear-gradient(90deg, rgba(159,232,112,0.14), transparent);
+  border-left: 4px solid #9fe870; border-radius: 4px; padding: 10px 12px;
+}
+.prospect-strip .grow { flex-grow: 1; min-width: 0; }
+.prospect-strip .t { font-weight: 600; font-size: 15px; }
+.pp-track { height: 6px; border-radius: 999px; background: var(--line-soft); margin-top: 6px; overflow: hidden; }
+.pp-track i { display: block; height: 100%; background: #9fe870; border-radius: 999px; transition: width 0.4s ease-out; }
+.pp-pct { font-family: var(--display); font-size: 17px; color: #9fe870; }
+
+/* ============ Medlemskort ============ */
+.mcard {
+  position: relative; overflow: hidden;
+  background: linear-gradient(165deg, var(--card) 0%, var(--bg) 100%);
+  border: 2px solid transparent;
+  border-radius: 14px; padding: 18px 16px 16px; text-align: center;
+  background-image:
+    linear-gradient(165deg, #1c2530 0%, #10141a 100%),
+    linear-gradient(150deg, #ffe08a, #fbbf24 45%, #8a6108);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 12px 34px rgba(0,0,0,0.5);
+}
+.mcard-shine {
+  position: absolute; top: -40%; left: -30%; width: 60%; height: 200%;
+  background: linear-gradient(105deg, transparent, rgba(255,240,200,0.09), transparent);
+  transform: rotate(8deg); pointer-events: none;
+  animation: mcard-shine 6s ease-in-out infinite;
+}
+@keyframes mcard-shine { 0%, 70% { left: -40%; } 92%, 100% { left: 110%; } }
+.mcard-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.mcard-role { font-size: 12px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--amber); }
+.mcard-club { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.mcard-av .avatar { width: 88px; height: 88px; font-size: 32px; }
+.mcard-name {
+  font-family: var(--display); font-size: 28px; letter-spacing: 0.03em;
+  text-transform: uppercase; margin-top: 10px; line-height: 1.05;
+}
+.mcard-years { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.mcard-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 8px;
+  margin: 16px 0 12px; padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+.mcard-grid b { display: block; font-family: var(--display); font-size: 22px; color: var(--amber); }
+.mcard-grid span { font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.mcard-sin { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.mcard-sin b { font-family: var(--display); font-size: 18px; letter-spacing: 0.02em; color: var(--text); text-transform: none; }
+.mcard .badge-row { justify-content: center; }
+.mcard-none { font-size: 13px; color: var(--faint); margin-top: 12px; }
+
+/* ============ Hall of Fame ============ */
+.hof-season { border-left: 4px solid var(--yc); border-radius: 4px; padding: 2px 0 6px 12px; margin-bottom: 14px; }
+.hof-season:last-child { margin-bottom: 0; }
+.hof-year {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--display); font-size: 19px; letter-spacing: 0.04em; color: var(--yc); margin-bottom: 4px;
+}
+.hof-year span { font-size: 15px; color: var(--muted); }
+.hof-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  min-height: 54px; padding: 6px 0; border-top: 1px solid var(--line-soft); text-align: left;
+}
+.hof-row:first-of-type { border-top: none; }
+.hof-row .grow { flex-grow: 1; min-width: 0; }
+.hof-row .t { font-size: 16px; font-weight: 600; }
+.hof-row .s { font-size: 13px; color: var(--muted); }
+.hof-row .amount { font-family: var(--display); font-size: 18px; color: var(--amber); white-space: nowrap; }
+.hof-row .amount.zero { color: var(--green); }
+.hof-row .rank.medal svg { width: 24px; height: 30px; }
+.hof-row.now .t { color: var(--amber); }
+.rec-ic.green { color: var(--green); }
+.rec-ic.gold { color: var(--amber); }
+.hof-awards { padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.hof-awards:first-child { border-top: none; }
+.hof-awards .t { font-size: 15px; font-weight: 600; }
+
+/* Fanetekst: "Hall of Fame" på brede skærme, "Hall" på smalle */
+.tab .lbl-short { display: none; }
+.tab .lbl-long { display: inline; }
+@media (max-width: 560px) {
+  .tab .lbl-long { display: none; }
+  .tab .lbl-short { display: inline; }
+}
+
+/* ============ Levende baggrund pr. fane ============ */
+body::before {
+  background:
+    radial-gradient(120% 60% at 50% -10%, var(--view-glow, rgba(251,191,36,0.07)) 0%, rgba(16,20,26,0) 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  transition: background 0.5s ease-out;
+}
+body::after {
+  content: ''; position: fixed; inset: -20% -20% auto -20%; height: 70%; z-index: 0; pointer-events: none;
+  background: radial-gradient(40% 50% at 30% 20%, var(--view-glow, rgba(251,191,36,0.07)), transparent 70%);
+  opacity: 0.8; animation: drift 26s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  from { transform: translate3d(-4%, 0, 0) scale(1); }
+  to { transform: translate3d(6%, 3%, 0) scale(1.12); }
+}
+:root { --view-glow: rgba(251,191,36,0.07); }
+html[data-view="liga"] { --view-glow: rgba(251,191,36,0.09); }
+html[data-view="aar"], html[data-view="aar-detalje"], html[data-view="mode"] { --view-glow: rgba(94,234,212,0.07); }
+html[data-view="medlemmer"] { --view-glow: rgba(167,139,250,0.07); }
+html[data-view="statistik"] { --view-glow: rgba(63,158,99,0.09); }
+html[data-view="takster"] { --view-glow: rgba(94,176,245,0.07); }
+html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
+
+@media (prefers-reduced-motion: reduce) {
+  body::after, .mcard-shine, .pod-1 .pod-box { animation: none !important; }
+}
+
+@media (max-width: 380px) {
+  .podium { gap: 3px; }
+  .pod-name { font-size: 13px; }
+  .pod-sum { font-size: 18px; }
+  .pod-1 .pod-sum { font-size: 21px; }
+  .pod-sub { font-size: 11px; }
+  .mcard-name { font-size: 23px; }
+}
+
+/* ============ Justeringer efter seks faner ============ */
+/* Beløb i statstriben må aldrig brække midt i tallet */
+.stat .v { white-space: nowrap; }
+@media (max-width: 420px) {
+  .stat { padding: 10px 9px 9px; }
+  .stat .v { font-size: 21px; }
+  .stat .k { font-size: 12px; letter-spacing: 0.08em; }
+}
+/* Seks faner skal have luft imellem sig hele vejen ned til 320 px */
+.tab { padding: 0 3px; }
+@media (max-width: 480px) {
+  .tab { font-size: 10.5px; letter-spacing: 0.01em; gap: 2px; padding: 0 1px; }
+  .tab svg { width: 19px; height: 19px; }
+}
+@media (max-width: 360px) {
+  .tab { font-size: 9px; }
+  .tab svg { width: 17px; height: 17px; }
+}
+
 </style>
 
-<script type="application/json" id="rtd-state">{"version":4,"updatedAt":1788261906457,"clubName":"RT 11 Frederiksberg","members":[{"id":"mthd8hob-uzg4in2","name":"Martin Mollerup","active":true,"createdAt":1788188454011},{"id":"mthd8hob-a0868t9","name":"Miki Kjeldsen","active":true,"createdAt":1788188454011},{"id":"mthd8hob-m10erkh","name":"Thomas Jarløv","active":true,"createdAt":1788188454011},{"id":"mthd8hob-5pixhte","name":"Asger Holmsted","active":true,"createdAt":1788188454011},{"id":"mthd8hob-i5gw7u5","name":"Marco Brøndsted","active":true,"createdAt":1788188454011},{"id":"mthd8hob-zhxlp52","name":"Daniel Kuntkes","active":true,"createdAt":1788188454011},{"id":"mthd8hob-d1tgzl5","name":"Steffen Desmond","active":true,"createdAt":1788188454011},{"id":"mthd8hob-uioye9i","name":"Casper Infeld","active":true,"createdAt":1788188454011},{"id":"mthd8hob-jcb83vk","name":"Benjamin Rasmussen","active":true,"createdAt":1788188454011},{"id":"mthd8hob-qbct7qp","name":"Toke Suhr","active":true,"createdAt":1788188454011},{"id":"mthd8hob-o5jb4pq","name":"Rasmus De Martino","active":true,"createdAt":1788188454011},{"id":"mtibkoya-a89ffr2","name":"Romanas Markovas","active":true,"createdAt":1788246130258},{"id":"mtidapqi-ol604j4","name":"Daniel Prospect","active":true,"createdAt":1788249023946},{"id":"mtidefe3-9pkp83t","name":"Mads Birkelund","active":true,"createdAt":1788249197163},{"id":"mtider64-iuh3zrp","name":"Kristoffer Østergaard","active":true,"createdAt":1788249212428}],"fineTypes":[{"id":"mth56rr2-2b06jz6","category":"Mobil","description":"Viser arrogance for andre og kigger på sin mobil i møde","amount":30,"active":true,"icon":""},{"id":"mth56rr2-6s84mom","category":"Dårlig adfærd","description":"Kan være mange forskellige ting — blander ting sammen, siger dumme ting","amount":30,"active":true,"icon":""},{"id":"mth56rr2-9q6bkz0","category":"Mads bøde","description":"Mads’ særskilte bøde","amount":500,"active":true,"icon":""},{"id":"mth56rr2-exuqmq1","category":"Diverse bøde","description":"Blander flere ting sammen, laver noget dumt etc.","amount":30,"active":true,"icon":""},{"id":"mth56rr2-t7exe5h","category":"Afmelding efter frist","description":"Afmelding efter 7 dages frist","amount":150,"active":true,"icon":""},{"id":"mth56rr2-ar19rcz","category":"Afmelding 24 timer","description":"Afmelder sig indenfor 24 timer (sygdom/force majeure kan forhandles)","amount":300,"active":true,"icon":""},{"id":"mth56rr2-rilsu7n","category":"Glemt formandskæde","description":"Ikke ret til at være formand-adfærd","amount":500,"active":true,"icon":""},{"id":"mth56rr2-c0mw473","category":"Ikke rejse sig","description":"Manglende pli — rejser sig ikke op, når man taler","amount":30,"active":true,"icon":""},{"id":"mth56rr2-w89j21w","category":"Afbryde","description":"Manglende pli — afbryder når en anden taler","amount":50,"active":true,"icon":""},{"id":"mth56rr2-rp1cnwc","category":"Mødereferat","description":"Overskrider frist for mødereferat med 7 dage","amount":350,"active":true,"icon":""},{"id":"mth56rr2-y9vhdog","category":"Ingen fremmøde ved tilmelding på RTD","description":"Respektløs adfærd over for mødearrangør og indlægsholder","amount":800,"active":true,"icon":""},{"id":"mth56rr2-84ywg9v","category":"Nål","description":"Glemmer nål — respektløst for klubben","amount":30,"active":true,"icon":""},{"id":"mth56rr2-1l4q1sm","category":"Toilet","description":"Går på toilet under indlæg (undtagelse ved akut diarré)","amount":50,"active":true,"icon":""},{"id":"mth56rr2-067f7ji","category":"Dårlig pligt","description":"Lever ikke op til forventet standard af sine pligter","amount":150,"active":true,"icon":""},{"id":"mth56rr2-x4mrprc","category":"To late BIG BET","description":"Kommer for sent til møde, dvs. over 15 minutter","amount":100,"active":true,"icon":""},{"id":"mth56rr2-tfff0ys","category":"To late SMALL BET","description":"Kommer for sent til møde, dvs. under 15 minutter","amount":50,"active":true,"icon":""},{"id":"mth56rr2-r0or6my","category":"Glemt pligt","description":"Har glemt sin pligt","amount":300,"active":true,"icon":""},{"id":"mth56rr2-l04mmhd","category":"Dårlig planlægning","description":"Har ikke planlagt sit møde i god tid (4 uger før)","amount":50,"active":true,"icon":""}],"meetings":[{"id":"mth5anx4-mgsr7a0","number":1,"date":"2026-08-14","closedAt":1788249490273,"clubYearId":"mthd8hob-gor3x1o","title":"Møde 1 - Fisketur","description":"Årlige fisketur","links":""},{"id":"mthd8hob-npis0mf","clubYearId":"mthd8hob-u5azfz4","number":1,"title":"Møde 1","date":"2024-09-02","description":"","links":"","closedAt":null},{"id":"mthd8hob-l4gtrqx","clubYearId":"mthd8hob-u5azfz4","number":2,"title":"Møde 2","date":"2024-09-16","description":"","links":"","closedAt":null},{"id":"mthd8hob-x698qbc","clubYearId":"mthd8hob-u5azfz4","number":3,"title":"Møde 3","date":"2024-09-30","description":"","links":"","closedAt":null},{"id":"mthd8hob-6mm0mhv","clubYearId":"mthd8hob-u5azfz4","number":4,"title":"Møde 4","date":"2024-10-14","description":"","links":"","closedAt":null},{"id":"mthd8hob-0dhxr01","clubYearId":"mthd8hob-u5azfz4","number":5,"title":"Møde 5","date":"2024-10-28","description":"","links":"","closedAt":null},{"id":"mthd8hob-rl5ndhj","clubYearId":"mthd8hob-u5azfz4","number":6,"title":"Møde 6","date":"2024-11-11","description":"","links":"","closedAt":null},{"id":"mthd8hob-3j9s8at","clubYearId":"mthd8hob-u5azfz4","number":7,"title":"Møde 7","date":"2024-11-25","description":"","links":"","closedAt":null},{"id":"mthd8hob-2w5qsjy","clubYearId":"mthd8hob-u5azfz4","number":8,"title":"Møde 8","date":"2024-12-09","description":"","links":"","closedAt":null},{"id":"mthd8hob-dzzyxan","clubYearId":"mthd8hob-u5azfz4","number":9,"title":"Møde 9","date":"2024-12-23","description":"","links":"","closedAt":null},{"id":"mthd8hob-vurmhyq","clubYearId":"mthd8hob-u5azfz4","number":10,"title":"Møde 10","date":"2025-01-06","description":"","links":"","closedAt":null},{"id":"mthd8hob-gaeigud","clubYearId":"mthd8hob-u5azfz4","number":11,"title":"Møde 11","date":"2025-01-20","description":"","links":"","closedAt":null},{"id":"mthd8hob-idlo679","clubYearId":"mthd8hob-u5azfz4","number":12,"title":"Møde 12","date":"2025-02-03","description":"","links":"","closedAt":null},{"id":"mthd8hob-iu88ggv","clubYearId":"mthd8hob-u5azfz4","number":13,"title":"Møde 13","date":"2025-02-17","description":"","links":"","closedAt":null},{"id":"mthd8hob-lf48vf7","clubYearId":"mthd8hob-u5azfz4","number":14,"title":"Møde 14","date":"2025-03-03","description":"","links":"","closedAt":null},{"id":"mthd8hob-ef1e8dc","clubYearId":"mthd8hob-u5azfz4","number":15,"title":"Møde 15","date":"2025-03-17","description":"","links":"","closedAt":null},{"id":"mthd8hob-ce3prc0","clubYearId":"mthd8hob-u5azfz4","number":16,"title":"Møde 16","date":"2025-03-31","description":"","links":"","closedAt":null},{"id":"mthd8hob-mp4jgnm","clubYearId":"mthd8hob-u5azfz4","number":17,"title":"Møde 17","date":"2025-04-14","description":"","links":"","closedAt":null},{"id":"mthd8hob-n2dqx0a","clubYearId":"mthd8hob-u5azfz4","number":18,"title":"Møde 18","date":"2025-04-28","description":"","links":"","closedAt":null},{"id":"mthd8hob-hxdbf50","clubYearId":"mthd8hob-u5azfz4","number":19,"title":"Møde 19","date":"2025-05-12","description":"","links":"","closedAt":null},{"id":"mthd8hob-8iqapww","clubYearId":"mthd8hob-u5azfz4","number":20,"title":"Møde 20","date":"2025-05-26","description":"","links":"","closedAt":null},{"id":"mthd8hob-2ai6gl4","clubYearId":"mthd8hob-518n34b","number":1,"title":"Møde 1","date":"2025-09-01","description":"","links":"","closedAt":null},{"id":"mthd8hob-55529ig","clubYearId":"mthd8hob-518n34b","number":2,"title":"Møde 2","date":"2025-09-15","description":"","links":"","closedAt":null},{"id":"mthd8hob-ecreagt","clubYearId":"mthd8hob-518n34b","number":3,"title":"Møde 3","date":"2025-09-29","description":"","links":"","closedAt":null},{"id":"mthd8hob-y7vfxai","clubYearId":"mthd8hob-518n34b","number":4,"title":"Møde 4","date":"2025-10-13","description":"","links":"","closedAt":null},{"id":"mthd8hob-tpo1ltz","clubYearId":"mthd8hob-518n34b","number":5,"title":"Møde 5","date":"2025-10-27","description":"","links":"","closedAt":null},{"id":"mthd8hob-bjj80zi","clubYearId":"mthd8hob-518n34b","number":6,"title":"Møde 6","date":"2025-11-10","description":"","links":"","closedAt":null},{"id":"mthd8hob-n47hpqi","clubYearId":"mthd8hob-518n34b","number":7,"title":"Møde 7","date":"2025-11-24","description":"","links":"","closedAt":null},{"id":"mthd8hob-fa8uyv1","clubYearId":"mthd8hob-518n34b","number":8,"title":"Møde 8","date":"2025-12-08","description":"","links":"","closedAt":null},{"id":"mthd8hob-jwfkcrz","clubYearId":"mthd8hob-518n34b","number":9,"title":"Møde 9","date":"2025-12-22","description":"","links":"","closedAt":null},{"id":"mthd8hob-ejvs387","clubYearId":"mthd8hob-518n34b","number":10,"title":"Møde 10","date":"2026-01-05","description":"","links":"","closedAt":null},{"id":"mthd8hob-88108b2","clubYearId":"mthd8hob-518n34b","number":11,"title":"Møde 11","date":"2026-01-19","description":"","links":"","closedAt":null},{"id":"mthd8hob-a6c9uqg","clubYearId":"mthd8hob-518n34b","number":12,"title":"Møde 12","date":"2026-02-02","description":"","links":"","closedAt":null},{"id":"mthd8hob-ekvo80x","clubYearId":"mthd8hob-518n34b","number":13,"title":"Møde 13","date":"2026-02-16","description":"","links":"","closedAt":null},{"id":"mthd8hob-k64xa1z","clubYearId":"mthd8hob-518n34b","number":14,"title":"Møde 14","date":"2026-03-02","description":"","links":"","closedAt":null},{"id":"mthd8hob-41zjmhe","clubYearId":"mthd8hob-518n34b","number":15,"title":"Møde 15","date":"2026-03-16","description":"","links":"","closedAt":null},{"id":"mthd8hob-0pg9he3","clubYearId":"mthd8hob-518n34b","number":16,"title":"Møde 16","date":"2026-03-30","description":"","links":"","closedAt":null},{"id":"mthd8hob-rf5xoic","clubYearId":"mthd8hob-518n34b","number":17,"title":"Møde 17","date":"2026-04-13","description":"","links":"","closedAt":null},{"id":"mthd8hob-bu1eree","clubYearId":"mthd8hob-518n34b","number":18,"title":"Møde 18","date":"2026-04-27","description":"","links":"","closedAt":null},{"id":"mthd8hob-9zfypas","clubYearId":"mthd8hob-518n34b","number":19,"title":"Møde 19","date":"2026-05-11","description":"","links":"","closedAt":null},{"id":"mthd8hob-8bh95wq","clubYearId":"mthd8hob-518n34b","number":20,"title":"Møde 20","date":"2026-05-25","description":"","links":"","closedAt":null},{"id":"mthd8hob-f9476oj","clubYearId":"mthd8hob-gor3x1o","number":2,"title":"Møde 2 - Formuepleje","date":"2026-08-31","description":"","links":"","closedAt":1788261906457},{"id":"mthd8hob-8ohbrmv","clubYearId":"mthd8hob-gor3x1o","number":3,"title":"Møde 3","date":"2026-10-05","description":"","links":"","closedAt":null},{"id":"mthd8hob-p52jbul","clubYearId":"mthd8hob-gor3x1o","number":4,"title":"Møde 4","date":"2026-10-19","description":"","links":"","closedAt":null},{"id":"mthd8hob-fnm3eqy","clubYearId":"mthd8hob-gor3x1o","number":5,"title":"Møde 5","date":"2026-11-02","description":"","links":"","closedAt":null},{"id":"mthd8hob-jmq4in4","clubYearId":"mthd8hob-gor3x1o","number":6,"title":"Møde 6","date":"2026-11-16","description":"","links":"","closedAt":null},{"id":"mthd8hob-gxpmuaa","clubYearId":"mthd8hob-gor3x1o","number":7,"title":"Møde 7","date":"2026-11-30","description":"","links":"","closedAt":null},{"id":"mthd8hob-smx2vsa","clubYearId":"mthd8hob-gor3x1o","number":8,"title":"Møde 8","date":"2026-12-14","description":"","links":"","closedAt":null},{"id":"mthd8hob-bz5ngjh","clubYearId":"mthd8hob-gor3x1o","number":9,"title":"Møde 9","date":"2026-12-28","description":"","links":"","closedAt":null},{"id":"mthd8hob-bzdey7z","clubYearId":"mthd8hob-gor3x1o","number":10,"title":"Møde 10","date":"2027-01-11","description":"","links":"","closedAt":null},{"id":"mthd8hob-4jxcw66","clubYearId":"mthd8hob-gor3x1o","number":11,"title":"Møde 11","date":"2027-01-25","description":"","links":"","closedAt":null},{"id":"mthd8hob-soc294k","clubYearId":"mthd8hob-gor3x1o","number":12,"title":"Møde 12","date":"2027-02-08","description":"","links":"","closedAt":null},{"id":"mthd8hob-a6f51i8","clubYearId":"mthd8hob-gor3x1o","number":13,"title":"Møde 13","date":"2027-02-22","description":"","links":"","closedAt":null},{"id":"mthd8hob-t73oabz","clubYearId":"mthd8hob-gor3x1o","number":14,"title":"Møde 14","date":"2027-03-08","description":"","links":"","closedAt":null},{"id":"mthd8hob-hc9l73x","clubYearId":"mthd8hob-gor3x1o","number":15,"title":"Møde 15","date":"2027-03-22","description":"","links":"","closedAt":null},{"id":"mthd8hob-glzkrcf","clubYearId":"mthd8hob-gor3x1o","number":16,"title":"Møde 16","date":"2027-04-05","description":"","links":"","closedAt":null},{"id":"mthd8hob-fduuak0","clubYearId":"mthd8hob-gor3x1o","number":17,"title":"Møde 17","date":"2027-04-19","description":"","links":"","closedAt":null},{"id":"mthd8hob-rl4mh3u","clubYearId":"mthd8hob-gor3x1o","number":18,"title":"Møde 18","date":"2027-05-03","description":"","links":"","closedAt":null},{"id":"mthd8hob-vetmvvp","clubYearId":"mthd8hob-gor3x1o","number":19,"title":"Møde 19","date":"2027-05-17","description":"","links":"","closedAt":null},{"id":"mthd8hob-5dy91fr","clubYearId":"mthd8hob-gor3x1o","number":20,"title":"Møde 20","date":"2027-05-31","description":"","links":"","closedAt":null}],"fines":[{"id":"mtiblgpr-dv3s4gv","meetingId":"mthd8hob-f9476oj","memberId":"mtibkoya-a89ffr2","fineTypeId":"mth56rr2-ar19rcz","label":null,"amount":300,"ts":1788246166239},{"id":"mtiblrkb-e7567b3","meetingId":"mthd8hob-f9476oj","memberId":"mthd8hob-m10erkh","fineTypeId":"mth56rr2-c0mw473","label":null,"amount":30,"ts":1788246180299},{"id":"mtibqrdf-rzuza4i","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-uioye9i","fineTypeId":"mth56rr2-c0mw473","label":null,"amount":30,"ts":1788246413331},{"id":"mtibr9t7-iwzznxn","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-o5jb4pq","fineTypeId":"mth56rr2-6s84mom","label":null,"amount":30,"ts":1788246437227},{"id":"mtibsup0-vzhqof3","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-o5jb4pq","fineTypeId":null,"label":"Vanvittig fodbeklædning","amount":100,"ts":1788246510948},{"id":"mtibtamb-2qarfg8","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-jcb83vk","fineTypeId":"mth56rr2-y9vhdog","label":null,"amount":800,"ts":1788246531587},{"id":"mtidc7r4-9knjiip","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-5pixhte","fineTypeId":"mth56rr2-6s84mom","label":null,"amount":30,"ts":1788249093952},{"id":"mtidcm5o-ekkowyg","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-d1tgzl5","fineTypeId":"mth56rr2-067f7ji","label":null,"amount":150,"ts":1788249112620},{"id":"mtidd5vy-d8luig6","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-a0868t9","fineTypeId":"mth56rr2-6s84mom","label":null,"amount":30,"ts":1788249138190},{"id":"mtidf1eo-v56ly72","meetingId":"mth5anx4-mgsr7a0","memberId":"mtidefe3-9pkp83t","fineTypeId":"mth56rr2-6s84mom","label":null,"amount":30,"ts":1788249225696},{"id":"mtidjh0e-fdi90g7","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-uioye9i","fineTypeId":null,"label":"3 åbne drikkevarer, som ikke er drukket op","amount":50,"ts":1788249432542},{"id":"mtidkzpe-kfjqy7e","meetingId":"mthd8hob-f9476oj","memberId":"mtider64-iuh3zrp","fineTypeId":"mth56rr2-c0mw473","label":null,"amount":30,"ts":1788249503426},{"id":"mtidl8jy-l49blbr","meetingId":"mthd8hob-f9476oj","memberId":"mtidefe3-9pkp83t","fineTypeId":"mth56rr2-tfff0ys","label":null,"amount":50,"ts":1788249514894},{"id":"mtidlf02-36a8u2w","meetingId":"mthd8hob-f9476oj","memberId":"mthd8hob-d1tgzl5","fineTypeId":"mth56rr2-tfff0ys","label":null,"amount":50,"ts":1788249523250},{"id":"mtidlglk-ivajirx","meetingId":"mthd8hob-f9476oj","memberId":"mthd8hob-uioye9i","fineTypeId":"mth56rr2-tfff0ys","label":null,"amount":50,"ts":1788249525320}],"payments":[],"clubYears":[{"id":"mthd8hob-u5azfz4","startYear":2024,"label":"2024/25","closedAt":null},{"id":"mthd8hob-518n34b","startYear":2025,"label":"2025/26","closedAt":null},{"id":"mthd8hob-gor3x1o","startYear":2026,"label":"2026/27","closedAt":null}],"formandId":"mthd8hob-i5gw7u5","audit":[{"ts":1788261906457,"text":"Afsluttede Møde 2 - Formuepleje — 510 kr. i bøder"},{"ts":1788252849405,"text":"Redigerede taksten »Glemt pligt« (300 kr.)"},{"ts":1788249899089,"text":"Afsluttede Møde 2 - Formuepleje — 510 kr. i bøder"},{"ts":1788249893123,"text":"Redigerede Møde 2 - Formuepleje (31. aug. 2026)"},{"ts":1788249525320,"text":"Casper Infeld fik »To late SMALL BET« (50 kr.) i Møde 2"},{"ts":1788249523250,"text":"Steffen Desmond fik »To late SMALL BET« (50 kr.) i Møde 2"},{"ts":1788249514894,"text":"Mads Birkelund fik »To late SMALL BET« (50 kr.) i Møde 2"},{"ts":1788249503426,"text":"Kristoffer Østergaard fik »Ikke rejse sig« (30 kr.) i Møde 2"},{"ts":1788249490273,"text":"Afsluttede Møde 1 - Fisketur — 1.250 kr. i bøder"},{"ts":1788249432542,"text":"Casper Infeld fik særbøden »3 åbne drikkevarer, som ikke er drukket op« (50 kr.) i Møde 1 - Fisketur"},{"ts":1788249229459,"text":"Afsluttede Møde 1 - Fisketur — 1.200 kr. i bøder"},{"ts":1788249225696,"text":"Mads Birkelund fik »Dårlig adfærd« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788249212428,"text":"Tilføjede medlemmet Kristoffer Østergaard"},{"ts":1788249197164,"text":"Tilføjede medlemmet Mads Birkelund"},{"ts":1788249138190,"text":"Miki Kjeldsen fik »Dårlig adfærd« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788249125040,"text":"Fortrød bøden »Ikke rejse sig« (30 kr.) til Casper Infeld"},{"ts":1788249112620,"text":"Steffen Desmond fik »Dårlig pligt« (150 kr.) i Møde 1 - Fisketur"},{"ts":1788249093952,"text":"Asger Holmsted fik »Dårlig adfærd« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788249040607,"text":"Fortrød bøden »Dårlig adfærd« (30 kr.) til Rasmus De Martino"},{"ts":1788249023946,"text":"Tilføjede medlemmet Daniel Prospect"},{"ts":1788246531587,"text":"Benjamin Rasmussen fik »Ingen fremmøde ved tilmelding på RTD« (800 kr.) i Møde 1 - Fisketur"},{"ts":1788246510948,"text":"Rasmus De Martino fik særbøden »Vanvittig fodbeklædning« (100 kr.) i Møde 1 - Fisketur"},{"ts":1788246438383,"text":"Rasmus De Martino fik »Dårlig adfærd« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788246437227,"text":"Rasmus De Martino fik »Dårlig adfærd« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788246413331,"text":"Casper Infeld fik »Ikke rejse sig« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788246408835,"text":"Casper Infeld fik »Ikke rejse sig« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788246397923,"text":"Redigerede Møde 1 - Fisketur (14. aug. 2026)"},{"ts":1788246180299,"text":"Thomas Jarløv fik »Ikke rejse sig« (30 kr.) i Møde 2"},{"ts":1788246166239,"text":"Romanas Markovas fik »Afmelding 24 timer« (300 kr.) i Møde 2"},{"ts":1788246130258,"text":"Tilføjede medlemmet Romanas Markovas"}],"trash":[]}</script>
+<script type="application/json" id="rtd-state"></script>
 <div class="layout">
   <header class="appbar">
     <div class="brand" id="brand-name"><span class="bn">RTD</span><span class="bn-suffix"> Bødeligaen</span><small>Klubbens bødekasse</small></div>
@@ -963,6 +1222,10 @@ label.check span { display: flex; align-items: center; gap: 6px; }
     <button class="tab" data-tab="takster">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6V3z"></path><path d="M9 9h6M9 13h6M9 17h4"></path></svg>
       Takster
+    </button>
+    <button class="tab" data-tab="hall">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"></path><path d="M8 5H5a3 3 0 0 0 3 5M16 5h3a3 3 0 0 1-3 5"></path><path d="M12 13v4m-4 4h8m-6 0v-4h4v4"></path><path d="m12 5.5.7 1.5 1.6.2-1.2 1.1.3 1.6-1.4-.8-1.4.8.3-1.6-1.2-1.1 1.6-.2z" fill="currentColor" stroke="none"></path></svg>
+      <span class="lbl-long">Hall of Fame</span><span class="lbl-short">Hall</span>
     </button>
   </nav>
   <div class="credit">Bygget af Daniel Big Guns</div>
@@ -1029,10 +1292,11 @@ label.check span { display: flex; align-items: center; gap: 6px; }
 
   function freshState() {
     var s = {
-      version: 5,
+      version: 6,
       updatedAt: Date.now(),
       clubName: 'RTD',
       formandId: null,
+      formandHistory: [],
       rules: DEFAULT_RULES,
       members: seedMembers(),
       fineTypes: seedFineTypes(),
@@ -1170,12 +1434,18 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       });
       s.version = 5;
     }
+    if (s.version === 5) {
+      // v6: formandsrækken bevares, så Hall of Fame kan vise tidligere formænd
+      s.formandHistory = [];
+      if (s.formandId) s.formandHistory.push({ memberId: s.formandId, from: null, to: null });
+      s.version = 6;
+    }
     return normalize(s);
   }
 
   /* Gør vilkårlig (fx importeret) state ufarlig: alle arrays findes, tal er tal */
   function normalize(s) {
-    ['members', 'fineTypes', 'clubYears', 'meetings', 'fines', 'payments', 'expenses', 'writeoffs', 'audit', 'trash'].forEach(function (k) {
+    ['members', 'fineTypes', 'clubYears', 'meetings', 'fines', 'payments', 'expenses', 'writeoffs', 'formandHistory', 'audit', 'trash'].forEach(function (k) {
       if (!Array.isArray(s[k])) s[k] = [];
     });
     s.clubYears.forEach(function (y) { if (y.closedAt === undefined) y.closedAt = null; });
@@ -1578,9 +1848,58 @@ label.check span { display: flex; align-items: center; gap: 6px; }
     return 'stjerne';
   }
 
+  /* ---------- Farvetema pr. bødekategori ---------- */
+
+  /* Ikonerne grupperes i fire familier med hver sin tone. Farven følger med
+     overalt — ikonbaggrund, søjler i Top bødetyper og prikker i sparklinen —
+     så mønstre kan aflæses uden at læse teksten. */
+  var FINE_GROUPS = {
+    kalender: 'afbud', ghost: 'afbud',
+    stopur: 'forsink', loeb: 'forsink',
+    attitude: 'adfaerd', afbryd: 'adfaerd', kaos: 'adfaerd', rejsesig: 'adfaerd',
+    mobil: 'adfaerd', toilet: 'adfaerd', fest: 'adfaerd',
+    pligt: 'pligt', dokument: 'pligt', plan: 'pligt', glemsom: 'pligt',
+    naal: 'pligt', kaede: 'pligt', krone: 'pligt',
+    penge: 'andet', hammer: 'andet', stjerne: 'andet'
+  };
+  var GROUP_INFO = {
+    afbud: { c: '#5eb0f5', n: 'Afbud' },
+    forsink: { c: '#ff9f43', n: 'Forsinkelse' },
+    adfaerd: { c: '#a78bfa', n: 'Adfærd' },
+    pligt: { c: '#4fbe7d', n: 'Pligt' },
+    andet: { c: '#fbbf24', n: 'Øvrigt' }
+  };
+  var GROUP_ORDER = ['afbud', 'forsink', 'adfaerd', 'pligt', 'andet'];
+
+  function groupOfKey(key) { return FINE_GROUPS[key] || 'andet'; }
+  function groupColor(g) { return (GROUP_INFO[g] || GROUP_INFO.andet).c; }
+
+  /* Hex → rgba, så ikonbaggrunden kan tone med uden color-mix */
+  function rgba(hex, a) {
+    var h = String(hex).replace('#', '');
+    return 'rgba(' + parseInt(h.slice(0, 2), 16) + ',' + parseInt(h.slice(2, 4), 16) + ',' +
+      parseInt(h.slice(4, 6), 16) + ',' + a + ')';
+  }
+  function colorVars(color) {
+    return '--fc: ' + color + '; --fcb: ' + rgba(color, 0.15);
+  }
+
+  function typeIconKey(t) {
+    return (t && t.icon && FI[t.icon]) ? t.icon : fineIconKey(t && t.category, t && t.description);
+  }
+  /* Gruppe for en given bøde — takstbaseret eller særbøde */
+  function fineGroup(f) {
+    if (f.fineTypeId) {
+      var t = findFineType(f.fineTypeId);
+      if (t) return groupOfKey(typeIconKey(t));
+    }
+    return groupOfKey(fineIconKey(f.label, ''));
+  }
+
   function fineIcon(t, cls) {
-    var key = (t && t.icon && FI[t.icon]) ? t.icon : fineIconKey(t && t.category, t && t.description);
-    return '<span class="fine-ic' + (cls ? ' ' + cls : '') + '">' + FI[key] + '</span>';
+    var key = typeIconKey(t);
+    return '<span class="fine-ic' + (cls ? ' ' + cls : '') +
+      '" style="' + colorVars(groupColor(groupOfKey(key))) + '">' + FI[key] + '</span>';
   }
 
   /* Ikon for en given bøde (takstbaseret eller særbøde) */
@@ -1589,7 +1908,8 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       var t = findFineType(f.fineTypeId);
       if (t) return fineIcon(t);
     }
-    return '<span class="fine-ic">' + FI[fineIconKey(f.label, '')] + '</span>';
+    var key = fineIconKey(f.label, '');
+    return '<span class="fine-ic" style="' + colorVars(groupColor(groupOfKey(key))) + '">' + FI[key] + '</span>';
   }
 
 
@@ -1639,24 +1959,71 @@ label.check span { display: flex; align-items: center; gap: 6px; }
   function sparkline(mid) {
     var held = heldMeetings().slice(-6);
     if (held.length < 3) return '';
+    // Hver søjle bærer mødets beløb og farven på den bødegruppe der fyldte mest
     var vals = held.map(function (mt) {
-      return state.fines.reduce(function (a, f) {
-        return f.meetingId === mt.id && f.memberId === mid ? a + f.amount : a;
-      }, 0);
+      var sum = 0, byGroup = {};
+      state.fines.forEach(function (f) {
+        if (f.meetingId !== mt.id || f.memberId !== mid) return;
+        sum += f.amount;
+        var g = fineGroup(f);
+        byGroup[g] = (byGroup[g] || 0) + f.amount;
+      });
+      var top = null;
+      Object.keys(byGroup).forEach(function (g) { if (!top || byGroup[g] > byGroup[top]) top = g; });
+      return { v: sum, c: top ? groupColor(top) : null };
     });
-    var max = vals.reduce(function (a, v) { return Math.max(a, v); }, 0);
+    var max = vals.reduce(function (a, x) { return Math.max(a, x.v); }, 0);
     var n = vals.length, bw = 5, gap = 3, hgt = 16, w = n * bw + (n - 1) * gap;
     var out = '<svg class="spark" viewBox="0 0 ' + w + ' ' + hgt + '" aria-hidden="true">';
-    vals.forEach(function (v, i) {
-      var x = i * (bw + gap);
-      if (max === 0 || v === 0) {
-        out += '<rect x="' + x.toFixed(1) + '" y="' + (hgt - 2) + '" width="' + bw.toFixed(1) + '" height="2" rx="1" fill="#2c3846"></rect>';
+    vals.forEach(function (x, i) {
+      var px = i * (bw + gap);
+      if (max === 0 || x.v === 0) {
+        out += '<rect x="' + px.toFixed(1) + '" y="' + (hgt - 2) + '" width="' + bw.toFixed(1) + '" height="2" rx="1" fill="#2c3846"></rect>';
       } else {
-        var bh = Math.max(3, Math.round((hgt - 2) * (v / max)));
-        out += '<rect x="' + x.toFixed(1) + '" y="' + (hgt - bh) + '" width="' + bw.toFixed(1) + '" height="' + bh + '" rx="1.5" fill="currentColor"></rect>';
+        var bh = Math.max(3, Math.round((hgt - 2) * (x.v / max)));
+        out += '<rect x="' + px.toFixed(1) + '" y="' + (hgt - bh) + '" width="' + bw.toFixed(1) + '" height="' + bh + '" rx="1.5" fill="' + (x.c || 'currentColor') + '"></rect>';
       }
     });
     return out + '</svg>';
+  }
+
+  /* ---------- Tegnede tomme tilstande ---------- */
+
+  /* Tre illustrationer i stedet for en tekstlinje. Alle bruger --muted og en
+     enkelt amber-detalje, så de hører til i scoreboard-temaet. */
+  var ART = {
+    kasse: '<svg viewBox="0 0 160 110" class="art" aria-hidden="true">' +
+      '<ellipse cx="80" cy="98" rx="52" ry="7" fill="currentColor" opacity="0.10"></ellipse>' +
+      '<path d="M34 46h92v46a4 4 0 0 1-4 4H38a4 4 0 0 1-4-4z" fill="none" stroke="currentColor" stroke-width="3"></path>' +
+      '<path d="M28 32h104v14H28z" fill="none" stroke="currentColor" stroke-width="3"></path>' +
+      '<path d="M80 46v50" stroke="currentColor" stroke-width="2" opacity="0.45"></path>' +
+      '<path d="M62 32c0-10 8-18 18-18s18 8 18 18" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"></path>' +
+      '<circle cx="80" cy="70" r="9" fill="none" stroke="#fbbf24" stroke-width="2.5" opacity="0.75"></circle>' +
+      '<path d="M76.5 70h7M80 66.5v7" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" opacity="0.75"></path></svg>',
+    dommer: '<svg viewBox="0 0 160 110" class="art" aria-hidden="true">' +
+      '<ellipse cx="80" cy="99" rx="46" ry="6" fill="currentColor" opacity="0.10"></ellipse>' +
+      '<path d="M50 96c0-16 13-27 30-27s30 11 30 27" fill="none" stroke="currentColor" stroke-width="3"></path>' +
+      '<circle cx="80" cy="50" r="19" fill="none" stroke="currentColor" stroke-width="3"></circle>' +
+      '<path d="M71 50c2.5 2.5 5.5 2.5 8 0M85 50c1.8 1.8 4 1.8 5.8 0" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"></path>' +
+      '<path d="M74 60c4 3 8 3 12 0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.7"></path>' +
+      '<path d="M56 40c8-9 40-9 48 0" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"></path>' +
+      '<path d="M104 30c3-2 3-6 0-8M114 24c4-3 4-9 0-12" fill="none" stroke="#fbbf24" stroke-width="2.4" stroke-linecap="round" opacity="0.8"></path></svg>',
+    pokal: '<svg viewBox="0 0 160 110" class="art" aria-hidden="true">' +
+      '<ellipse cx="80" cy="99" rx="34" ry="6" fill="currentColor" opacity="0.10"></ellipse>' +
+      '<path d="M62 20h36v18a18 18 0 0 1-36 0z" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linejoin="round"></path>' +
+      '<path d="M62 24H50a10 10 0 0 0 12 12M98 24h12a10 10 0 0 1-12 12" fill="none" stroke="#fbbf24" stroke-width="2.6"></path>' +
+      '<path d="M80 56v14M68 92h24M74 92V70h12v22" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"></path>' +
+      '<path d="M46 62c3-3 3-7 0-10M40 74c4-4 4-10 0-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"></path>' +
+      '<circle cx="112" cy="58" r="2" fill="currentColor" opacity="0.45"></circle>' +
+      '<circle cx="120" cy="70" r="1.6" fill="currentColor" opacity="0.35"></circle>' +
+      '<circle cx="106" cy="74" r="1.3" fill="currentColor" opacity="0.3"></circle></svg>'
+  };
+
+  function emptyState(kind, title, sub, extra) {
+    return '<div class="empty art-empty">' + (ART[kind] || ART.kasse) +
+      '<div class="big">' + esc(title) + '</div>' +
+      (sub ? '<div class="art-sub">' + esc(sub) + '</div>' : '') +
+      (extra || '') + '</div>';
   }
 
   /* #5 Fremskridtsbjælke: hvor stor en del af de samlede bøder der er betalt */
@@ -1808,29 +2175,42 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       var totals = state.members.map(function (m) { return { id: m.id, sum: yearFineTotalFor(m.id, y.id) }; });
       var max = totals.reduce(function (a, t) { return t.sum > a ? t.sum : a; }, 0);
       if (max > 0 && totals.some(function (t) { return t.id === mid && t.sum === max; })) {
-        out.push({ ic: 'trophy', label: 'Årets synder ' + y.label, desc: kr(max) + ' i bøder' });
+        out.push({ ic: 'trophy', metal: 'guld', label: 'Årets synder ' + y.label, desc: kr(max) + ' i bøder' });
       }
       var min = totals.reduce(function (a, t) { return t.sum < a ? t.sum : a; }, Infinity);
       if (max > 0 && totals.some(function (t) { return t.id === mid && t.sum === min; })) {
-        out.push({ ic: 'shield', label: 'Mest artige ' + y.label, desc: 'Kun ' + kr(min) + ' i bøder' });
+        out.push({ ic: 'shield', metal: 'soelv', label: 'Mest artige ' + y.label, desc: 'Kun ' + kr(min) + ' i bøder' });
       }
     });
     if (memberFineTotal(mid) >= HOT_FINE && memberBalance(mid) <= 0) {
-      out.push({ ic: 'star', label: 'Comeback', desc: 'Fra synder til rent ark' });
+      out.push({ ic: 'star', metal: 'soelv', label: 'Comeback', desc: 'Fra synder til rent ark' });
     }
     var activeTypes = state.fineTypes.filter(function (t) { return t.active; });
     if (activeTypes.length && activeTypes.every(function (t) {
       return state.fines.some(function (f) { return f.memberId === mid && f.fineTypeId === t.id; });
     })) {
-      out.push({ ic: 'flame', label: 'Grand Slam', desc: 'Har prøvet samtlige takster' });
+      out.push({ ic: 'flame', metal: 'ild', label: 'Grand Slam', desc: 'Har prøvet samtlige takster' });
     }
     if (memberMeetingStreak(mid) >= 4) {
-      out.push({ ic: 'flame', label: streakTitle(memberMeetingStreak(mid)), desc: memberMeetingStreak(mid) + ' møder i træk med bøde' });
+      out.push({ ic: 'flame', metal: 'ild', label: streakTitle(memberMeetingStreak(mid)), desc: memberMeetingStreak(mid) + ' møder i træk med bøde' });
     }
     if (memberCleanStreak(mid) >= 3) {
-      out.push({ ic: 'shield', label: 'Fredet', desc: memberCleanStreak(mid) + ' møder uden bøde' });
+      out.push({ ic: 'shield', metal: 'groen', label: 'Fredet', desc: memberCleanStreak(mid) + ' møder uden bøde' });
     }
     return out;
+  }
+
+  /* Afslutter den siddende formands periode i formandsrækken */
+  function closeFormandPeriod() {
+    state.formandHistory.forEach(function (h) { if (!h.to) h.to = todayISO(); });
+  }
+
+  /* Hædersbevisninger som metalemblemer — gradient, støjtekstur og blank kant */
+  function awardRow(badges, cls) {
+    return '<div class="badge-row' + (cls ? ' ' + cls : '') + '">' + badges.map(function (b) {
+      return '<span class="award ' + (b.metal || 'guld') + '" data-tip="' + esc(b.desc) + '">' +
+        '<span class="aw-ic">' + IC[b.ic] + '</span><span class="aw-lbl">' + esc(b.label) + '</span></span>';
+    }).join('') + '</div>';
   }
 
   /* Sæsonrekorder på tværs af alle klubår */
@@ -1904,11 +2284,28 @@ label.check span { display: flex; align-items: center; gap: 6px; }
     return '<span class="flames">' + out + '</span>';
   }
 
+  /* Prospect-forløb: spiren vokser et hak for hvert møde mod optagelse */
+  var PROSPECT_GOAL = 5;
+  function prospectProgress(m) {
+    if (!m || !m.prospect) return null;
+    var since = m.createdAt || 0;
+    var n = heldMeetings().filter(function (mt) {
+      var t = mt.date ? new Date(mt.date + 'T12:00:00').getTime() : 0;
+      return t >= since || state.fines.some(function (f) { return f.meetingId === mt.id && f.memberId === m.id; });
+    }).length;
+    return { done: Math.min(PROSPECT_GOAL, n), goal: PROSPECT_GOAL, grow: Math.min(3, Math.floor(3 * n / PROSPECT_GOAL)) };
+  }
+  function sproutIcon(m) {
+    var p = prospectProgress(m);
+    if (!p) return '';
+    return '<span class="sprout" data-grow="' + p.grow + '" title="Prospect — ' + p.done + ' af ' + p.goal + ' møder">' + IC.sprout + '</span>';
+  }
+
   function nameIcons(mid) {
     var out = '';
     var m = findMember(mid);
     if (state.formandId === mid) out += '<span class="crown" title="Formand">' + IC.crown + '</span>';
-    if (m && m.prospect) out += '<span class="sprout" title="Prospect — endnu ikke fuldgyldigt medlem">' + IC.sprout + '</span>';
+    if (m && m.prospect) out += sproutIcon(m);
     var hot = memberHotFineCount(mid);
     if (hot > 0) {
       out += '<span class="zaps" title="Dyre bøder (' + HOT_FINE + ' kr.+)">';
@@ -1978,6 +2375,8 @@ label.check span { display: flex; align-items: center; gap: 6px; }
     var app = document.getElementById('app');
     var brand = document.querySelector('#brand-name .bn');
     if (brand) brand.textContent = state.clubName;
+    // Levende baggrund: hver fane har sin egen tone
+    document.documentElement.setAttribute('data-view', view.name);
     document.title = state.clubName + ' Bødeligaen';
     renderToolbar();
 
@@ -1991,6 +2390,7 @@ label.check span { display: flex; align-items: center; gap: 6px; }
     else if (view.name === 'mode') html += viewMeeting();
     else if (view.name === 'medlemmer') html += viewMembers();
     else if (view.name === 'takster') html += viewFineTypes();
+    else if (view.name === 'hall') html += viewHall();
     else if (view.name === 'statistik') html += viewStats();
     app.innerHTML = html;
     // Flyt CTA-knappen ned i bundbjælken, så den aldrig svæver oven på indholdet
@@ -2023,6 +2423,14 @@ label.check span { display: flex; align-items: center; gap: 6px; }
         var from = lastCounts[key];
         lastCounts[key] = to;
         if (from === undefined || from === to || reducedMotion) { el.textContent = fmt(to); return; }
+        // Dyre bøder ruller ciffer for ciffer som et kasseapparat
+        if (el.hasAttribute('data-roll') && Math.abs(to - from) >= HOT_FINE) {
+          el.classList.remove('cnt-pulse');
+          void el.offsetWidth;
+          el.classList.add('cnt-pulse');
+          rollNumber(el, fmt(to));
+          return;
+        }
         el.classList.remove('cnt-pulse');
         void el.offsetWidth;                 // genstart animationen
         el.classList.add('cnt-pulse');
@@ -2038,6 +2446,18 @@ label.check span { display: flex; align-items: center; gap: 6px; }
     }
   }
 
+  /* Kasseapparat: hvert ciffer ruller på plads gennem et helt omløb */
+  function rollNumber(el, text) {
+    var chars = String(text).split('');
+    var col = '';
+    for (var d = 0; d < 20; d++) col += '<b>' + (d % 10) + '</b>';
+    el.innerHTML = chars.map(function (ch, i) {
+      if (ch < '0' || ch > '9') return '<span class="dgt-s">' + esc(ch) + '</span>';
+      return '<span class="dgt"><i style="--to: -' + ((10 + Number(ch)) * 100) + '%; animation-delay: ' + (i * 45) + 'ms">' + col + '</i></span>';
+    }).join('');
+    setTimeout(function () { if (el.isConnected) el.textContent = text; }, 950 + chars.length * 45);
+  }
+
   /* #12: fuldskærms-overlay ved rigtig store bøder */
   var BIG_FINE = 500;
   function bigFineOverlay(amount, who, label) {
@@ -2051,6 +2471,21 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       '</div></div>').firstChild;
     document.body.appendChild(el);
     setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1250);
+  }
+
+  /* Ikonet vipper når bøden lander — og kronen glimter, hvis det gik ud over formanden */
+  function reactToFine(memberId, typeId) {
+    if (reducedMotion) return;
+    if (typeId) {
+      var ic = document.querySelector('.modal-root [data-action="give-fine"][data-id="' + typeId + '"] .fine-ic');
+      if (ic) { ic.classList.remove('pop'); void ic.offsetWidth; ic.classList.add('pop'); }
+    }
+    if (memberId && state.formandId === memberId) {
+      document.body.classList.remove('crown-glint');
+      void document.body.offsetWidth;
+      document.body.classList.add('crown-glint');
+      setTimeout(function () { document.body.classList.remove('crown-glint'); }, 1500);
+    }
   }
 
   /* Pakke A: konfetti ved dyre bøder */
@@ -2105,14 +2540,19 @@ label.check span { display: flex; align-items: center; gap: 6px; }
     var members = state.members.filter(function (m) { return m.active || memberBalance(m.id) > 0; });
     if (!members.length) {
       return statStrip() +
-        '<div class="empty"><div class="big">Ingen spillere endnu</div>' +
-        'Tilføj klubbens medlemmer for at starte ligaen.' +
-        '<div class="btn-row"><button class="btn" data-action="add-member">' + IC.plus + 'Tilføj medlem</button></div></div>';
+        emptyState('kasse', 'Ingen spillere endnu', 'Bødekassen står tom og keder sig.',
+          viewerMode ? '' : '<div class="btn-row"><button class="btn" data-action="add-member">' + IC.plus + 'Tilføj medlem</button></div>');
     }
     var ranked = members.slice().sort(function (a, b) {
       var d = memberBalance(b.id) - memberBalance(a.id);
       return d !== 0 ? d : a.name.localeCompare(b.name, 'da');
     });
+    // Top-3 løftes op på podiet; resten fortsætter som almindelige rækker
+    var podium = ranked.filter(function (m) { return memberBalance(m.id) > 0; }).slice(0, 3);
+    if (podium.length < 3) podium = [];
+    var onPodium = {};
+    podium.forEach(function (m) { onPodium[m.id] = 1; });
+
     var rows = '';
     var rank = 0, lastBal = null, shown = 0;
     var nextRanks = {};
@@ -2127,6 +2567,7 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       // #14: markér dem der er rykket op siden sidste visning
       var moved = lastRanks[m.id] !== undefined && bal > 0 && rank < lastRanks[m.id];
       nextRanks[m.id] = bal > 0 ? rank : 999;
+      if (onPodium[m.id]) return;   // står allerede på podiet
       if (bal <= 0) {
         rows += '<button class="lb-row clean" data-action="open-member" data-id="' + esc(m.id) + '">' +
           '<div class="rank">–</div>' + avatar(m) +
@@ -2146,13 +2587,35 @@ label.check span { display: flex; align-items: center; gap: 6px; }
     lastRanks = nextRanks;
     var sm = suggestMeeting();
     return statStrip() +
+      podiumBlock(podium) +
       streakPanel(activeMembers()) +
-      '<div class="colhead"><div class="c-rank">#</div><div class="c-name">Spiller</div><div class="c-count">Bøder</div><div class="c-sum">Gæld kr.</div></div>' +
-      rows +
+      (rows
+        ? '<div class="colhead"><div class="c-rank">#</div><div class="c-name">Spiller</div><div class="c-count">Bøder</div><div class="c-sum">Gæld kr.</div></div>' + rows
+        : '') +
       (sm && !viewerMode
         ? '<div class="actionbar"><button class="btn" data-action="open-meeting" data-id="' + esc(sm.meeting.id) + '">' +
           sm.verb + ' ' + esc(sm.meeting.title) + ' · ' + esc(meetingYearLabel(sm.meeting)) + '</button></div>'
         : '');
+  }
+
+  /* Podie: 2. plads til venstre, 1. plads hævet i midten, 3. til højre */
+  function podiumBlock(top) {
+    if (!top.length) return '';
+    var order = [{ m: top[1], r: 2 }, { m: top[0], r: 1 }, { m: top[2], r: 3 }];
+    var names = ['', 'Årets synder', '2. pladsen', '3. pladsen'];
+    var cols = order.map(function (x) {
+      var bal = memberBalance(x.m.id);
+      var streak = memberMeetingStreak(x.m.id);
+      return '<button class="pod pod-' + x.r + '" data-action="open-member" data-id="' + esc(x.m.id) + '">' +
+        '<div class="pod-top">' + medal(x.r) + avatar(x.m) +
+        '<div class="pod-name">' + esc(firstName(x.m.name)) + nameIcons(x.m.id) +
+        (streak >= 2 ? flames(streak) : '') + '</div>' +
+        '<div class="pod-sum">' + nf(bal) + '</div>' +
+        '<div class="pod-sub">' + memberFineCount(x.m.id) + ' bøder</div></div>' +
+        '<div class="pod-box"><span class="pod-rank">' + x.r + '</span>' +
+        '<span class="pod-title">' + names[x.r] + '</span></div></button>';
+    }).join('');
+    return '<div class="podium">' + cols + '</div>';
   }
 
   /* Gamified streak-oversigt på forsiden */
@@ -2275,18 +2738,21 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       return '<button class="member-cell' + (sum > 0 ? ' hit' : '') + (m.active ? '' : ' gone') + '" data-action="pick-fines" data-id="' + esc(m.id) + '"' + (meet.closedAt || viewerMode ? ' disabled style="opacity:0.55"' : '') + '>' +
         '<div class="mc-top">' + avatar(m, 'sm') + '<div class="name">' + esc(m.name) +
         (state.formandId === m.id ? '<span class="crown">' + IC.crown + '</span>' : '') +
-        (m.prospect ? '<span class="sprout" title="Prospect">' + IC.sprout + '</span>' : '') + '</div></div>' +
+        (m.prospect ? sproutIcon(m) : '') + '</div></div>' +
         '<div class="meta">' + (sum > 0 ? n + ' bøde' + (n === 1 ? '' : 'r') + ' · ' + kr(sum) : 'Ingen bøder') + '</div></button>';
     }).join('');
 
+    var canEdit = !meet.closedAt && !viewerMode;
     var log = meetFines.slice().reverse().map(function (f) {
       var m = findMember(f.memberId);
-      return '<div class="log-item">' +
+      return '<div class="log-wrap' + (canEdit ? ' swipeable' : '') + '"' + (canEdit ? ' data-fine="' + esc(f.id) + '"' : '') + '>' +
+        (canEdit ? '<div class="swipe-back">' + IC.bin + '<span>Fjern</span></div>' : '') +
+        '<div class="log-item">' +
         fineIconFor(f) +
         '<div class="grow"><div class="t">' + esc(m ? m.name : '?') + ' — ' + esc(fineLabel(f)) + '</div></div>' +
         '<div class="amount' + amtClass(f.amount) + '">' + (f.amount >= HOT_FINE ? IC.zap : '') + kr(f.amount) + '</div>' +
-        (meet.closedAt || viewerMode ? '' : '<button class="x" data-action="remove-fine" data-id="' + esc(f.id) + '" aria-label="Fjern bøde">' + IC.x + '</button>') +
-        '</div>';
+        (canEdit ? '<button class="x" data-action="remove-fine" data-id="' + esc(f.id) + '" aria-label="Fjern bøde">' + IC.x + '</button>' : '') +
+        '</div></div>';
     }).join('');
 
     var info = '';
@@ -2300,16 +2766,17 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       '<button class="iconbtn" data-action="goto" data-view="aar-detalje" data-id="' + esc(meet.clubYearId) + '" aria-label="Tilbage">' + IC.left + '</button>' +
       '<div class="grow"><div class="t">' + esc(meet.title) + '</div><div class="s">' + esc(meetingYearLabel(meet)) + ' · ' + fmtDate(meet.date) + (meet.closedAt ? ' · afsluttet' : '') + '</div></div>' +
       (viewerMode ? '' : '<button class="iconbtn" data-action="edit-meeting" data-id="' + esc(meet.id) + '" aria-label="Rediger møde">' + IC.edit + '</button>') +
-      '<div class="total" data-cnt="meet-' + esc(meet.id) + '" data-val="' + meetingTotal(meet.id) + '">' + kr(meetingTotal(meet.id)) + '</div></div>' +
+      '<div class="total" data-cnt="meet-' + esc(meet.id) + '" data-roll="1" data-val="' + meetingTotal(meet.id) + '">' + kr(meetingTotal(meet.id)) + '</div></div>' +
       info +
       (members.length
         ? '<div class="section-title"><h2>Klik en spiller</h2>' +
           (meet.closedAt || viewerMode ? '<div class="hint">…og derefter bøderne</div>'
             : '<button class="btn small secondary" data-action="bulk-open">' + IC.check + 'Bulk-bøde</button>') +
           '</div><div class="member-grid">' + grid + '</div>'
-        : '<div class="empty">Ingen medlemmer i klubåret ' + esc(meetingYearLabel(meet)) + '. Sæt medlemmernes klubår under fanen Medlemmer.</div>') +
-      '<div class="section-title"><h2>Mødets bøder</h2><div class="hint">' + meetFines.length + ' stk.</div></div>' +
-      (log || '<div class="note">Ingen bøder registreret endnu.</div>') +
+        : emptyState('dommer', 'Ingen medlemmer i ' + meetingYearLabel(meet), 'Sæt medlemmernes klubår under fanen Medlemmer.')) +
+      '<div class="section-title"><h2>Mødets bøder</h2><div class="hint">' + meetFines.length + ' stk.' +
+      (canEdit && meetFines.length ? ' · stryg for at fjerne' : '') + '</div></div>' +
+      (log ? '<div class="fine-log">' + log + '</div>' : emptyState('dommer', 'Ingen bøder endnu', meet.closedAt ? 'Mødet slap billigt.' : 'Dommeren døser. Klik en spiller.')) +
       (viewerMode ? '' :
         '<div class="btn-row">' +
         (meet.closedAt
@@ -2347,22 +2814,22 @@ label.check span { display: flex; align-items: center; gap: 6px; }
         avatar(m) +
         '<div class="grow"><div class="t">' + esc(m.name) +
         (state.formandId === m.id ? ' <span class="crown">' + IC.crown + '</span>' : '') +
-        (m.prospect ? ' <span class="sprout" title="Prospect">' + IC.sprout + '</span>' : '') +
+        (m.prospect ? ' ' + sproutIcon(m) : '') +
         (m.active ? '' : ' <span class="tag-gone">Udgået</span>') + '</div>' +
         '<div class="s">' + esc(sub) + '</div></div>' +
         '<div class="amount' + (bal <= 0 ? ' zero' : '') + '">' + kr(Math.max(0, bal)) + '</div></button>';
     }).join('');
 
     var empties = {
-      aktive: 'Ingen aktive medlemmer.',
-      prospects: 'Ingen prospects lige nu. Markér et medlem som prospect på profilen.',
-      udgaaede: 'Ingen er udgået endnu.',
-      skylder: 'Ingen skylder noget. Mistænkeligt.',
-      alle: 'Ingen medlemmer. Tilføj klubbens medlemmer her.'
+      aktive: ['Ingen aktive medlemmer', 'Klubben er teknisk set nedlagt.'],
+      prospects: ['Ingen prospects', 'Markér et medlem som prospect på profilen.'],
+      udgaaede: ['Ingen er udgået', 'Alle holder ved. Indtil videre.'],
+      skylder: ['Ingen skylder noget', 'Mistænkeligt pænt.'],
+      alle: ['Ingen medlemmer', 'Tilføj klubbens medlemmer her.']
     };
     return '<div class="section-title"><h2>Medlemmer</h2><div class="hint">' + list.length + ' vist</div></div>' +
       chips +
-      (rows || '<div class="empty">' + esc(empties[f.key]) + '</div>') +
+      (rows || emptyState(f.key === 'skylder' ? 'pokal' : 'kasse', empties[f.key][0], empties[f.key][1])) +
       (viewerMode ? '' : '<div class="actionbar"><button class="btn" data-action="add-member">' + IC.plus + 'Tilføj medlem</button></div>');
   }
 
@@ -2395,6 +2862,88 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       '</div>';
   }
 
+  /* ---------- Hall of Fame: klubbens hukommelse ---------- */
+
+  function allTimeFines() { return state.fines.reduce(function (a, f) { return a + f.amount; }, 0); }
+
+  /* Kårede pr. afsluttet sæson: største synder og mest artige */
+  function seasonWinners() {
+    return state.clubYears.slice()
+      .filter(function (y) { return y.closedAt; })
+      .sort(function (a, b) { return b.startYear - a.startYear; })
+      .map(function (y) {
+        var totals = state.members
+          .filter(function (m) { return inYear(m, y.id) || yearFineTotalFor(m.id, y.id) > 0; })
+          .map(function (m) { return { m: m, sum: yearFineTotalFor(m.id, y.id) }; });
+        var worst = totals.reduce(function (a, t) { return !a || t.sum > a.sum ? t : a; }, null);
+        var nice = totals.reduce(function (a, t) { return !a || t.sum < a.sum ? t : a; }, null);
+        return { y: y, worst: worst && worst.sum > 0 ? worst : null, nice: nice, total: yearTotal(y.id) };
+      });
+  }
+
+  function viewHall() {
+    var seasons = seasonWinners();
+
+    var kpis = '<div class="stats kpi4">' +
+      '<div class="stat"><div class="k">Bøder i alt</div><div class="v amber">' + kr(allTimeFines()) + '</div></div>' +
+      '<div class="stat"><div class="k">Sæsoner</div><div class="v">' + state.clubYears.length + '</div></div>' +
+      '<div class="stat"><div class="k">Møder afholdt</div><div class="v">' + heldMeetings().length + '</div></div>' +
+      '<div class="stat"><div class="k">Medlemmer</div><div class="v">' + state.members.length + '</div></div>' +
+      '</div>';
+
+    var recs = seasonRecords();
+    var recHtml = recs.length ? recs.map(function (r) {
+      return '<div class="rec-row"><span class="rec-ic">' + IC[r.ic] + '</span>' +
+        '<div class="grow"><div class="t">' + r.label + '</div><div class="s">' + r.desc + '</div></div>' +
+        '<div class="rec-val">' + r.value + '</div></div>';
+    }).join('') : emptyState('pokal', 'Ingen rekorder endnu', 'Pokalen samler støv.');
+
+    var seasonHtml = seasons.length ? seasons.map(function (x) {
+      return '<div class="hof-season" style="--yc: ' + yearColor(x.y) + '">' +
+        '<div class="hof-year">' + esc(x.y.label) + '<span>' + kr(x.total) + '</span></div>' +
+        (x.worst
+          ? '<button class="hof-row" data-action="open-member" data-id="' + esc(x.worst.m.id) + '">' +
+            medal(1) + avatar(x.worst.m) +
+            '<div class="grow"><div class="t">' + esc(x.worst.m.name) + '</div><div class="s">Årets synder</div></div>' +
+            '<div class="amount">' + kr(x.worst.sum) + '</div></button>'
+          : '<div class="note">Ingen bøder i sæsonen.</div>') +
+        (x.nice && x.worst && x.nice.m.id !== x.worst.m.id
+          ? '<button class="hof-row" data-action="open-member" data-id="' + esc(x.nice.m.id) + '">' +
+            '<span class="rec-ic green">' + IC.shield + '</span>' + avatar(x.nice.m) +
+            '<div class="grow"><div class="t">' + esc(x.nice.m.name) + '</div><div class="s">Mest artige</div></div>' +
+            '<div class="amount zero">' + kr(x.nice.sum) + '</div></button>'
+          : '') +
+        '</div>';
+    }).join('') : emptyState('pokal', 'Ingen afsluttede sæsoner', 'Afslut en sæson under Klubår, så kåres der vindere.');
+
+    var hist = state.formandHistory.slice().reverse();
+    var formandHtml = hist.length ? hist.map(function (hh) {
+      var m = findMember(hh.memberId);
+      var period = (hh.from ? fmtDate(hh.from) : 'Fra klubbens start') + ' — ' + (hh.to ? fmtDate(hh.to) : 'i dag');
+      return '<div class="hof-row' + (hh.to ? '' : ' now') + '">' +
+        '<span class="rec-ic gold">' + IC.crown + '</span>' +
+        (m ? avatar(m) : '') +
+        '<div class="grow"><div class="t">' + esc(m ? m.name : 'Ukendt') + '</div>' +
+        '<div class="s">' + esc(period) + '</div></div>' +
+        (hh.to ? '' : '<span class="badge live">Sidder nu</span>') + '</div>';
+    }).join('') : '<div class="note">Ingen formænd registreret endnu. Kron én på en medlemsprofil.</div>';
+
+    // Alle uddelte hædersbevisninger, samlet pr. medlem
+    var awardHtml = state.members.slice().sort(byName).map(function (m) {
+      var bs = computeBadges(m.id);
+      if (!bs.length) return '';
+      return '<div class="hof-awards"><div class="t">' + esc(m.name) + '</div>' + awardRow(bs, 'tight') + '</div>';
+    }).filter(Boolean).join('');
+
+    return '<div class="section-title"><h2>Hall of Fame</h2><div class="hint">Klubbens hukommelse</div></div>' +
+      kpis +
+      '<div class="chart-card"><div class="chart-title">' + IC.trophy + ' Alle tiders rekorder</div>' + recHtml + '</div>' +
+      '<div class="chart-card"><div class="chart-title">' + IC.star + ' Kårede pr. sæson</div>' + seasonHtml + '</div>' +
+      '<div class="chart-card"><div class="chart-title">' + IC.crown + ' Formandsrækken</div>' + formandHtml + '</div>' +
+      '<div class="chart-card"><div class="chart-title">' + IC.shield + ' Uddelte hædersbevisninger</div>' +
+      (awardHtml || '<div class="note">Ingen hædersbevisninger uddelt endnu.</div>') + '</div>';
+  }
+
   /* ---------- Statistik (#11, #12, #7) ---------- */
 
   var statsYearId = null;
@@ -2406,11 +2955,15 @@ label.check span { display: flex; align-items: center; gap: 6px; }
     state.fines.forEach(function (f) {
       if (!ids[f.meetingId]) return;
       var key = fineLabel(f);
-      var a = agg[key] || { sum: 0, count: 0 };
+      var a = agg[key] || { sum: 0, count: 0, iconKey: null };
       a.sum += f.amount; a.count++;
+      if (!a.iconKey) {
+        var t = f.fineTypeId ? findFineType(f.fineTypeId) : null;
+        a.iconKey = t ? typeIconKey(t) : fineIconKey(f.label, '');
+      }
       agg[key] = a;
     });
-    return Object.keys(agg).map(function (k) { return { label: k, sum: agg[k].sum, count: agg[k].count }; })
+    return Object.keys(agg).map(function (k) { return { label: k, sum: agg[k].sum, count: agg[k].count, iconKey: agg[k].iconKey }; })
       .sort(function (a, b) { return b.sum - a.sum; });
   }
 
@@ -2481,20 +3034,30 @@ label.check span { display: flex; align-items: center; gap: 6px; }
     return out + '</svg>';
   }
 
-  function hBars(items, color) {
+  /* Vandrette søjler i bødegruppens farve — samme tone som ikonet */
+  function hBars(items) {
     var max = items.reduce(function (a, x) { return Math.max(a, x.sum); }, 0) || 1;
     return items.map(function (x) {
-      return '<div class="hbar-row" data-tip="' + esc(x.label + ' · ' + x.count + ' stk. · ' + kr(x.sum)) + '">' +
-        '<span class="fine-ic">' + FI[fineIconKey(x.label, '')] + '</span>' +
+      var key = x.iconKey || fineIconKey(x.label, '');
+      var g = groupOfKey(key), c = groupColor(g);
+      return '<div class="hbar-row" data-tip="' + esc(x.label + ' · ' + GROUP_INFO[g].n + ' · ' + x.count + ' stk. · ' + kr(x.sum)) + '">' +
+        '<span class="fine-ic" style="' + colorVars(c) + '">' + FI[key] + '</span>' +
         '<div class="hbar-label">' + esc(x.label) + '</div>' +
-        '<div class="hbar-track"><div class="hbar-fill" style="width: ' + Math.max(2, Math.round(100 * x.sum / max)) + '%; background: ' + color + '"></div></div>' +
+        '<div class="hbar-track"><div class="hbar-fill" style="width: ' + Math.max(2, Math.round(100 * x.sum / max)) + '%; background: ' + c + '"></div></div>' +
         '<div class="hbar-val">' + nf(x.sum) + '</div></div>';
     }).join('');
   }
 
+  /* Farveforklaring under Top bødetyper */
+  function groupLegend() {
+    return '<div class="glegend">' + GROUP_ORDER.map(function (g) {
+      return '<span class="gl"><i style="background: ' + GROUP_INFO[g].c + '"></i>' + GROUP_INFO[g].n + '</span>';
+    }).join('') + '</div>';
+  }
+
   function viewStats() {
     var years = state.clubYears.slice().sort(function (a, b) { return b.startYear - a.startYear; });
-    if (!years.length) return '<div class="empty">Ingen klubår endnu.</div>';
+    if (!years.length) return emptyState('pokal', 'Ingen klubår endnu', 'Opret et klubår under fanen Klubår.');
     var sel = findYear(statsYearId) || currentClubYear();
     statsYearId = sel.id;
 
@@ -2542,7 +3105,7 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       return '<div class="rec-row"><span class="rec-ic">' + IC[r.ic] + '</span>' +
         '<div class="grow"><div class="t">' + r.label + '</div><div class="s">' + r.desc + '</div></div>' +
         '<div class="rec-val">' + r.value + '</div></div>';
-    }).join('') : '<div class="note">Ingen rekorder endnu — kom i gang med at synde.</div>';
+    }).join('') : emptyState('pokal', 'Ingen rekorder endnu', 'Pokalen samler støv. Kom i gang med at synde.');
 
     var cmpRows = years.map(function (y) {
       var yms = yearMeetings(y.id);
@@ -2567,7 +3130,7 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       '<div class="chart-card"><div class="chart-title">Kassebeholdning over tid <span class="chart-sub">alle år · kr.</span></div>' + lineChartSVG(linePoints, '#3f9e63') + '</div>' +
       disciplineCard() +
       '<div class="chart-card"><div class="chart-title">Top bødetyper <span class="chart-sub">' + esc(sel.label) + ' · kr.</span></div>' +
-      (topTypes.length ? hBars(topTypes, yc) : '<div class="note">Ingen bøder i dette klubår endnu.</div>') + '</div>' +
+      (topTypes.length ? hBars(topTypes) + groupLegend() : emptyState('kasse', 'Ingen bøder i dette klubår', 'Nogen må da have gjort noget.')) + '</div>' +
       '<div class="chart-card"><div class="chart-title">Sæsonrekorder <span class="chart-sub">alle år</span></div>' + recHtml + '</div>' +
       '<div class="chart-card"><div class="chart-title">Sammenlign klubår</div>' +
       '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>År</th><th>Møder</th><th>Bøder kr.</th><th>Gns./møde</th><th>Værste synder</th></tr></thead><tbody>' + cmpRows + '</tbody></table></div></div>' +
@@ -2948,11 +3511,7 @@ label.check span { display: flex; align-items: center; gap: 6px; }
         }).join('') + '</div>'
       : '';
 
-    var badgeHtml = badges.length
-      ? '<div class="badge-row">' + badges.map(function (b) {
-          return '<span class="award" data-tip="' + esc(b.desc) + '">' + IC[b.ic] + esc(b.label) + '</span>';
-        }).join('') + '</div>'
-      : '';
+    var badgeHtml = badges.length ? awardRow(badges) : '';
 
     var body =
       '<div class="stats" style="grid-template-columns: repeat(3, minmax(0,1fr))">' +
@@ -2968,9 +3527,19 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       (cleanStreak >= 3
         ? '<div class="streak-strip clean">' + IC.shield + '<span>Fredet — ' + cleanStreak + ' møder uden bøde.</span></div>'
         : '') +
+      (function () {
+        var pp = prospectProgress(m);
+        if (!pp) return '';
+        var pct = Math.round(100 * pp.done / pp.goal);
+        return '<div class="prospect-strip">' + sproutIcon(m) +
+          '<div class="grow"><div class="t">Prospect — ' + pp.done + ' af ' + pp.goal + ' møder</div>' +
+          '<div class="pp-track"><i style="width: ' + pct + '%"></i></div></div>' +
+          '<div class="pp-pct">' + pct + '%</div></div>';
+      })() +
       (topType && topType.count >= 2
         ? '<div class="note">Favoritsynd: ' + topType.count + '× »' + esc((findFineType(topType.typeId) || {}).category || '?') + '«</div>'
         : '') +
+      '<div class="btn-row"><button class="btn secondary" data-action="member-card" data-id="' + esc(m.id) + '">' + IC.star + 'Vis medlemskort</button></div>' +
       (viewerMode ? '' :
         '<div class="btn-row">' +
         '<button class="btn" data-action="pay-form" data-id="' + esc(m.id) + '">Registrer indbetaling</button>' +
@@ -3009,6 +3578,105 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       '<div class="chips small year-chips">' + chips + '</div>' +
       '<div class="note">' + (viewerMode ? 'Årene viser, hvornår medlemmet var med.' :
         'Slå år til og fra for at markere, hvornår medlemmet var med. Bøder fra fravalgte år bliver stående i regnskabet.') + '</div>';
+  }
+
+  /* ---------- Medlemskort: profilen som samlekort ---------- */
+
+  function cardFacts(m) {
+    var top = memberTopType(m.id);
+    var t = top ? findFineType(top.typeId) : null;
+    return {
+      gaeld: kr(Math.max(0, memberBalance(m.id))),
+      boeder: String(memberFineCount(m.id)),
+      total: kr(memberFineTotal(m.id)),
+      streak: String(memberLongestStreak(m.id)),
+      synd: t ? t.category : (top ? '?' : '—'),
+      syndN: top ? top.count : 0,
+      aar: memberYearLabels(m).join(' · ') || 'Ingen klubår',
+      rolle: state.formandId === m.id ? 'Formand' : (m.prospect ? 'Prospect' : (m.active ? 'Medlem' : 'Udgået'))
+    };
+  }
+
+  function openMemberCard(memberId) {
+    var m = findMember(memberId);
+    if (!m) return;
+    var f = cardFacts(m);
+    var badges = computeBadges(m.id);
+    var hue = avatarHue(m.id);
+
+    var body =
+      '<div class="mcard" style="--av: ' + hue + '">' +
+      '<div class="mcard-shine"></div>' +
+      '<div class="mcard-head">' +
+      '<div class="mcard-role">' + esc(f.rolle) + '</div>' +
+      '<div class="mcard-club">' + esc(state.clubName) + '</div></div>' +
+      '<div class="mcard-av">' + avatar(m) + '</div>' +
+      '<div class="mcard-name">' + esc(m.name) + '</div>' +
+      '<div class="mcard-years">' + esc(f.aar) + '</div>' +
+      '<div class="mcard-grid">' +
+      '<div><b>' + esc(f.boeder) + '</b><span>Bøder</span></div>' +
+      '<div><b>' + esc(f.total) + '</b><span>I alt</span></div>' +
+      '<div><b>' + esc(f.streak) + '</b><span>Streak</span></div>' +
+      '<div><b>' + esc(f.gaeld) + '</b><span>Gæld</span></div>' +
+      '</div>' +
+      '<div class="mcard-sin">Favoritsynd<b>' + esc(f.synd) + (f.syndN > 1 ? ' ×' + f.syndN : '') + '</b></div>' +
+      (badges.length ? awardRow(badges, 'tight') : '<div class="mcard-none">Ingen hædersbevisninger endnu</div>') +
+      '</div>' +
+      (viewerMode ? '' : '<div class="btn-row"><button class="btn secondary" data-action="card-save" data-id="' + esc(m.id) + '">' + IC.save + 'Gem kortet som billede</button></div>') +
+      '<div class="note">Kortet gemmes som SVG — det kan deles direkte i klubbens gruppechat.</div>';
+
+    openModal('Medlemskort', body, esc(m.name));
+  }
+
+  /* Samme kort som selvstændig SVG-fil, så det kan deles som billede */
+  function memberCardSVG(m) {
+    var f = cardFacts(m);
+    var hue = avatarHue(m.id);
+    var W = 420, H = 620;
+    function tx(s) { return esc(String(s)); }
+    var badges = computeBadges(m.id).slice(0, 3).map(function (b) { return b.label; });
+
+    var out = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
+      '<defs>' +
+      '<linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">' +
+      '<stop offset="0" stop-color="#1c2530"></stop><stop offset="1" stop-color="#10141a"></stop></linearGradient>' +
+      '<linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0" stop-color="#ffe08a"></stop><stop offset="0.5" stop-color="#fbbf24"></stop>' +
+      '<stop offset="1" stop-color="#a9760a"></stop></linearGradient>' +
+      '<linearGradient id="av" x1="0" y1="0" x2="0.3" y2="1">' +
+      '<stop offset="0" stop-color="hsl(' + hue + ' 48% 32%)"></stop>' +
+      '<stop offset="1" stop-color="hsl(' + hue + ' 45% 18%)"></stop></linearGradient>' +
+      '</defs>' +
+      '<rect width="' + W + '" height="' + H + '" rx="22" fill="url(#bg)"></rect>' +
+      '<rect x="5" y="5" width="' + (W - 10) + '" height="' + (H - 10) + '" rx="18" fill="none" stroke="url(#edge)" stroke-width="3"></rect>' +
+      '<text x="30" y="48" font-family="Arial Narrow, Arial, sans-serif" font-size="15" letter-spacing="3" fill="#fbbf24">' + tx(f.rolle.toUpperCase()) + '</text>' +
+      '<text x="' + (W - 30) + '" y="48" text-anchor="end" font-family="Arial Narrow, Arial, sans-serif" font-size="15" letter-spacing="3" fill="#6b7a89">' + tx(state.clubName.toUpperCase()) + '</text>' +
+      '<circle cx="' + (W / 2) + '" cy="150" r="62" fill="url(#av)" stroke="hsl(' + hue + ' 45% 40%)" stroke-width="2"></circle>' +
+      '<text x="' + (W / 2) + '" y="168" text-anchor="middle" font-family="Arial, sans-serif" font-size="46" font-weight="700" fill="hsl(' + hue + ' 70% 88%)">' + tx(initials(m.name)) + '</text>' +
+      '<text x="' + (W / 2) + '" y="255" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="1" fill="#f4f6f8">' + tx(m.name.toUpperCase()) + '</text>' +
+      '<text x="' + (W / 2) + '" y="281" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9fb0c0">' + tx(f.aar) + '</text>' +
+      '<line x1="40" y1="302" x2="' + (W - 40) + '" y2="302" stroke="#232e3a" stroke-width="2"></line>';
+
+    var cells = [['Bøder', f.boeder], ['I alt', f.total], ['Streak', f.streak], ['Gæld', f.gaeld]];
+    cells.forEach(function (c, i) {
+      var cx = i % 2 === 0 ? W / 4 + 10 : W * 3 / 4 - 10;
+      var cy = 350 + Math.floor(i / 2) * 82;
+      out += '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="30" font-weight="700" fill="#fbbf24">' + tx(c[1]) + '</text>' +
+        '<text x="' + cx + '" y="' + (cy + 22) + '" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" letter-spacing="2" fill="#6b7a89">' + tx(c[0].toUpperCase()) + '</text>';
+    });
+
+    out += '<line x1="40" y1="500" x2="' + (W - 40) + '" y2="500" stroke="#232e3a" stroke-width="2"></line>' +
+      '<text x="40" y="530" font-family="Arial, sans-serif" font-size="13" letter-spacing="2" fill="#6b7a89">FAVORITSYND</text>' +
+      '<text x="' + (W - 40) + '" y="530" text-anchor="end" font-family="Arial Narrow, Arial, sans-serif" font-size="20" font-weight="700" fill="#f4f6f8">' +
+      tx(f.synd + (f.syndN > 1 ? ' ×' + f.syndN : '')) + '</text>';
+
+    badges.forEach(function (b, i) {
+      out += '<text x="40" y="' + (566 + i * 20) + '" font-family="Arial, sans-serif" font-size="14" fill="#fbbf24">★ ' + tx(b) + '</text>';
+    });
+    if (!badges.length) {
+      out += '<text x="40" y="566" font-family="Arial, sans-serif" font-size="14" fill="#6b7a89">Ingen hædersbevisninger endnu</text>';
+    }
+    return out + '</svg>';
   }
 
   function openPayForm(memberId) {
@@ -3173,7 +3841,7 @@ label.check span { display: flex; align-items: center; gap: 6px; }
         '<div class="grow"><div class="t">' + esc(label) + '</div><div class="s">' + esc(sub) + '</div></div>' +
         '<button class="btn small secondary" data-action="trash-restore" data-id="' + esc(t.id) + '">Gendan</button></div>';
     }).join('');
-    openModal('Papirkurv', (rows || '<div class="note">Papirkurven er tom.</div>') +
+    openModal('Papirkurv', (rows || emptyState('kasse', 'Papirkurven er tom', 'Intet fortrudt. Endnu.')) +
       '<div class="note">Slettede møder og medlemmer gendannes med alt indhold. Ryddes automatisk efter ' + TRASH_DAYS + ' dage.</div>');
   }
 
@@ -3182,7 +3850,7 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       return '<div class="log-item"><div class="grow"><div class="t">' + esc(e.text) + '</div>' +
         '<div class="s">' + fmtDateTime(e.ts) + '</div></div></div>';
     }).join('');
-    openModal('Revisionslog', (rows || '<div class="note">Ingen registreringer endnu.</div>') +
+    openModal('Revisionslog', (rows || emptyState('dommer', 'Ingen registreringer endnu', 'Loggen sover trygt.')) +
       '<div class="note">Viser de seneste 200 hændelser.</div>');
   }
 
@@ -3254,6 +3922,7 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       commit();
       toast(names.length + ' × ' + t.category + ' · ' + kr(t.amount * names.length));
       if (t.amount >= HOT_FINE) spawnConfetti();
+      if (state.formandId && ids.indexOf(state.formandId) !== -1) reactToFine(state.formandId, null);
     },
 
     'expense-form': function () { openExpenseForm(); },
@@ -3403,7 +4072,7 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       state.members = state.members.filter(function (x) { return x.id !== m.id; });
       state.fines = state.fines.filter(function (f) { return f.memberId !== m.id; });
       state.payments = state.payments.filter(function (p) { return p.memberId !== m.id; });
-      if (state.formandId === m.id) state.formandId = null;
+      if (state.formandId === m.id) { closeFormandPeriod(); state.formandId = null; }
       log('Slettede medlemmet ' + m.name + ' — lagt i papirkurven');
       closeModal();
       commit();
@@ -3504,6 +4173,7 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       if (t.amount >= HOT_FINE) spawnConfetti();
       if (t.amount >= BIG_FINE) bigFineOverlay(t.amount, m.name, t.category);
       openFinePicker(m.id); // genopfrisk vælgeren med nye tællere
+      reactToFine(m.id, t.id);
     },
     'special-fine': function () { openSpecialFineForm(); },
     'special-save': function () {
@@ -3519,16 +4189,9 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       if (amount >= HOT_FINE) spawnConfetti();
       if (amount >= BIG_FINE) bigFineOverlay(amount, m.name, label);
       openFinePicker(m.id);
+      reactToFine(m.id, null);
     },
-    'remove-fine': function (el) {
-      var f = state.fines.find(function (x) { return x.id === el.getAttribute('data-id'); });
-      state.fines = state.fines.filter(function (x) { return x.id !== el.getAttribute('data-id'); });
-      if (f) {
-        var fm = findMember(f.memberId);
-        log('Fortrød bøden »' + fineLabel(f) + '« (' + kr(f.amount) + ') til ' + (fm ? fm.name : '?'));
-      }
-      commit();
-    },
+    'remove-fine': function (el) { removeFineCore(el.getAttribute('data-id')); },
 
     'open-member': function (el) { openMemberSheet(el.getAttribute('data-id')); },
     'add-member': function () { openMemberForm(); },
@@ -3544,7 +4207,7 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       var m = findMember(el.getAttribute('data-id'));
       if (!m) return;
       m.active = false;
-      if (state.formandId === m.id) { state.formandId = null; toast(m.name + ' udmeldt — klubben mangler en formand'); }
+      if (state.formandId === m.id) { closeFormandPeriod(); state.formandId = null; toast(m.name + ' udmeldt — klubben mangler en formand'); }
       closeModal();
       commit();
     },
@@ -3556,13 +4219,36 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       var m = findMember(el.getAttribute('data-id'));
       if (!m) return;
       var was = state.formandId === m.id;
+      // Luk den siddende formands periode og åbn en ny, så rækken kan vises i Hall of Fame
+      closeFormandPeriod();
       state.formandId = was ? null : m.id;
+      if (!was) state.formandHistory.push({ memberId: m.id, from: todayISO(), to: null });
       log(was ? m.name + ' er ikke længere formand' : m.name + ' blev kronet som formand');
       commitQuiet();
       toast(was ? m.name + ' er ikke længere formand' : 'Længe leve formand ' + m.name + '!');
       openMemberSheet(m.id);
     },
 
+    'member-card': function (el) { openMemberCard(el.getAttribute('data-id')); },
+    'card-save': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (!m) return;
+      var svg = memberCardSVG(m);
+      var fname = m.name.toLowerCase().replace(/[^a-z0-9æøå-]+/g, '-') + '-medlemskort.svg';
+      if (downloadsNS) {
+        downloadsNS.save({ filename: fname, data: svg }).then(function () { toast('Kortet er gemt'); })
+          .catch(function () { /* afvist af brugeren */ });
+        return;
+      }
+      var blob = new Blob([svg], { type: 'image/svg+xml' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    },
     'pay-form': function (el) { openPayForm(el.getAttribute('data-id')); },
     'pay-save': function (el) {
       var m = findMember(el.getAttribute('data-id'));
@@ -3652,7 +4338,7 @@ label.check span { display: flex; align-items: center; gap: 6px; }
         reader.onload = function () {
           try {
             var s = JSON.parse(String(reader.result));
-            if (!s || typeof s.version !== 'number' || s.version < 1 || s.version > 4 || !Array.isArray(s.members)) throw new Error('bad');
+            if (!s || typeof s.version !== 'number' || s.version < 1 || s.version > 6 || !Array.isArray(s.members)) throw new Error('bad');
             if (!window.confirm('Erstat alle nuværende data med det importerede?')) return;
             pushUndo(JSON.stringify(state), 'import af data');
             state = migrate(s);
@@ -3677,6 +4363,28 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       commit();
     }
   };
+
+  /* Fjerner en bøde — bruges både af krydset og af stryg-til-venstre */
+  function removeFineCore(id) {
+    var f = state.fines.find(function (x) { return x.id === id; });
+    state.fines = state.fines.filter(function (x) { return x.id !== id; });
+    if (f) {
+      var fm = findMember(f.memberId);
+      log('Fortrød bøden »' + fineLabel(f) + '« (' + kr(f.amount) + ') til ' + (fm ? fm.name : '?'));
+    }
+    commit();
+  }
+
+  /* Strygningen sker uden for klik-håndteringen og skal selv lægge et fortryd-punkt */
+  function swipeRemoveFine(id) {
+    if (viewerMode || !id) { render(); return; }
+    var before = JSON.stringify(state), keyBefore = auditKey();
+    removeFineCore(id);
+    if (JSON.stringify(state) !== before) {
+      pushUndo(before, changeLabel(keyBefore));
+      toast('Bøde fjernet — fortryd i toppen');
+    }
+  }
 
   function saveMember(keepOpen) {
     var name = val('mem-name').trim();
@@ -3718,6 +4426,67 @@ label.check span { display: flex; align-items: center; gap: 6px; }
       el = el.parentNode;
     }
   });
+
+  /* Stryg en bøde til venstre for at fjerne den — samme greb som i en indbakke */
+  (function () {
+    var node = null, startX = 0, startY = 0, dx = 0, decided = false;
+    var THRESHOLD = 96;
+
+    function release(animate) {
+      if (!node) return;
+      var n = node;
+      node = null; decided = false; dx = 0;
+      n.classList.remove('swiping', 'armed');
+      if (animate) {
+        n.style.transition = 'transform 0.18s ease-out';
+        n.style.transform = '';
+        setTimeout(function () { n.style.transition = ''; }, 220);
+      } else {
+        n.style.transform = '';
+      }
+    }
+
+    document.addEventListener('touchstart', function (e) {
+      if (e.touches.length !== 1) return;
+      var t = e.target && e.target.closest ? e.target.closest('.log-wrap.swipeable') : null;
+      if (!t) return;
+      node = t;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      dx = 0; decided = false;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function (e) {
+      if (!node) return;
+      var x = e.touches[0].clientX - startX, y = e.touches[0].clientY - startY;
+      if (!decided) {
+        if (Math.abs(x) < 8 && Math.abs(y) < 8) return;
+        decided = true;
+        if (Math.abs(y) >= Math.abs(x)) { release(false); return; }  // lodret scroll vinder
+        node.classList.add('swiping');
+      }
+      if (!node) return;
+      dx = Math.min(0, x);
+      node.style.transform = 'translateX(' + Math.max(-170, dx) + 'px)';
+      if (dx <= -THRESHOLD) node.classList.add('armed'); else node.classList.remove('armed');
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchend', function () {
+      if (!node) return;
+      if (dx <= -THRESHOLD) {
+        var n = node, id = n.getAttribute('data-fine');
+        node = null; decided = false; dx = 0;
+        n.style.transition = 'transform 0.16s ease-in, opacity 0.16s ease-in';
+        n.style.transform = 'translateX(-110%)';
+        n.style.opacity = '0';
+        setTimeout(function () { swipeRemoveFine(id); }, 160);
+        return;
+      }
+      release(true);
+    });
+    document.addEventListener('touchcancel', function () { release(true); });
+  })();
 
   /* Tooltip for [data-tip]-elementer (grafer, badges) */
   var tipEl = null;

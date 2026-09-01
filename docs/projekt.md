@@ -40,6 +40,7 @@ state = {
   expenses:  [{ id, amount, date, note, ts }],              // v5: udgifter afholdt af kassen
   writeoffs: [{ id, memberId, clubYearId, amount, date, ts }], // v5: gæld afskrevet ved årsopgørelsen
   rules:     "…",                     // v5: regelark, én regel pr. linje
+  formandHistory: [{ memberId, from, to }],  // v6: formandsrækken til Hall of Fame
   audit:     [{ ts, text }],          // revisionslog, nyeste først, maks 800
   trash:     [{ id, kind, deletedAt, ... }]  // møder/medlemmer, ryddes efter 30 dage
 }
@@ -47,7 +48,7 @@ state = {
 
 Medlemmer har fra v5 `prospect: bool` og `years: [clubYearId]`. Medlemskab er altså pr. klubår: et medlem kan være med i nogle år og ikke i andre, og bøder fra fravalgte år bliver stående i regnskabet. Mødetavlen viser årets aktive medlemmer plus enhver, der allerede har fået bøde i mødet.
 
-Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeholdning = indbetalinger − udgifter; "afholdt møde" = har bøder eller er afsluttet; streaks tælles bagfra over afholdte møder (åbne møder bryder ikke); `migrate()` løfter v1→v5 og `normalize()` reparerer manglende felter, så gamle backups og delt state altid kan indlæses.
+Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeholdning = indbetalinger − udgifter; "afholdt møde" = har bøder eller er afsluttet; streaks tælles bagfra over afholdte møder (åbne møder bryder ikke); `migrate()` løfter v1→v6 og `normalize()` reparerer manglende felter, så gamle backups og delt state altid kan indlæses.
 
 ## Status: implementeret
 
@@ -76,12 +77,27 @@ Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeho
 - **Prospects**: egen status og eget spire-ikon ved siden af formandens krone.
 - **Delevejledning** i indstillinger: hvordan ligaen deles med kun læseadgang.
 
+### Runde 6 (1. sep. 2026) — visuelt og gamification
+
+- **Farvetema pr. bødekategori**: afbud blå, forsinkelse orange, adfærd lilla, pligt grøn, øvrigt amber. Farven følger ikonbaggrund, søjler i Top bødetyper og prikker i sparklinen, med farveforklaring i statistikken.
+- **Podie på forsiden**: top-3 vises som podie (guld hævet i midten); resten af listen fortsætter nedenunder. Podiet vises kun når mindst tre skylder noget.
+- **Tegnede tomme tilstande**: tom bødekasse, sovende dommer og støvet pokal (`ART`) i stedet for en tekstlinje.
+- **Metalliske hædersbevisninger**: guld, sølv, ild og grøn med gradient, støjtekstur og blank kant.
+- **Stryg for at fortryde**: stryg en bøde til venstre i mødets liste for at fjerne den; strygningen lægger selv et fortryd-punkt.
+- **Kasseapparat-rulning**: mødets total ruller ciffer for ciffer, når en bøde på 300 kr.+ lander.
+- **Medlemskort**: profilen som samlekort, der kan gemmes som SVG og deles.
+- **Levende baggrund pr. fane**: `html[data-view]` styrer et svagt, drivende lysskær i fanens farve.
+- **Ikoner der reagerer**: bødeikonet vipper, kronen glimter når formanden får en bøde, og spiren vokser med prospektets fremdrift (5 møder til optagelse).
+- **Hall of Fame**: egen fane efter Takster med alle tiders rekorder, kårede pr. sæson, formandsrækken (ny `formandHistory`) og alle uddelte hædersbevisninger.
+
 ## Udestående / kendte begrænsninger
 
 - Telefonens tilbage-knap lukker ikke dialoger (history-håndtering ikke implementeret).
 - Delt gem er "sidste skriver vinder" — fint med én bødemester, ikke bygget til samtidig redigering.
 - Uimplementerede idéer: se `docs/feature-ideer.md` (bl.a. MobilePay-genvej, rykkerbesked, PWA, fremmøderegistrering, mødeskabelon, flettende import) og `docs/visuelle-ideer.md` runde 3.
 - Fortryd-stakken lever kun i hukommelsen: den nulstilles ved genindlæsning af siden.
+- Formandsrækken starter ved v6-migreringen: tidligere formænd før 1. sep. 2026 er ikke registreret.
+- Stryg-for-at-fortryde kræver berøring; på desktop bruges krydset.
 
 ## Sådan arbejder du videre (ny computer / ny sæson)
 

@@ -24,9 +24,9 @@ Status 1. sep. 2026. Runde 1 er gennemført — herunder følger runde 2 med 15 
 
 ## Ranglisten og forsiden
 
-1. **Farvetema pr. bødekategori** — hver ikongruppe får sin egen tone (afbud blå, forsinkelse orange, adfærd lilla, pligt grøn). Ikonbaggrunden, søjlerne i "Top bødetyper" og prikkerne i sparklinen farves ens, så mønstre kan aflæses på et blik.
-2. **Podie på forsiden** — top-3 vises som et rigtigt podie øverst på Ligaen (guld i midten, hævet) i stedet for tre almindelige rækker; resten af listen fortsætter nedenunder.
-3. **Tegnede tomme tilstande** — illustration i stedet for en tekstlinje: en tom bødekasse, en sovende dommer, en støvet pokal — med en kort, drilsk sætning.
+1. ✅ **Farvetema pr. bødekategori** — hver ikongruppe får sin egen tone (afbud blå, forsinkelse orange, adfærd lilla, pligt grøn). Ikonbaggrunden, søjlerne i "Top bødetyper" og prikkerne i sparklinen farves ens, så mønstre kan aflæses på et blik.
+2. ✅ **Podie på forsiden** — top-3 vises som et rigtigt podie øverst på Ligaen (guld i midten, hævet) i stedet for tre almindelige rækker; resten af listen fortsætter nedenunder.
+3. ✅ **Tegnede tomme tilstande** — illustration i stedet for en tekstlinje: en tom bødekasse, en sovende dommer, en støvet pokal — med en kort, drilsk sætning.
 4. **Gældstermometer** — lodret måler i statstriben, der viser klubbens samlede gæld mod et mål (fx "næste klubtur betales, når kassen når 10.000 kr.").
 5. **Sammenlign to medlemmer** — vælg to spillere og se dem side om side: bøder, favoritsynd, streaks og en lille head-to-head-graf. Perfekt til intern drilleri.
 
@@ -46,12 +46,12 @@ Status 1. sep. 2026. Runde 1 er gennemført — herunder følger runde 2 med 15 
 ## Stemning og øjeblikke
 
 13. **Sæsonplakat** — første åbning i et nyt klubår viser en fuldskærmsplakat med årstallet i kæmpetypografi og sæsonens farve, før ligaen fader ind.
-14. **Metalliske badges** — hædersbevisninger får ægte metal-look (gradient, fin støjtekstur, blank kant), så de ligner emblemer frem for chips.
+14. ✅ **Metalliske badges** — hædersbevisninger får ægte metal-look (gradient, fin støjtekstur, blank kant), så de ligner emblemer frem for chips.
 15. **Valgfri lyd** — kort "kaching" ved indbetaling og dommerfløjt ved dyre bøder. Slået fra som standard, tændes i indstillinger.
 
-## Anbefaling til næste runde
+## Status for runde 2
 
-Tag **1 (farvetema pr. kategori)**, **2 (podie på forsiden)** og **9 (hurtigvalg af favoritbøder)** — de to første løfter forsiden markant, og den tredje gør selve registreringen hurtigere under mødet. Derefter **7 (kvitteringsbillede)**, som giver klubben noget at dele efter hvert møde.
+Implementeret: **1, 2, 3, 14**. Udestående: 4 (gældstermometer), 5 (sammenlign to medlemmer), 6 (fremmøde-tavle), 7 (kvitteringsbillede), 8 (tidslinje i mødet), 9 (hurtigvalg af favoritbøder), 10 (varmekort), 11 (årshjul), 12 (formands-visning), 13 (sæsonplakat), 15 (valgfri lyd).
 
 ---
 
@@ -61,18 +61,18 @@ Status 1. sep. 2026, efter bulk-bøde, fortryd-stak, søgning, kassen, betalings
 
 ## Interaktion — appen skal svare igen
 
-1. **Stryg for at fortryde** — swipe en bøde til venstre i mødets liste for at fjerne den, i stedet for at ramme det lille kryds. Samme greb som i en indbakke, og markant hurtigere midt i et møde.
+1. ✅ **Stryg for at fortryde** — swipe en bøde til venstre i mødets liste for at fjerne den, i stedet for at ramme det lille kryds. Samme greb som i en indbakke, og markant hurtigere midt i et møde.
 2. **Træk medlemmer i rækkefølge** — hold og træk på mødetavlen, så bødemesteren kan lægge de sædvanlige syndere øverst. Rækkefølgen huskes pr. klub, ikke pr. møde.
 3. **Langt tryk = hurtig bøde** — hold fingeren på et medlem på mødetavlen, og medlemmets hyppigste bøde gives direkte med en kort vibration som kvittering. To tryk bliver til ét.
-4. **Tal der ruller op undervejs** — mødets total tæller ikke bare op, men får en kort "kasseapparat"-rulning ciffer for ciffer, når en dyr bøde lander.
+4. ✅ **Tal der ruller op undervejs** — mødets total tæller ikke bare op, men får en kort "kasseapparat"-rulning ciffer for ciffer, når en dyr bøde lander.
 5. **Prospect-forløb med fremdrift** — et prospect får en tydelig statuslinje ("3 af 5 møder gennemført"), og når den fyldes, udløses en lille indvielsesceremoni med konfetti og en ny plads på ligaen.
 
 ## Grafik — mere at se på
 
 6. **Bødehjul ved særbøder** — i stedet for at taste et beløb kan bødemesteren dreje et hjul med klubbens standardbeløb (30/50/100/300). Hurtigere og sjovere end tastaturet.
-7. **Medlemskort som samlekort** — profilen vises som et fodboldkort: avatar, klubår, favoritsynd, streak-tal og hædersbevisninger i et layout, der kan deles som billede.
-8. **Levende baggrund pr. fane** — et meget svagt, animeret mønster bag hver fane i fanens egen farve (ligaen amber, statistik grøn), så man aner hvor man er uden at læse.
-9. **Ikoner der reagerer** — bødeikonet vipper kort, når bøden gives; kronen glimter, når formanden får en bøde; spiren vokser et hak, når et prospect nærmer sig optagelse.
+7. ✅ **Medlemskort som samlekort** — profilen vises som et fodboldkort: avatar, klubår, favoritsynd, streak-tal og hædersbevisninger i et layout, der kan deles som billede.
+8. ✅ **Levende baggrund pr. fane** — et meget svagt, animeret mønster bag hver fane i fanens egen farve (ligaen amber, statistik grøn), så man aner hvor man er uden at læse.
+9. ✅ **Ikoner der reagerer** — bødeikonet vipper kort, når bøden gives; kronen glimter, når formanden får en bøde; spiren vokser et hak, når et prospect nærmer sig optagelse.
 10. **Kassens termometer** — kassebeholdningen som en fyldt søjle med et mål øverst ("klubturen koster 8.000 kr."), så udgiftsposterne får en modvægt at måle sig mod.
 
 ## Gamification — noget at spille om
@@ -81,8 +81,10 @@ Status 1. sep. 2026, efter bulk-bøde, fortryd-stak, søgning, kassen, betalings
 12. **Duel mellem to medlemmer** — vælg to spillere og se en head-to-head: hvem har flest bøder, hvem betaler hurtigst, hvem har den længste streak. Vinderen kåres med et lille show.
 13. **Sæsonmål pr. medlem** — hvert medlem kan sætte et mål ("under 500 kr. i år"), og ligaen viser hvor tæt man er. Rammer man det, udløses et badge ved sæsonafslutning.
 14. **Bødebingo** — en 3×3-plade med klubbens bøder pr. sæson; får man en række, er man "stamkunde" og får et badge. Giver de sjældne bøder værdi.
-15. **Hall of Fame** — en selvstændig side med alle tiders rekorder, tidligere formænd, årets syndere pr. sæson og de badges, der er uddelt. Klubbens hukommelse ét sted.
+15. ✅ **Hall of Fame** — en selvstændig side med alle tiders rekorder, tidligere formænd, årets syndere pr. sæson og de badges, der er uddelt. Klubbens hukommelse ét sted.
 
-## Anbefaling
+## Status for runde 3
 
-Start med **11 (ugens hold)** og **1 (stryg for at fortryde)** — den første giver noget at samles om efter hvert møde, den anden fjerner den sidste rigtige friktion i registreringen. Tag derefter **5 (prospect-forløb)**, som gør den nye prospect-status til andet end et ikon, og **15 (hall of fame)**, der giver alle de data, appen nu samler, et sted at bo.
+Implementeret: **1, 4, 7, 8, 9, 15**. Idé 5 (prospect-forløb) er delvist med: spiren vokser, og profilen viser fremdriften mod optagelse (5 møder) — indvielsesceremonien mangler stadig.
+
+Udestående: 2 (træk medlemmer i rækkefølge), 3 (langt tryk = hurtig bøde), 5 (indvielsesceremoni), 6 (bødehjul ved særbøder), 10 (kassens termometer), 11 (ugens hold), 12 (duel mellem to medlemmer), 13 (sæsonmål pr. medlem), 14 (bødebingo).

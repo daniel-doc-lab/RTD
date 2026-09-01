@@ -63,15 +63,20 @@ await page.click('[data-action="picker-nav"][data-dir="1"]');
 const hotBtns = await page.locator('.fine-btn.hot').count();
 if (hotBtns < 4) fail('dyre bøder ikke markeret (hot): ' + hotBtns); else ok('dyre takster markeret');
 await page.click('.fine-btn:has-text("Mads bøde")');
-await page.click('[data-action="picker-nav"][data-dir="1"]');
+await page.click('.sheet-close');
+// Kasseapparatet ruller på plads, når totalen springer med en dyr bøde
+if (await page.locator('.meet-head .total .dgt').count() < 1) fail('kasseapparat-rulning mangler ved dyr bøde'); else ok('cifrene ruller ved dyre bøder');
+// Særbøden gives eksplicit til Thomas, så podiet bliver forudsigeligt
+await page.click('.member-cell:has-text("Thomas Jarløv")');
+await page.waitForSelector('.fine-grid');
 await page.click('[data-action="special-fine"]');
 await page.fill('#sp-label', 'Tabt væddemål');
 await page.fill('#sp-amount', '75');
 await page.click('[data-action="special-save"]');
 await page.click('.sheet-close');
 
-// Mødetotal: 30+30+500+75 = 635
-await page.waitForTimeout(450);
+// Mødetotal: 30+30+500+75 = 635 — cifrene ruller først på plads
+await page.waitForTimeout(1600);
 const total = await page.locator('.meet-head .total').textContent();
 if (!total.includes('635')) fail('mødetotal: ' + total + ' (ventede 635)'); else ok('mødetotal 635');
 // Dyre bøde vises rødt i loggen
@@ -96,9 +101,13 @@ await page.click('.sheet-close');
 // 7) Ligaen: rang, streaks-panel, zap for dyre bøder
 await page.click('[data-tab="liga"]');
 await page.waitForSelector('.lb-row');
-const first = await page.locator('.lb-row').first().textContent();
-if (!first.includes('Miki')) fail('rang 1 er ikke Miki (500 kr.): ' + first.slice(0, 60)); else ok('rangering korrekt');
-if (await page.locator('.lb-row .zaps').count() < 1) fail('zap-markering for dyr bøde mangler');
+await page.waitForSelector('.podium');
+if (await page.locator('.pod').count() !== 3) fail('podiet mangler tre pladser');
+const gold = await page.locator('.pod-1').textContent();
+if (!gold.includes('Miki')) fail('guldpladsen er ikke Miki (500 kr.): ' + gold.slice(0, 60)); else ok('podiet rangerer korrekt');
+if (!(await page.locator('.pod-2').textContent()).includes('Martin')) fail('sølvpladsen er ikke Martin');
+if (!(await page.locator('.pod-3').textContent()).includes('Thomas')) fail('bronzepladsen er ikke Thomas');
+if (await page.locator('.zaps').count() < 1) fail('zap-markering for dyr bøde mangler');
 await page.waitForSelector('.streak-panel');
 const streakTxt = await page.locator('.streak-panel').textContent();
 if (!streakTxt.includes('Martin') || !streakTxt.includes('2 møder i træk')) fail('mødestreak mangler: ' + streakTxt.slice(0, 120)); else ok('mødestreak vises');
@@ -109,15 +118,15 @@ if (!cta.includes('Fortsæt')) fail('forsideknap foreslår ikke Fortsæt: ' + ct
 await page.screenshot({ path: shots + '/shot-liga.png' });
 
 // 8) Formand: kron Thomas
-await page.click('.lb-row:has-text("Thomas Jarløv")');
+await page.click('.pod:has-text("Thomas")');
 await page.click('[data-action="toggle-formand"]');
 await page.waitForSelector('.sheet-head .crown');
 ok('formand kronet');
 await page.click('.sheet-close');
-if (await page.locator('.lb-row:has-text("Thomas") .crown').count() !== 1) fail('krone mangler på ligaen');
+if (await page.locator('.pod:has-text("Thomas") .crown').count() !== 1) fail('krone mangler på podiet');
 
 // 9) Indbetaling: Miki betaler alt (500)
-await page.click('.lb-row:has-text("Miki")');
+await page.click('.pod-1');
 await page.click('[data-action="pay-form"]');
 if (await page.inputValue('#pay-amount') !== '500') fail('forudfyldt beløb: ' + await page.inputValue('#pay-amount'));
 await page.click('[data-action="pay-save"]');
@@ -403,6 +412,106 @@ await page.click('[data-tab="liga"]');
 await page.waitForSelector('.lb-row');
 if (await page.locator('.lb-row:has-text("Martin Mollerup")').count() !== 1) fail('medlem forsvandt fra ligaen');
 ok('medlemskab pr. klubår virker');
+
+// 31) Farvetema pr. bødekategori
+await page.click('[data-tab="takster"]');
+await page.waitForSelector('.fine-ic');
+const toner = await page.evaluate(() => {
+  const set = new Set();
+  document.querySelectorAll('.row .fine-ic').forEach(el => set.add(el.style.getPropertyValue('--fc').trim()));
+  return [...set];
+});
+if (toner.length < 4) fail('for få kategorifarver: ' + toner.join(', ')); else ok('kategorifarver på takstikoner');
+await page.click('[data-tab="statistik"]');
+await page.waitForSelector('.chart-card');
+await page.locator('.chips .year-chip:has-text("2025/26")').click();   // året med bøderne
+await page.waitForSelector('.hbar-fill');
+if (await page.locator('.glegend .gl').count() !== 5) fail('farveforklaring mangler under Top bødetyper');
+const barFarver = await page.evaluate(() =>
+  [...document.querySelectorAll('.hbar-fill')].map(el => el.style.background).filter(Boolean));
+if (new Set(barFarver).size < 2) fail('søjlerne i Top bødetyper har kun én farve');
+ok('gruppefarver i statistikken');
+
+// 32) Metalliske hædersbevisninger
+await page.click('[data-tab="liga"]');
+await page.click('.lb-row:has-text("Toke"), .pod:has-text("Toke")');
+await page.waitForSelector('.sheet-body');
+await page.click('.sheet-close');
+await page.click('[data-tab="medlemmer"]');
+await page.click('[data-action="member-filter"][data-key="alle"]');
+await page.click('.row:has-text("Miki")');
+await page.waitForSelector('.sheet-body');
+const metalKlasser = await page.evaluate(() =>
+  [...document.querySelectorAll('.sheet-body .award')].map(el => el.className));
+if (metalKlasser.length && !metalKlasser.some(c => /guld|soelv|ild|groen/.test(c))) fail('emblemer mangler metalvariant');
+ok('metalliske hædersbevisninger');
+
+// 33) Medlemskort som samlekort
+await page.click('[data-action="member-card"]');
+await page.waitForSelector('.mcard');
+const kort = await page.locator('.mcard').textContent();
+if (!kort.includes('Miki')) fail('medlemskortet viser ikke navnet');
+if (await page.locator('.mcard-grid b').count() !== 4) fail('medlemskortet mangler nøgletal');
+if (await page.locator('[data-action="card-save"]').count() !== 1) fail('gem-kort-knappen mangler');
+await page.click('.sheet-close');
+ok('medlemskort virker');
+
+// 34) Tegnede tomme tilstande
+await page.click('[data-action="member-filter"][data-key="udgaaede"]');
+if (await page.locator('.art-empty .art').count() !== 1) fail('tegnet tom tilstand mangler under Udgåede');
+await page.click('[data-action="member-filter"][data-key="aktive"]');
+ok('tegnede tomme tilstande');
+
+// 35) Levende baggrund pr. fane
+const viewAttrs = [];
+for (const t of ['liga', 'statistik', 'takster']) {
+  await page.click(`[data-tab="${t}"]`);
+  viewAttrs.push(await page.getAttribute('html', 'data-view'));
+}
+if (viewAttrs.join(',') !== 'liga,statistik,takster') fail('baggrundstema følger ikke fanen: ' + viewAttrs);
+const glow = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--view-glow').trim());
+if (!glow) fail('--view-glow er ikke sat');
+ok('levende baggrund pr. fane');
+
+// 36) Hall of Fame
+await page.click('[data-tab="hall"]');
+await page.waitForSelector('.hof-season, .art-empty');
+const hof = await page.locator('#app').textContent();
+if (!hof.includes('Hall of Fame')) fail('Hall of Fame-overskrift mangler');
+if (!hof.includes('Formandsrækken')) fail('formandsrækken mangler');
+if (!hof.includes('Thomas')) fail('formanden står ikke i formandsrækken: ' + hof.slice(0, 120));
+if (await page.locator('.chart-card').count() < 4) fail('Hall of Fame mangler kort');
+ok('Hall of Fame virker');
+
+// 37) Stryg en bøde væk i mødet
+await page.click('[data-tab="aar"]');
+await page.click('.row:has-text("2026/27")');
+await page.click('.row:has-text("Møde 4")');
+await page.waitForSelector('.member-grid');
+await page.click('.member-cell:has-text("Miki")');
+await page.waitForSelector('.fine-grid');
+await page.click('.fine-btn:has-text("Nål")');
+await page.click('.sheet-close');
+if (await page.locator('.log-wrap.swipeable').count() !== 1) fail('bødelinjen er ikke swipe-bar');
+await page.evaluate(() => {
+  const el = document.querySelector('.log-wrap.swipeable');
+  const r = el.getBoundingClientRect();
+  const y = r.top + r.height / 2;
+  const mk = (type, x, list) => {
+    const t = new Touch({ identifier: 1, target: el, clientX: x, clientY: y });
+    return new TouchEvent(type, { touches: list ? [t] : [], changedTouches: [t], bubbles: true, cancelable: true });
+  };
+  el.dispatchEvent(mk('touchstart', 320, true));
+  el.dispatchEvent(mk('touchmove', 300, true));
+  el.dispatchEvent(mk('touchmove', 180, true));
+  el.dispatchEvent(mk('touchend', 180, false));
+});
+await page.waitForTimeout(500);
+if (await page.locator('.log-wrap').count() !== 0) fail('strygning fjernede ikke bøden');
+await page.click('[data-action="undo"]');
+if (await page.locator('.log-wrap').count() !== 1) fail('strygningen kunne ikke fortrydes');
+await page.click('[data-action="undo"]');
+ok('stryg for at fortryde virker');
 
 // 15) Desktop-visning
 await page.setViewportSize({ width: 1440, height: 900 });

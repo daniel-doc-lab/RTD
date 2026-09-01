@@ -56,10 +56,11 @@
 
   function freshState() {
     var s = {
-      version: 5,
+      version: 6,
       updatedAt: Date.now(),
       clubName: 'RTD',
       formandId: null,
+      formandHistory: [],
       rules: DEFAULT_RULES,
       members: seedMembers(),
       fineTypes: seedFineTypes(),
@@ -197,12 +198,18 @@
       });
       s.version = 5;
     }
+    if (s.version === 5) {
+      // v6: formandsrækken bevares, så Hall of Fame kan vise tidligere formænd
+      s.formandHistory = [];
+      if (s.formandId) s.formandHistory.push({ memberId: s.formandId, from: null, to: null });
+      s.version = 6;
+    }
     return normalize(s);
   }
 
   /* Gør vilkårlig (fx importeret) state ufarlig: alle arrays findes, tal er tal */
   function normalize(s) {
-    ['members', 'fineTypes', 'clubYears', 'meetings', 'fines', 'payments', 'expenses', 'writeoffs', 'audit', 'trash'].forEach(function (k) {
+    ['members', 'fineTypes', 'clubYears', 'meetings', 'fines', 'payments', 'expenses', 'writeoffs', 'formandHistory', 'audit', 'trash'].forEach(function (k) {
       if (!Array.isArray(s[k])) s[k] = [];
     });
     s.clubYears.forEach(function (y) { if (y.closedAt === undefined) y.closedAt = null; });
@@ -605,9 +612,58 @@
     return 'stjerne';
   }
 
+  /* ---------- Farvetema pr. bødekategori ---------- */
+
+  /* Ikonerne grupperes i fire familier med hver sin tone. Farven følger med
+     overalt — ikonbaggrund, søjler i Top bødetyper og prikker i sparklinen —
+     så mønstre kan aflæses uden at læse teksten. */
+  var FINE_GROUPS = {
+    kalender: 'afbud', ghost: 'afbud',
+    stopur: 'forsink', loeb: 'forsink',
+    attitude: 'adfaerd', afbryd: 'adfaerd', kaos: 'adfaerd', rejsesig: 'adfaerd',
+    mobil: 'adfaerd', toilet: 'adfaerd', fest: 'adfaerd',
+    pligt: 'pligt', dokument: 'pligt', plan: 'pligt', glemsom: 'pligt',
+    naal: 'pligt', kaede: 'pligt', krone: 'pligt',
+    penge: 'andet', hammer: 'andet', stjerne: 'andet'
+  };
+  var GROUP_INFO = {
+    afbud: { c: '#5eb0f5', n: 'Afbud' },
+    forsink: { c: '#ff9f43', n: 'Forsinkelse' },
+    adfaerd: { c: '#a78bfa', n: 'Adfærd' },
+    pligt: { c: '#4fbe7d', n: 'Pligt' },
+    andet: { c: '#fbbf24', n: 'Øvrigt' }
+  };
+  var GROUP_ORDER = ['afbud', 'forsink', 'adfaerd', 'pligt', 'andet'];
+
+  function groupOfKey(key) { return FINE_GROUPS[key] || 'andet'; }
+  function groupColor(g) { return (GROUP_INFO[g] || GROUP_INFO.andet).c; }
+
+  /* Hex → rgba, så ikonbaggrunden kan tone med uden color-mix */
+  function rgba(hex, a) {
+    var h = String(hex).replace('#', '');
+    return 'rgba(' + parseInt(h.slice(0, 2), 16) + ',' + parseInt(h.slice(2, 4), 16) + ',' +
+      parseInt(h.slice(4, 6), 16) + ',' + a + ')';
+  }
+  function colorVars(color) {
+    return '--fc: ' + color + '; --fcb: ' + rgba(color, 0.15);
+  }
+
+  function typeIconKey(t) {
+    return (t && t.icon && FI[t.icon]) ? t.icon : fineIconKey(t && t.category, t && t.description);
+  }
+  /* Gruppe for en given bøde — takstbaseret eller særbøde */
+  function fineGroup(f) {
+    if (f.fineTypeId) {
+      var t = findFineType(f.fineTypeId);
+      if (t) return groupOfKey(typeIconKey(t));
+    }
+    return groupOfKey(fineIconKey(f.label, ''));
+  }
+
   function fineIcon(t, cls) {
-    var key = (t && t.icon && FI[t.icon]) ? t.icon : fineIconKey(t && t.category, t && t.description);
-    return '<span class="fine-ic' + (cls ? ' ' + cls : '') + '">' + FI[key] + '</span>';
+    var key = typeIconKey(t);
+    return '<span class="fine-ic' + (cls ? ' ' + cls : '') +
+      '" style="' + colorVars(groupColor(groupOfKey(key))) + '">' + FI[key] + '</span>';
   }
 
   /* Ikon for en given bøde (takstbaseret eller særbøde) */
@@ -616,7 +672,8 @@
       var t = findFineType(f.fineTypeId);
       if (t) return fineIcon(t);
     }
-    return '<span class="fine-ic">' + FI[fineIconKey(f.label, '')] + '</span>';
+    var key = fineIconKey(f.label, '');
+    return '<span class="fine-ic" style="' + colorVars(groupColor(groupOfKey(key))) + '">' + FI[key] + '</span>';
   }
 
 
@@ -666,24 +723,71 @@
   function sparkline(mid) {
     var held = heldMeetings().slice(-6);
     if (held.length < 3) return '';
+    // Hver søjle bærer mødets beløb og farven på den bødegruppe der fyldte mest
     var vals = held.map(function (mt) {
-      return state.fines.reduce(function (a, f) {
-        return f.meetingId === mt.id && f.memberId === mid ? a + f.amount : a;
-      }, 0);
+      var sum = 0, byGroup = {};
+      state.fines.forEach(function (f) {
+        if (f.meetingId !== mt.id || f.memberId !== mid) return;
+        sum += f.amount;
+        var g = fineGroup(f);
+        byGroup[g] = (byGroup[g] || 0) + f.amount;
+      });
+      var top = null;
+      Object.keys(byGroup).forEach(function (g) { if (!top || byGroup[g] > byGroup[top]) top = g; });
+      return { v: sum, c: top ? groupColor(top) : null };
     });
-    var max = vals.reduce(function (a, v) { return Math.max(a, v); }, 0);
+    var max = vals.reduce(function (a, x) { return Math.max(a, x.v); }, 0);
     var n = vals.length, bw = 5, gap = 3, hgt = 16, w = n * bw + (n - 1) * gap;
     var out = '<svg class="spark" viewBox="0 0 ' + w + ' ' + hgt + '" aria-hidden="true">';
-    vals.forEach(function (v, i) {
-      var x = i * (bw + gap);
-      if (max === 0 || v === 0) {
-        out += '<rect x="' + x.toFixed(1) + '" y="' + (hgt - 2) + '" width="' + bw.toFixed(1) + '" height="2" rx="1" fill="#2c3846"></rect>';
+    vals.forEach(function (x, i) {
+      var px = i * (bw + gap);
+      if (max === 0 || x.v === 0) {
+        out += '<rect x="' + px.toFixed(1) + '" y="' + (hgt - 2) + '" width="' + bw.toFixed(1) + '" height="2" rx="1" fill="#2c3846"></rect>';
       } else {
-        var bh = Math.max(3, Math.round((hgt - 2) * (v / max)));
-        out += '<rect x="' + x.toFixed(1) + '" y="' + (hgt - bh) + '" width="' + bw.toFixed(1) + '" height="' + bh + '" rx="1.5" fill="currentColor"></rect>';
+        var bh = Math.max(3, Math.round((hgt - 2) * (x.v / max)));
+        out += '<rect x="' + px.toFixed(1) + '" y="' + (hgt - bh) + '" width="' + bw.toFixed(1) + '" height="' + bh + '" rx="1.5" fill="' + (x.c || 'currentColor') + '"></rect>';
       }
     });
     return out + '</svg>';
+  }
+
+  /* ---------- Tegnede tomme tilstande ---------- */
+
+  /* Tre illustrationer i stedet for en tekstlinje. Alle bruger --muted og en
+     enkelt amber-detalje, så de hører til i scoreboard-temaet. */
+  var ART = {
+    kasse: '<svg viewBox="0 0 160 110" class="art" aria-hidden="true">' +
+      '<ellipse cx="80" cy="98" rx="52" ry="7" fill="currentColor" opacity="0.10"></ellipse>' +
+      '<path d="M34 46h92v46a4 4 0 0 1-4 4H38a4 4 0 0 1-4-4z" fill="none" stroke="currentColor" stroke-width="3"></path>' +
+      '<path d="M28 32h104v14H28z" fill="none" stroke="currentColor" stroke-width="3"></path>' +
+      '<path d="M80 46v50" stroke="currentColor" stroke-width="2" opacity="0.45"></path>' +
+      '<path d="M62 32c0-10 8-18 18-18s18 8 18 18" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"></path>' +
+      '<circle cx="80" cy="70" r="9" fill="none" stroke="#fbbf24" stroke-width="2.5" opacity="0.75"></circle>' +
+      '<path d="M76.5 70h7M80 66.5v7" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" opacity="0.75"></path></svg>',
+    dommer: '<svg viewBox="0 0 160 110" class="art" aria-hidden="true">' +
+      '<ellipse cx="80" cy="99" rx="46" ry="6" fill="currentColor" opacity="0.10"></ellipse>' +
+      '<path d="M50 96c0-16 13-27 30-27s30 11 30 27" fill="none" stroke="currentColor" stroke-width="3"></path>' +
+      '<circle cx="80" cy="50" r="19" fill="none" stroke="currentColor" stroke-width="3"></circle>' +
+      '<path d="M71 50c2.5 2.5 5.5 2.5 8 0M85 50c1.8 1.8 4 1.8 5.8 0" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"></path>' +
+      '<path d="M74 60c4 3 8 3 12 0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.7"></path>' +
+      '<path d="M56 40c8-9 40-9 48 0" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"></path>' +
+      '<path d="M104 30c3-2 3-6 0-8M114 24c4-3 4-9 0-12" fill="none" stroke="#fbbf24" stroke-width="2.4" stroke-linecap="round" opacity="0.8"></path></svg>',
+    pokal: '<svg viewBox="0 0 160 110" class="art" aria-hidden="true">' +
+      '<ellipse cx="80" cy="99" rx="34" ry="6" fill="currentColor" opacity="0.10"></ellipse>' +
+      '<path d="M62 20h36v18a18 18 0 0 1-36 0z" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linejoin="round"></path>' +
+      '<path d="M62 24H50a10 10 0 0 0 12 12M98 24h12a10 10 0 0 1-12 12" fill="none" stroke="#fbbf24" stroke-width="2.6"></path>' +
+      '<path d="M80 56v14M68 92h24M74 92V70h12v22" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"></path>' +
+      '<path d="M46 62c3-3 3-7 0-10M40 74c4-4 4-10 0-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"></path>' +
+      '<circle cx="112" cy="58" r="2" fill="currentColor" opacity="0.45"></circle>' +
+      '<circle cx="120" cy="70" r="1.6" fill="currentColor" opacity="0.35"></circle>' +
+      '<circle cx="106" cy="74" r="1.3" fill="currentColor" opacity="0.3"></circle></svg>'
+  };
+
+  function emptyState(kind, title, sub, extra) {
+    return '<div class="empty art-empty">' + (ART[kind] || ART.kasse) +
+      '<div class="big">' + esc(title) + '</div>' +
+      (sub ? '<div class="art-sub">' + esc(sub) + '</div>' : '') +
+      (extra || '') + '</div>';
   }
 
   /* #5 Fremskridtsbjælke: hvor stor en del af de samlede bøder der er betalt */
@@ -835,29 +939,42 @@
       var totals = state.members.map(function (m) { return { id: m.id, sum: yearFineTotalFor(m.id, y.id) }; });
       var max = totals.reduce(function (a, t) { return t.sum > a ? t.sum : a; }, 0);
       if (max > 0 && totals.some(function (t) { return t.id === mid && t.sum === max; })) {
-        out.push({ ic: 'trophy', label: 'Årets synder ' + y.label, desc: kr(max) + ' i bøder' });
+        out.push({ ic: 'trophy', metal: 'guld', label: 'Årets synder ' + y.label, desc: kr(max) + ' i bøder' });
       }
       var min = totals.reduce(function (a, t) { return t.sum < a ? t.sum : a; }, Infinity);
       if (max > 0 && totals.some(function (t) { return t.id === mid && t.sum === min; })) {
-        out.push({ ic: 'shield', label: 'Mest artige ' + y.label, desc: 'Kun ' + kr(min) + ' i bøder' });
+        out.push({ ic: 'shield', metal: 'soelv', label: 'Mest artige ' + y.label, desc: 'Kun ' + kr(min) + ' i bøder' });
       }
     });
     if (memberFineTotal(mid) >= HOT_FINE && memberBalance(mid) <= 0) {
-      out.push({ ic: 'star', label: 'Comeback', desc: 'Fra synder til rent ark' });
+      out.push({ ic: 'star', metal: 'soelv', label: 'Comeback', desc: 'Fra synder til rent ark' });
     }
     var activeTypes = state.fineTypes.filter(function (t) { return t.active; });
     if (activeTypes.length && activeTypes.every(function (t) {
       return state.fines.some(function (f) { return f.memberId === mid && f.fineTypeId === t.id; });
     })) {
-      out.push({ ic: 'flame', label: 'Grand Slam', desc: 'Har prøvet samtlige takster' });
+      out.push({ ic: 'flame', metal: 'ild', label: 'Grand Slam', desc: 'Har prøvet samtlige takster' });
     }
     if (memberMeetingStreak(mid) >= 4) {
-      out.push({ ic: 'flame', label: streakTitle(memberMeetingStreak(mid)), desc: memberMeetingStreak(mid) + ' møder i træk med bøde' });
+      out.push({ ic: 'flame', metal: 'ild', label: streakTitle(memberMeetingStreak(mid)), desc: memberMeetingStreak(mid) + ' møder i træk med bøde' });
     }
     if (memberCleanStreak(mid) >= 3) {
-      out.push({ ic: 'shield', label: 'Fredet', desc: memberCleanStreak(mid) + ' møder uden bøde' });
+      out.push({ ic: 'shield', metal: 'groen', label: 'Fredet', desc: memberCleanStreak(mid) + ' møder uden bøde' });
     }
     return out;
+  }
+
+  /* Afslutter den siddende formands periode i formandsrækken */
+  function closeFormandPeriod() {
+    state.formandHistory.forEach(function (h) { if (!h.to) h.to = todayISO(); });
+  }
+
+  /* Hædersbevisninger som metalemblemer — gradient, støjtekstur og blank kant */
+  function awardRow(badges, cls) {
+    return '<div class="badge-row' + (cls ? ' ' + cls : '') + '">' + badges.map(function (b) {
+      return '<span class="award ' + (b.metal || 'guld') + '" data-tip="' + esc(b.desc) + '">' +
+        '<span class="aw-ic">' + IC[b.ic] + '</span><span class="aw-lbl">' + esc(b.label) + '</span></span>';
+    }).join('') + '</div>';
   }
 
   /* Sæsonrekorder på tværs af alle klubår */
@@ -931,11 +1048,28 @@
     return '<span class="flames">' + out + '</span>';
   }
 
+  /* Prospect-forløb: spiren vokser et hak for hvert møde mod optagelse */
+  var PROSPECT_GOAL = 5;
+  function prospectProgress(m) {
+    if (!m || !m.prospect) return null;
+    var since = m.createdAt || 0;
+    var n = heldMeetings().filter(function (mt) {
+      var t = mt.date ? new Date(mt.date + 'T12:00:00').getTime() : 0;
+      return t >= since || state.fines.some(function (f) { return f.meetingId === mt.id && f.memberId === m.id; });
+    }).length;
+    return { done: Math.min(PROSPECT_GOAL, n), goal: PROSPECT_GOAL, grow: Math.min(3, Math.floor(3 * n / PROSPECT_GOAL)) };
+  }
+  function sproutIcon(m) {
+    var p = prospectProgress(m);
+    if (!p) return '';
+    return '<span class="sprout" data-grow="' + p.grow + '" title="Prospect — ' + p.done + ' af ' + p.goal + ' møder">' + IC.sprout + '</span>';
+  }
+
   function nameIcons(mid) {
     var out = '';
     var m = findMember(mid);
     if (state.formandId === mid) out += '<span class="crown" title="Formand">' + IC.crown + '</span>';
-    if (m && m.prospect) out += '<span class="sprout" title="Prospect — endnu ikke fuldgyldigt medlem">' + IC.sprout + '</span>';
+    if (m && m.prospect) out += sproutIcon(m);
     var hot = memberHotFineCount(mid);
     if (hot > 0) {
       out += '<span class="zaps" title="Dyre bøder (' + HOT_FINE + ' kr.+)">';
@@ -1005,6 +1139,8 @@
     var app = document.getElementById('app');
     var brand = document.querySelector('#brand-name .bn');
     if (brand) brand.textContent = state.clubName;
+    // Levende baggrund: hver fane har sin egen tone
+    document.documentElement.setAttribute('data-view', view.name);
     document.title = state.clubName + ' Bødeligaen';
     renderToolbar();
 
@@ -1018,6 +1154,7 @@
     else if (view.name === 'mode') html += viewMeeting();
     else if (view.name === 'medlemmer') html += viewMembers();
     else if (view.name === 'takster') html += viewFineTypes();
+    else if (view.name === 'hall') html += viewHall();
     else if (view.name === 'statistik') html += viewStats();
     app.innerHTML = html;
     // Flyt CTA-knappen ned i bundbjælken, så den aldrig svæver oven på indholdet
@@ -1050,6 +1187,14 @@
         var from = lastCounts[key];
         lastCounts[key] = to;
         if (from === undefined || from === to || reducedMotion) { el.textContent = fmt(to); return; }
+        // Dyre bøder ruller ciffer for ciffer som et kasseapparat
+        if (el.hasAttribute('data-roll') && Math.abs(to - from) >= HOT_FINE) {
+          el.classList.remove('cnt-pulse');
+          void el.offsetWidth;
+          el.classList.add('cnt-pulse');
+          rollNumber(el, fmt(to));
+          return;
+        }
         el.classList.remove('cnt-pulse');
         void el.offsetWidth;                 // genstart animationen
         el.classList.add('cnt-pulse');
@@ -1065,6 +1210,18 @@
     }
   }
 
+  /* Kasseapparat: hvert ciffer ruller på plads gennem et helt omløb */
+  function rollNumber(el, text) {
+    var chars = String(text).split('');
+    var col = '';
+    for (var d = 0; d < 20; d++) col += '<b>' + (d % 10) + '</b>';
+    el.innerHTML = chars.map(function (ch, i) {
+      if (ch < '0' || ch > '9') return '<span class="dgt-s">' + esc(ch) + '</span>';
+      return '<span class="dgt"><i style="--to: -' + ((10 + Number(ch)) * 100) + '%; animation-delay: ' + (i * 45) + 'ms">' + col + '</i></span>';
+    }).join('');
+    setTimeout(function () { if (el.isConnected) el.textContent = text; }, 950 + chars.length * 45);
+  }
+
   /* #12: fuldskærms-overlay ved rigtig store bøder */
   var BIG_FINE = 500;
   function bigFineOverlay(amount, who, label) {
@@ -1078,6 +1235,21 @@
       '</div></div>').firstChild;
     document.body.appendChild(el);
     setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1250);
+  }
+
+  /* Ikonet vipper når bøden lander — og kronen glimter, hvis det gik ud over formanden */
+  function reactToFine(memberId, typeId) {
+    if (reducedMotion) return;
+    if (typeId) {
+      var ic = document.querySelector('.modal-root [data-action="give-fine"][data-id="' + typeId + '"] .fine-ic');
+      if (ic) { ic.classList.remove('pop'); void ic.offsetWidth; ic.classList.add('pop'); }
+    }
+    if (memberId && state.formandId === memberId) {
+      document.body.classList.remove('crown-glint');
+      void document.body.offsetWidth;
+      document.body.classList.add('crown-glint');
+      setTimeout(function () { document.body.classList.remove('crown-glint'); }, 1500);
+    }
   }
 
   /* Pakke A: konfetti ved dyre bøder */
@@ -1132,14 +1304,19 @@
     var members = state.members.filter(function (m) { return m.active || memberBalance(m.id) > 0; });
     if (!members.length) {
       return statStrip() +
-        '<div class="empty"><div class="big">Ingen spillere endnu</div>' +
-        'Tilføj klubbens medlemmer for at starte ligaen.' +
-        '<div class="btn-row"><button class="btn" data-action="add-member">' + IC.plus + 'Tilføj medlem</button></div></div>';
+        emptyState('kasse', 'Ingen spillere endnu', 'Bødekassen står tom og keder sig.',
+          viewerMode ? '' : '<div class="btn-row"><button class="btn" data-action="add-member">' + IC.plus + 'Tilføj medlem</button></div>');
     }
     var ranked = members.slice().sort(function (a, b) {
       var d = memberBalance(b.id) - memberBalance(a.id);
       return d !== 0 ? d : a.name.localeCompare(b.name, 'da');
     });
+    // Top-3 løftes op på podiet; resten fortsætter som almindelige rækker
+    var podium = ranked.filter(function (m) { return memberBalance(m.id) > 0; }).slice(0, 3);
+    if (podium.length < 3) podium = [];
+    var onPodium = {};
+    podium.forEach(function (m) { onPodium[m.id] = 1; });
+
     var rows = '';
     var rank = 0, lastBal = null, shown = 0;
     var nextRanks = {};
@@ -1154,6 +1331,7 @@
       // #14: markér dem der er rykket op siden sidste visning
       var moved = lastRanks[m.id] !== undefined && bal > 0 && rank < lastRanks[m.id];
       nextRanks[m.id] = bal > 0 ? rank : 999;
+      if (onPodium[m.id]) return;   // står allerede på podiet
       if (bal <= 0) {
         rows += '<button class="lb-row clean" data-action="open-member" data-id="' + esc(m.id) + '">' +
           '<div class="rank">–</div>' + avatar(m) +
@@ -1173,13 +1351,35 @@
     lastRanks = nextRanks;
     var sm = suggestMeeting();
     return statStrip() +
+      podiumBlock(podium) +
       streakPanel(activeMembers()) +
-      '<div class="colhead"><div class="c-rank">#</div><div class="c-name">Spiller</div><div class="c-count">Bøder</div><div class="c-sum">Gæld kr.</div></div>' +
-      rows +
+      (rows
+        ? '<div class="colhead"><div class="c-rank">#</div><div class="c-name">Spiller</div><div class="c-count">Bøder</div><div class="c-sum">Gæld kr.</div></div>' + rows
+        : '') +
       (sm && !viewerMode
         ? '<div class="actionbar"><button class="btn" data-action="open-meeting" data-id="' + esc(sm.meeting.id) + '">' +
           sm.verb + ' ' + esc(sm.meeting.title) + ' · ' + esc(meetingYearLabel(sm.meeting)) + '</button></div>'
         : '');
+  }
+
+  /* Podie: 2. plads til venstre, 1. plads hævet i midten, 3. til højre */
+  function podiumBlock(top) {
+    if (!top.length) return '';
+    var order = [{ m: top[1], r: 2 }, { m: top[0], r: 1 }, { m: top[2], r: 3 }];
+    var names = ['', 'Årets synder', '2. pladsen', '3. pladsen'];
+    var cols = order.map(function (x) {
+      var bal = memberBalance(x.m.id);
+      var streak = memberMeetingStreak(x.m.id);
+      return '<button class="pod pod-' + x.r + '" data-action="open-member" data-id="' + esc(x.m.id) + '">' +
+        '<div class="pod-top">' + medal(x.r) + avatar(x.m) +
+        '<div class="pod-name">' + esc(firstName(x.m.name)) + nameIcons(x.m.id) +
+        (streak >= 2 ? flames(streak) : '') + '</div>' +
+        '<div class="pod-sum">' + nf(bal) + '</div>' +
+        '<div class="pod-sub">' + memberFineCount(x.m.id) + ' bøder</div></div>' +
+        '<div class="pod-box"><span class="pod-rank">' + x.r + '</span>' +
+        '<span class="pod-title">' + names[x.r] + '</span></div></button>';
+    }).join('');
+    return '<div class="podium">' + cols + '</div>';
   }
 
   /* Gamified streak-oversigt på forsiden */
@@ -1302,18 +1502,21 @@
       return '<button class="member-cell' + (sum > 0 ? ' hit' : '') + (m.active ? '' : ' gone') + '" data-action="pick-fines" data-id="' + esc(m.id) + '"' + (meet.closedAt || viewerMode ? ' disabled style="opacity:0.55"' : '') + '>' +
         '<div class="mc-top">' + avatar(m, 'sm') + '<div class="name">' + esc(m.name) +
         (state.formandId === m.id ? '<span class="crown">' + IC.crown + '</span>' : '') +
-        (m.prospect ? '<span class="sprout" title="Prospect">' + IC.sprout + '</span>' : '') + '</div></div>' +
+        (m.prospect ? sproutIcon(m) : '') + '</div></div>' +
         '<div class="meta">' + (sum > 0 ? n + ' bøde' + (n === 1 ? '' : 'r') + ' · ' + kr(sum) : 'Ingen bøder') + '</div></button>';
     }).join('');
 
+    var canEdit = !meet.closedAt && !viewerMode;
     var log = meetFines.slice().reverse().map(function (f) {
       var m = findMember(f.memberId);
-      return '<div class="log-item">' +
+      return '<div class="log-wrap' + (canEdit ? ' swipeable' : '') + '"' + (canEdit ? ' data-fine="' + esc(f.id) + '"' : '') + '>' +
+        (canEdit ? '<div class="swipe-back">' + IC.bin + '<span>Fjern</span></div>' : '') +
+        '<div class="log-item">' +
         fineIconFor(f) +
         '<div class="grow"><div class="t">' + esc(m ? m.name : '?') + ' — ' + esc(fineLabel(f)) + '</div></div>' +
         '<div class="amount' + amtClass(f.amount) + '">' + (f.amount >= HOT_FINE ? IC.zap : '') + kr(f.amount) + '</div>' +
-        (meet.closedAt || viewerMode ? '' : '<button class="x" data-action="remove-fine" data-id="' + esc(f.id) + '" aria-label="Fjern bøde">' + IC.x + '</button>') +
-        '</div>';
+        (canEdit ? '<button class="x" data-action="remove-fine" data-id="' + esc(f.id) + '" aria-label="Fjern bøde">' + IC.x + '</button>' : '') +
+        '</div></div>';
     }).join('');
 
     var info = '';
@@ -1327,16 +1530,17 @@
       '<button class="iconbtn" data-action="goto" data-view="aar-detalje" data-id="' + esc(meet.clubYearId) + '" aria-label="Tilbage">' + IC.left + '</button>' +
       '<div class="grow"><div class="t">' + esc(meet.title) + '</div><div class="s">' + esc(meetingYearLabel(meet)) + ' · ' + fmtDate(meet.date) + (meet.closedAt ? ' · afsluttet' : '') + '</div></div>' +
       (viewerMode ? '' : '<button class="iconbtn" data-action="edit-meeting" data-id="' + esc(meet.id) + '" aria-label="Rediger møde">' + IC.edit + '</button>') +
-      '<div class="total" data-cnt="meet-' + esc(meet.id) + '" data-val="' + meetingTotal(meet.id) + '">' + kr(meetingTotal(meet.id)) + '</div></div>' +
+      '<div class="total" data-cnt="meet-' + esc(meet.id) + '" data-roll="1" data-val="' + meetingTotal(meet.id) + '">' + kr(meetingTotal(meet.id)) + '</div></div>' +
       info +
       (members.length
         ? '<div class="section-title"><h2>Klik en spiller</h2>' +
           (meet.closedAt || viewerMode ? '<div class="hint">…og derefter bøderne</div>'
             : '<button class="btn small secondary" data-action="bulk-open">' + IC.check + 'Bulk-bøde</button>') +
           '</div><div class="member-grid">' + grid + '</div>'
-        : '<div class="empty">Ingen medlemmer i klubåret ' + esc(meetingYearLabel(meet)) + '. Sæt medlemmernes klubår under fanen Medlemmer.</div>') +
-      '<div class="section-title"><h2>Mødets bøder</h2><div class="hint">' + meetFines.length + ' stk.</div></div>' +
-      (log || '<div class="note">Ingen bøder registreret endnu.</div>') +
+        : emptyState('dommer', 'Ingen medlemmer i ' + meetingYearLabel(meet), 'Sæt medlemmernes klubår under fanen Medlemmer.')) +
+      '<div class="section-title"><h2>Mødets bøder</h2><div class="hint">' + meetFines.length + ' stk.' +
+      (canEdit && meetFines.length ? ' · stryg for at fjerne' : '') + '</div></div>' +
+      (log ? '<div class="fine-log">' + log + '</div>' : emptyState('dommer', 'Ingen bøder endnu', meet.closedAt ? 'Mødet slap billigt.' : 'Dommeren døser. Klik en spiller.')) +
       (viewerMode ? '' :
         '<div class="btn-row">' +
         (meet.closedAt
@@ -1374,22 +1578,22 @@
         avatar(m) +
         '<div class="grow"><div class="t">' + esc(m.name) +
         (state.formandId === m.id ? ' <span class="crown">' + IC.crown + '</span>' : '') +
-        (m.prospect ? ' <span class="sprout" title="Prospect">' + IC.sprout + '</span>' : '') +
+        (m.prospect ? ' ' + sproutIcon(m) : '') +
         (m.active ? '' : ' <span class="tag-gone">Udgået</span>') + '</div>' +
         '<div class="s">' + esc(sub) + '</div></div>' +
         '<div class="amount' + (bal <= 0 ? ' zero' : '') + '">' + kr(Math.max(0, bal)) + '</div></button>';
     }).join('');
 
     var empties = {
-      aktive: 'Ingen aktive medlemmer.',
-      prospects: 'Ingen prospects lige nu. Markér et medlem som prospect på profilen.',
-      udgaaede: 'Ingen er udgået endnu.',
-      skylder: 'Ingen skylder noget. Mistænkeligt.',
-      alle: 'Ingen medlemmer. Tilføj klubbens medlemmer her.'
+      aktive: ['Ingen aktive medlemmer', 'Klubben er teknisk set nedlagt.'],
+      prospects: ['Ingen prospects', 'Markér et medlem som prospect på profilen.'],
+      udgaaede: ['Ingen er udgået', 'Alle holder ved. Indtil videre.'],
+      skylder: ['Ingen skylder noget', 'Mistænkeligt pænt.'],
+      alle: ['Ingen medlemmer', 'Tilføj klubbens medlemmer her.']
     };
     return '<div class="section-title"><h2>Medlemmer</h2><div class="hint">' + list.length + ' vist</div></div>' +
       chips +
-      (rows || '<div class="empty">' + esc(empties[f.key]) + '</div>') +
+      (rows || emptyState(f.key === 'skylder' ? 'pokal' : 'kasse', empties[f.key][0], empties[f.key][1])) +
       (viewerMode ? '' : '<div class="actionbar"><button class="btn" data-action="add-member">' + IC.plus + 'Tilføj medlem</button></div>');
   }
 
@@ -1422,6 +1626,88 @@
       '</div>';
   }
 
+  /* ---------- Hall of Fame: klubbens hukommelse ---------- */
+
+  function allTimeFines() { return state.fines.reduce(function (a, f) { return a + f.amount; }, 0); }
+
+  /* Kårede pr. afsluttet sæson: største synder og mest artige */
+  function seasonWinners() {
+    return state.clubYears.slice()
+      .filter(function (y) { return y.closedAt; })
+      .sort(function (a, b) { return b.startYear - a.startYear; })
+      .map(function (y) {
+        var totals = state.members
+          .filter(function (m) { return inYear(m, y.id) || yearFineTotalFor(m.id, y.id) > 0; })
+          .map(function (m) { return { m: m, sum: yearFineTotalFor(m.id, y.id) }; });
+        var worst = totals.reduce(function (a, t) { return !a || t.sum > a.sum ? t : a; }, null);
+        var nice = totals.reduce(function (a, t) { return !a || t.sum < a.sum ? t : a; }, null);
+        return { y: y, worst: worst && worst.sum > 0 ? worst : null, nice: nice, total: yearTotal(y.id) };
+      });
+  }
+
+  function viewHall() {
+    var seasons = seasonWinners();
+
+    var kpis = '<div class="stats kpi4">' +
+      '<div class="stat"><div class="k">Bøder i alt</div><div class="v amber">' + kr(allTimeFines()) + '</div></div>' +
+      '<div class="stat"><div class="k">Sæsoner</div><div class="v">' + state.clubYears.length + '</div></div>' +
+      '<div class="stat"><div class="k">Møder afholdt</div><div class="v">' + heldMeetings().length + '</div></div>' +
+      '<div class="stat"><div class="k">Medlemmer</div><div class="v">' + state.members.length + '</div></div>' +
+      '</div>';
+
+    var recs = seasonRecords();
+    var recHtml = recs.length ? recs.map(function (r) {
+      return '<div class="rec-row"><span class="rec-ic">' + IC[r.ic] + '</span>' +
+        '<div class="grow"><div class="t">' + r.label + '</div><div class="s">' + r.desc + '</div></div>' +
+        '<div class="rec-val">' + r.value + '</div></div>';
+    }).join('') : emptyState('pokal', 'Ingen rekorder endnu', 'Pokalen samler støv.');
+
+    var seasonHtml = seasons.length ? seasons.map(function (x) {
+      return '<div class="hof-season" style="--yc: ' + yearColor(x.y) + '">' +
+        '<div class="hof-year">' + esc(x.y.label) + '<span>' + kr(x.total) + '</span></div>' +
+        (x.worst
+          ? '<button class="hof-row" data-action="open-member" data-id="' + esc(x.worst.m.id) + '">' +
+            medal(1) + avatar(x.worst.m) +
+            '<div class="grow"><div class="t">' + esc(x.worst.m.name) + '</div><div class="s">Årets synder</div></div>' +
+            '<div class="amount">' + kr(x.worst.sum) + '</div></button>'
+          : '<div class="note">Ingen bøder i sæsonen.</div>') +
+        (x.nice && x.worst && x.nice.m.id !== x.worst.m.id
+          ? '<button class="hof-row" data-action="open-member" data-id="' + esc(x.nice.m.id) + '">' +
+            '<span class="rec-ic green">' + IC.shield + '</span>' + avatar(x.nice.m) +
+            '<div class="grow"><div class="t">' + esc(x.nice.m.name) + '</div><div class="s">Mest artige</div></div>' +
+            '<div class="amount zero">' + kr(x.nice.sum) + '</div></button>'
+          : '') +
+        '</div>';
+    }).join('') : emptyState('pokal', 'Ingen afsluttede sæsoner', 'Afslut en sæson under Klubår, så kåres der vindere.');
+
+    var hist = state.formandHistory.slice().reverse();
+    var formandHtml = hist.length ? hist.map(function (hh) {
+      var m = findMember(hh.memberId);
+      var period = (hh.from ? fmtDate(hh.from) : 'Fra klubbens start') + ' — ' + (hh.to ? fmtDate(hh.to) : 'i dag');
+      return '<div class="hof-row' + (hh.to ? '' : ' now') + '">' +
+        '<span class="rec-ic gold">' + IC.crown + '</span>' +
+        (m ? avatar(m) : '') +
+        '<div class="grow"><div class="t">' + esc(m ? m.name : 'Ukendt') + '</div>' +
+        '<div class="s">' + esc(period) + '</div></div>' +
+        (hh.to ? '' : '<span class="badge live">Sidder nu</span>') + '</div>';
+    }).join('') : '<div class="note">Ingen formænd registreret endnu. Kron én på en medlemsprofil.</div>';
+
+    // Alle uddelte hædersbevisninger, samlet pr. medlem
+    var awardHtml = state.members.slice().sort(byName).map(function (m) {
+      var bs = computeBadges(m.id);
+      if (!bs.length) return '';
+      return '<div class="hof-awards"><div class="t">' + esc(m.name) + '</div>' + awardRow(bs, 'tight') + '</div>';
+    }).filter(Boolean).join('');
+
+    return '<div class="section-title"><h2>Hall of Fame</h2><div class="hint">Klubbens hukommelse</div></div>' +
+      kpis +
+      '<div class="chart-card"><div class="chart-title">' + IC.trophy + ' Alle tiders rekorder</div>' + recHtml + '</div>' +
+      '<div class="chart-card"><div class="chart-title">' + IC.star + ' Kårede pr. sæson</div>' + seasonHtml + '</div>' +
+      '<div class="chart-card"><div class="chart-title">' + IC.crown + ' Formandsrækken</div>' + formandHtml + '</div>' +
+      '<div class="chart-card"><div class="chart-title">' + IC.shield + ' Uddelte hædersbevisninger</div>' +
+      (awardHtml || '<div class="note">Ingen hædersbevisninger uddelt endnu.</div>') + '</div>';
+  }
+
   /* ---------- Statistik (#11, #12, #7) ---------- */
 
   var statsYearId = null;
@@ -1433,11 +1719,15 @@
     state.fines.forEach(function (f) {
       if (!ids[f.meetingId]) return;
       var key = fineLabel(f);
-      var a = agg[key] || { sum: 0, count: 0 };
+      var a = agg[key] || { sum: 0, count: 0, iconKey: null };
       a.sum += f.amount; a.count++;
+      if (!a.iconKey) {
+        var t = f.fineTypeId ? findFineType(f.fineTypeId) : null;
+        a.iconKey = t ? typeIconKey(t) : fineIconKey(f.label, '');
+      }
       agg[key] = a;
     });
-    return Object.keys(agg).map(function (k) { return { label: k, sum: agg[k].sum, count: agg[k].count }; })
+    return Object.keys(agg).map(function (k) { return { label: k, sum: agg[k].sum, count: agg[k].count, iconKey: agg[k].iconKey }; })
       .sort(function (a, b) { return b.sum - a.sum; });
   }
 
@@ -1508,20 +1798,30 @@
     return out + '</svg>';
   }
 
-  function hBars(items, color) {
+  /* Vandrette søjler i bødegruppens farve — samme tone som ikonet */
+  function hBars(items) {
     var max = items.reduce(function (a, x) { return Math.max(a, x.sum); }, 0) || 1;
     return items.map(function (x) {
-      return '<div class="hbar-row" data-tip="' + esc(x.label + ' · ' + x.count + ' stk. · ' + kr(x.sum)) + '">' +
-        '<span class="fine-ic">' + FI[fineIconKey(x.label, '')] + '</span>' +
+      var key = x.iconKey || fineIconKey(x.label, '');
+      var g = groupOfKey(key), c = groupColor(g);
+      return '<div class="hbar-row" data-tip="' + esc(x.label + ' · ' + GROUP_INFO[g].n + ' · ' + x.count + ' stk. · ' + kr(x.sum)) + '">' +
+        '<span class="fine-ic" style="' + colorVars(c) + '">' + FI[key] + '</span>' +
         '<div class="hbar-label">' + esc(x.label) + '</div>' +
-        '<div class="hbar-track"><div class="hbar-fill" style="width: ' + Math.max(2, Math.round(100 * x.sum / max)) + '%; background: ' + color + '"></div></div>' +
+        '<div class="hbar-track"><div class="hbar-fill" style="width: ' + Math.max(2, Math.round(100 * x.sum / max)) + '%; background: ' + c + '"></div></div>' +
         '<div class="hbar-val">' + nf(x.sum) + '</div></div>';
     }).join('');
   }
 
+  /* Farveforklaring under Top bødetyper */
+  function groupLegend() {
+    return '<div class="glegend">' + GROUP_ORDER.map(function (g) {
+      return '<span class="gl"><i style="background: ' + GROUP_INFO[g].c + '"></i>' + GROUP_INFO[g].n + '</span>';
+    }).join('') + '</div>';
+  }
+
   function viewStats() {
     var years = state.clubYears.slice().sort(function (a, b) { return b.startYear - a.startYear; });
-    if (!years.length) return '<div class="empty">Ingen klubår endnu.</div>';
+    if (!years.length) return emptyState('pokal', 'Ingen klubår endnu', 'Opret et klubår under fanen Klubår.');
     var sel = findYear(statsYearId) || currentClubYear();
     statsYearId = sel.id;
 
@@ -1569,7 +1869,7 @@
       return '<div class="rec-row"><span class="rec-ic">' + IC[r.ic] + '</span>' +
         '<div class="grow"><div class="t">' + r.label + '</div><div class="s">' + r.desc + '</div></div>' +
         '<div class="rec-val">' + r.value + '</div></div>';
-    }).join('') : '<div class="note">Ingen rekorder endnu — kom i gang med at synde.</div>';
+    }).join('') : emptyState('pokal', 'Ingen rekorder endnu', 'Pokalen samler støv. Kom i gang med at synde.');
 
     var cmpRows = years.map(function (y) {
       var yms = yearMeetings(y.id);
@@ -1594,7 +1894,7 @@
       '<div class="chart-card"><div class="chart-title">Kassebeholdning over tid <span class="chart-sub">alle år · kr.</span></div>' + lineChartSVG(linePoints, '#3f9e63') + '</div>' +
       disciplineCard() +
       '<div class="chart-card"><div class="chart-title">Top bødetyper <span class="chart-sub">' + esc(sel.label) + ' · kr.</span></div>' +
-      (topTypes.length ? hBars(topTypes, yc) : '<div class="note">Ingen bøder i dette klubår endnu.</div>') + '</div>' +
+      (topTypes.length ? hBars(topTypes) + groupLegend() : emptyState('kasse', 'Ingen bøder i dette klubår', 'Nogen må da have gjort noget.')) + '</div>' +
       '<div class="chart-card"><div class="chart-title">Sæsonrekorder <span class="chart-sub">alle år</span></div>' + recHtml + '</div>' +
       '<div class="chart-card"><div class="chart-title">Sammenlign klubår</div>' +
       '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>År</th><th>Møder</th><th>Bøder kr.</th><th>Gns./møde</th><th>Værste synder</th></tr></thead><tbody>' + cmpRows + '</tbody></table></div></div>' +
@@ -1975,11 +2275,7 @@
         }).join('') + '</div>'
       : '';
 
-    var badgeHtml = badges.length
-      ? '<div class="badge-row">' + badges.map(function (b) {
-          return '<span class="award" data-tip="' + esc(b.desc) + '">' + IC[b.ic] + esc(b.label) + '</span>';
-        }).join('') + '</div>'
-      : '';
+    var badgeHtml = badges.length ? awardRow(badges) : '';
 
     var body =
       '<div class="stats" style="grid-template-columns: repeat(3, minmax(0,1fr))">' +
@@ -1995,9 +2291,19 @@
       (cleanStreak >= 3
         ? '<div class="streak-strip clean">' + IC.shield + '<span>Fredet — ' + cleanStreak + ' møder uden bøde.</span></div>'
         : '') +
+      (function () {
+        var pp = prospectProgress(m);
+        if (!pp) return '';
+        var pct = Math.round(100 * pp.done / pp.goal);
+        return '<div class="prospect-strip">' + sproutIcon(m) +
+          '<div class="grow"><div class="t">Prospect — ' + pp.done + ' af ' + pp.goal + ' møder</div>' +
+          '<div class="pp-track"><i style="width: ' + pct + '%"></i></div></div>' +
+          '<div class="pp-pct">' + pct + '%</div></div>';
+      })() +
       (topType && topType.count >= 2
         ? '<div class="note">Favoritsynd: ' + topType.count + '× »' + esc((findFineType(topType.typeId) || {}).category || '?') + '«</div>'
         : '') +
+      '<div class="btn-row"><button class="btn secondary" data-action="member-card" data-id="' + esc(m.id) + '">' + IC.star + 'Vis medlemskort</button></div>' +
       (viewerMode ? '' :
         '<div class="btn-row">' +
         '<button class="btn" data-action="pay-form" data-id="' + esc(m.id) + '">Registrer indbetaling</button>' +
@@ -2036,6 +2342,105 @@
       '<div class="chips small year-chips">' + chips + '</div>' +
       '<div class="note">' + (viewerMode ? 'Årene viser, hvornår medlemmet var med.' :
         'Slå år til og fra for at markere, hvornår medlemmet var med. Bøder fra fravalgte år bliver stående i regnskabet.') + '</div>';
+  }
+
+  /* ---------- Medlemskort: profilen som samlekort ---------- */
+
+  function cardFacts(m) {
+    var top = memberTopType(m.id);
+    var t = top ? findFineType(top.typeId) : null;
+    return {
+      gaeld: kr(Math.max(0, memberBalance(m.id))),
+      boeder: String(memberFineCount(m.id)),
+      total: kr(memberFineTotal(m.id)),
+      streak: String(memberLongestStreak(m.id)),
+      synd: t ? t.category : (top ? '?' : '—'),
+      syndN: top ? top.count : 0,
+      aar: memberYearLabels(m).join(' · ') || 'Ingen klubår',
+      rolle: state.formandId === m.id ? 'Formand' : (m.prospect ? 'Prospect' : (m.active ? 'Medlem' : 'Udgået'))
+    };
+  }
+
+  function openMemberCard(memberId) {
+    var m = findMember(memberId);
+    if (!m) return;
+    var f = cardFacts(m);
+    var badges = computeBadges(m.id);
+    var hue = avatarHue(m.id);
+
+    var body =
+      '<div class="mcard" style="--av: ' + hue + '">' +
+      '<div class="mcard-shine"></div>' +
+      '<div class="mcard-head">' +
+      '<div class="mcard-role">' + esc(f.rolle) + '</div>' +
+      '<div class="mcard-club">' + esc(state.clubName) + '</div></div>' +
+      '<div class="mcard-av">' + avatar(m) + '</div>' +
+      '<div class="mcard-name">' + esc(m.name) + '</div>' +
+      '<div class="mcard-years">' + esc(f.aar) + '</div>' +
+      '<div class="mcard-grid">' +
+      '<div><b>' + esc(f.boeder) + '</b><span>Bøder</span></div>' +
+      '<div><b>' + esc(f.total) + '</b><span>I alt</span></div>' +
+      '<div><b>' + esc(f.streak) + '</b><span>Streak</span></div>' +
+      '<div><b>' + esc(f.gaeld) + '</b><span>Gæld</span></div>' +
+      '</div>' +
+      '<div class="mcard-sin">Favoritsynd<b>' + esc(f.synd) + (f.syndN > 1 ? ' ×' + f.syndN : '') + '</b></div>' +
+      (badges.length ? awardRow(badges, 'tight') : '<div class="mcard-none">Ingen hædersbevisninger endnu</div>') +
+      '</div>' +
+      (viewerMode ? '' : '<div class="btn-row"><button class="btn secondary" data-action="card-save" data-id="' + esc(m.id) + '">' + IC.save + 'Gem kortet som billede</button></div>') +
+      '<div class="note">Kortet gemmes som SVG — det kan deles direkte i klubbens gruppechat.</div>';
+
+    openModal('Medlemskort', body, esc(m.name));
+  }
+
+  /* Samme kort som selvstændig SVG-fil, så det kan deles som billede */
+  function memberCardSVG(m) {
+    var f = cardFacts(m);
+    var hue = avatarHue(m.id);
+    var W = 420, H = 620;
+    function tx(s) { return esc(String(s)); }
+    var badges = computeBadges(m.id).slice(0, 3).map(function (b) { return b.label; });
+
+    var out = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
+      '<defs>' +
+      '<linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">' +
+      '<stop offset="0" stop-color="#1c2530"></stop><stop offset="1" stop-color="#10141a"></stop></linearGradient>' +
+      '<linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0" stop-color="#ffe08a"></stop><stop offset="0.5" stop-color="#fbbf24"></stop>' +
+      '<stop offset="1" stop-color="#a9760a"></stop></linearGradient>' +
+      '<linearGradient id="av" x1="0" y1="0" x2="0.3" y2="1">' +
+      '<stop offset="0" stop-color="hsl(' + hue + ' 48% 32%)"></stop>' +
+      '<stop offset="1" stop-color="hsl(' + hue + ' 45% 18%)"></stop></linearGradient>' +
+      '</defs>' +
+      '<rect width="' + W + '" height="' + H + '" rx="22" fill="url(#bg)"></rect>' +
+      '<rect x="5" y="5" width="' + (W - 10) + '" height="' + (H - 10) + '" rx="18" fill="none" stroke="url(#edge)" stroke-width="3"></rect>' +
+      '<text x="30" y="48" font-family="Arial Narrow, Arial, sans-serif" font-size="15" letter-spacing="3" fill="#fbbf24">' + tx(f.rolle.toUpperCase()) + '</text>' +
+      '<text x="' + (W - 30) + '" y="48" text-anchor="end" font-family="Arial Narrow, Arial, sans-serif" font-size="15" letter-spacing="3" fill="#6b7a89">' + tx(state.clubName.toUpperCase()) + '</text>' +
+      '<circle cx="' + (W / 2) + '" cy="150" r="62" fill="url(#av)" stroke="hsl(' + hue + ' 45% 40%)" stroke-width="2"></circle>' +
+      '<text x="' + (W / 2) + '" y="168" text-anchor="middle" font-family="Arial, sans-serif" font-size="46" font-weight="700" fill="hsl(' + hue + ' 70% 88%)">' + tx(initials(m.name)) + '</text>' +
+      '<text x="' + (W / 2) + '" y="255" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="1" fill="#f4f6f8">' + tx(m.name.toUpperCase()) + '</text>' +
+      '<text x="' + (W / 2) + '" y="281" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9fb0c0">' + tx(f.aar) + '</text>' +
+      '<line x1="40" y1="302" x2="' + (W - 40) + '" y2="302" stroke="#232e3a" stroke-width="2"></line>';
+
+    var cells = [['Bøder', f.boeder], ['I alt', f.total], ['Streak', f.streak], ['Gæld', f.gaeld]];
+    cells.forEach(function (c, i) {
+      var cx = i % 2 === 0 ? W / 4 + 10 : W * 3 / 4 - 10;
+      var cy = 350 + Math.floor(i / 2) * 82;
+      out += '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="30" font-weight="700" fill="#fbbf24">' + tx(c[1]) + '</text>' +
+        '<text x="' + cx + '" y="' + (cy + 22) + '" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" letter-spacing="2" fill="#6b7a89">' + tx(c[0].toUpperCase()) + '</text>';
+    });
+
+    out += '<line x1="40" y1="500" x2="' + (W - 40) + '" y2="500" stroke="#232e3a" stroke-width="2"></line>' +
+      '<text x="40" y="530" font-family="Arial, sans-serif" font-size="13" letter-spacing="2" fill="#6b7a89">FAVORITSYND</text>' +
+      '<text x="' + (W - 40) + '" y="530" text-anchor="end" font-family="Arial Narrow, Arial, sans-serif" font-size="20" font-weight="700" fill="#f4f6f8">' +
+      tx(f.synd + (f.syndN > 1 ? ' ×' + f.syndN : '')) + '</text>';
+
+    badges.forEach(function (b, i) {
+      out += '<text x="40" y="' + (566 + i * 20) + '" font-family="Arial, sans-serif" font-size="14" fill="#fbbf24">★ ' + tx(b) + '</text>';
+    });
+    if (!badges.length) {
+      out += '<text x="40" y="566" font-family="Arial, sans-serif" font-size="14" fill="#6b7a89">Ingen hædersbevisninger endnu</text>';
+    }
+    return out + '</svg>';
   }
 
   function openPayForm(memberId) {
@@ -2200,7 +2605,7 @@
         '<div class="grow"><div class="t">' + esc(label) + '</div><div class="s">' + esc(sub) + '</div></div>' +
         '<button class="btn small secondary" data-action="trash-restore" data-id="' + esc(t.id) + '">Gendan</button></div>';
     }).join('');
-    openModal('Papirkurv', (rows || '<div class="note">Papirkurven er tom.</div>') +
+    openModal('Papirkurv', (rows || emptyState('kasse', 'Papirkurven er tom', 'Intet fortrudt. Endnu.')) +
       '<div class="note">Slettede møder og medlemmer gendannes med alt indhold. Ryddes automatisk efter ' + TRASH_DAYS + ' dage.</div>');
   }
 
@@ -2209,7 +2614,7 @@
       return '<div class="log-item"><div class="grow"><div class="t">' + esc(e.text) + '</div>' +
         '<div class="s">' + fmtDateTime(e.ts) + '</div></div></div>';
     }).join('');
-    openModal('Revisionslog', (rows || '<div class="note">Ingen registreringer endnu.</div>') +
+    openModal('Revisionslog', (rows || emptyState('dommer', 'Ingen registreringer endnu', 'Loggen sover trygt.')) +
       '<div class="note">Viser de seneste 200 hændelser.</div>');
   }
 
@@ -2281,6 +2686,7 @@
       commit();
       toast(names.length + ' × ' + t.category + ' · ' + kr(t.amount * names.length));
       if (t.amount >= HOT_FINE) spawnConfetti();
+      if (state.formandId && ids.indexOf(state.formandId) !== -1) reactToFine(state.formandId, null);
     },
 
     'expense-form': function () { openExpenseForm(); },
@@ -2430,7 +2836,7 @@
       state.members = state.members.filter(function (x) { return x.id !== m.id; });
       state.fines = state.fines.filter(function (f) { return f.memberId !== m.id; });
       state.payments = state.payments.filter(function (p) { return p.memberId !== m.id; });
-      if (state.formandId === m.id) state.formandId = null;
+      if (state.formandId === m.id) { closeFormandPeriod(); state.formandId = null; }
       log('Slettede medlemmet ' + m.name + ' — lagt i papirkurven');
       closeModal();
       commit();
@@ -2531,6 +2937,7 @@
       if (t.amount >= HOT_FINE) spawnConfetti();
       if (t.amount >= BIG_FINE) bigFineOverlay(t.amount, m.name, t.category);
       openFinePicker(m.id); // genopfrisk vælgeren med nye tællere
+      reactToFine(m.id, t.id);
     },
     'special-fine': function () { openSpecialFineForm(); },
     'special-save': function () {
@@ -2546,16 +2953,9 @@
       if (amount >= HOT_FINE) spawnConfetti();
       if (amount >= BIG_FINE) bigFineOverlay(amount, m.name, label);
       openFinePicker(m.id);
+      reactToFine(m.id, null);
     },
-    'remove-fine': function (el) {
-      var f = state.fines.find(function (x) { return x.id === el.getAttribute('data-id'); });
-      state.fines = state.fines.filter(function (x) { return x.id !== el.getAttribute('data-id'); });
-      if (f) {
-        var fm = findMember(f.memberId);
-        log('Fortrød bøden »' + fineLabel(f) + '« (' + kr(f.amount) + ') til ' + (fm ? fm.name : '?'));
-      }
-      commit();
-    },
+    'remove-fine': function (el) { removeFineCore(el.getAttribute('data-id')); },
 
     'open-member': function (el) { openMemberSheet(el.getAttribute('data-id')); },
     'add-member': function () { openMemberForm(); },
@@ -2571,7 +2971,7 @@
       var m = findMember(el.getAttribute('data-id'));
       if (!m) return;
       m.active = false;
-      if (state.formandId === m.id) { state.formandId = null; toast(m.name + ' udmeldt — klubben mangler en formand'); }
+      if (state.formandId === m.id) { closeFormandPeriod(); state.formandId = null; toast(m.name + ' udmeldt — klubben mangler en formand'); }
       closeModal();
       commit();
     },
@@ -2583,13 +2983,36 @@
       var m = findMember(el.getAttribute('data-id'));
       if (!m) return;
       var was = state.formandId === m.id;
+      // Luk den siddende formands periode og åbn en ny, så rækken kan vises i Hall of Fame
+      closeFormandPeriod();
       state.formandId = was ? null : m.id;
+      if (!was) state.formandHistory.push({ memberId: m.id, from: todayISO(), to: null });
       log(was ? m.name + ' er ikke længere formand' : m.name + ' blev kronet som formand');
       commitQuiet();
       toast(was ? m.name + ' er ikke længere formand' : 'Længe leve formand ' + m.name + '!');
       openMemberSheet(m.id);
     },
 
+    'member-card': function (el) { openMemberCard(el.getAttribute('data-id')); },
+    'card-save': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (!m) return;
+      var svg = memberCardSVG(m);
+      var fname = m.name.toLowerCase().replace(/[^a-z0-9æøå-]+/g, '-') + '-medlemskort.svg';
+      if (downloadsNS) {
+        downloadsNS.save({ filename: fname, data: svg }).then(function () { toast('Kortet er gemt'); })
+          .catch(function () { /* afvist af brugeren */ });
+        return;
+      }
+      var blob = new Blob([svg], { type: 'image/svg+xml' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    },
     'pay-form': function (el) { openPayForm(el.getAttribute('data-id')); },
     'pay-save': function (el) {
       var m = findMember(el.getAttribute('data-id'));
@@ -2679,7 +3102,7 @@
         reader.onload = function () {
           try {
             var s = JSON.parse(String(reader.result));
-            if (!s || typeof s.version !== 'number' || s.version < 1 || s.version > 4 || !Array.isArray(s.members)) throw new Error('bad');
+            if (!s || typeof s.version !== 'number' || s.version < 1 || s.version > 6 || !Array.isArray(s.members)) throw new Error('bad');
             if (!window.confirm('Erstat alle nuværende data med det importerede?')) return;
             pushUndo(JSON.stringify(state), 'import af data');
             state = migrate(s);
@@ -2704,6 +3127,28 @@
       commit();
     }
   };
+
+  /* Fjerner en bøde — bruges både af krydset og af stryg-til-venstre */
+  function removeFineCore(id) {
+    var f = state.fines.find(function (x) { return x.id === id; });
+    state.fines = state.fines.filter(function (x) { return x.id !== id; });
+    if (f) {
+      var fm = findMember(f.memberId);
+      log('Fortrød bøden »' + fineLabel(f) + '« (' + kr(f.amount) + ') til ' + (fm ? fm.name : '?'));
+    }
+    commit();
+  }
+
+  /* Strygningen sker uden for klik-håndteringen og skal selv lægge et fortryd-punkt */
+  function swipeRemoveFine(id) {
+    if (viewerMode || !id) { render(); return; }
+    var before = JSON.stringify(state), keyBefore = auditKey();
+    removeFineCore(id);
+    if (JSON.stringify(state) !== before) {
+      pushUndo(before, changeLabel(keyBefore));
+      toast('Bøde fjernet — fortryd i toppen');
+    }
+  }
 
   function saveMember(keepOpen) {
     var name = val('mem-name').trim();
@@ -2745,6 +3190,67 @@
       el = el.parentNode;
     }
   });
+
+  /* Stryg en bøde til venstre for at fjerne den — samme greb som i en indbakke */
+  (function () {
+    var node = null, startX = 0, startY = 0, dx = 0, decided = false;
+    var THRESHOLD = 96;
+
+    function release(animate) {
+      if (!node) return;
+      var n = node;
+      node = null; decided = false; dx = 0;
+      n.classList.remove('swiping', 'armed');
+      if (animate) {
+        n.style.transition = 'transform 0.18s ease-out';
+        n.style.transform = '';
+        setTimeout(function () { n.style.transition = ''; }, 220);
+      } else {
+        n.style.transform = '';
+      }
+    }
+
+    document.addEventListener('touchstart', function (e) {
+      if (e.touches.length !== 1) return;
+      var t = e.target && e.target.closest ? e.target.closest('.log-wrap.swipeable') : null;
+      if (!t) return;
+      node = t;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      dx = 0; decided = false;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function (e) {
+      if (!node) return;
+      var x = e.touches[0].clientX - startX, y = e.touches[0].clientY - startY;
+      if (!decided) {
+        if (Math.abs(x) < 8 && Math.abs(y) < 8) return;
+        decided = true;
+        if (Math.abs(y) >= Math.abs(x)) { release(false); return; }  // lodret scroll vinder
+        node.classList.add('swiping');
+      }
+      if (!node) return;
+      dx = Math.min(0, x);
+      node.style.transform = 'translateX(' + Math.max(-170, dx) + 'px)';
+      if (dx <= -THRESHOLD) node.classList.add('armed'); else node.classList.remove('armed');
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchend', function () {
+      if (!node) return;
+      if (dx <= -THRESHOLD) {
+        var n = node, id = n.getAttribute('data-fine');
+        node = null; decided = false; dx = 0;
+        n.style.transition = 'transform 0.16s ease-in, opacity 0.16s ease-in';
+        n.style.transform = 'translateX(-110%)';
+        n.style.opacity = '0';
+        setTimeout(function () { swipeRemoveFine(id); }, 160);
+        return;
+      }
+      release(true);
+    });
+    document.addEventListener('touchcancel', function () { release(true); });
+  })();
 
   /* Tooltip for [data-tip]-elementer (grafer, badges) */
   var tipEl = null;

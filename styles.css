@@ -917,3 +917,262 @@ label.check span { display: flex; align-items: center; gap: 6px; }
   .bn-suffix { display: none; }
   .hbar-label { width: 104px; }
 }
+
+/* ============ Farvetema pr. bødekategori ============ */
+/* --fc = gruppens farve, --fcb = samme farve som svag baggrund */
+.fine-ic { color: var(--fc, var(--amber)); background: var(--fcb, var(--card-raised)); }
+.fine-ic.hot { color: #ff5d5d; background: rgba(255,93,93,0.12); }
+.row:hover .fine-ic { background: var(--fcb, var(--line)); filter: brightness(1.25); }
+.glegend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.gl { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+.gl i { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+/* ============ Podie på forsiden ============ */
+.podium {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  align-items: end; margin: 0 0 18px;
+}
+.pod { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.pod-top { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; min-width: 0; }
+.pod-top .rank.medal svg { width: 30px; height: 37px; }
+.pod-name {
+  font-family: var(--display); font-size: 15px; letter-spacing: 0.03em; text-transform: uppercase;
+  display: flex; align-items: center; justify-content: center; gap: 2px;
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pod-sum { font-family: var(--display); font-size: 21px; color: var(--amber); line-height: 1.1; }
+.pod-sub { font-size: 12px; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+.pod-box {
+  width: 100%; border-radius: 6px 6px 0 0; position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  padding: 8px 4px 10px; gap: 2px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.pod-rank { font-family: var(--display); font-size: 22px; line-height: 1; color: rgba(0,0,0,0.45); }
+.pod-title {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: rgba(0,0,0,0.55); text-align: center; line-height: 1.15;
+}
+.pod-1 .pod-box { height: 74px; background: linear-gradient(180deg, #ffe08a, #fbbf24 55%, #c98f10); }
+.pod-2 .pod-box { height: 56px; background: linear-gradient(180deg, #e8edf2, #c0c7ce 55%, #8f99a3); }
+.pod-3 .pod-box { height: 44px; background: linear-gradient(180deg, #d9a877, #b07b45 55%, #7d5530); }
+.pod-1 .pod-sum { font-size: 25px; }
+.pod-1 .avatar { width: 42px; height: 42px; font-size: 16px; }
+.pod:hover .pod-top { transform: translateY(-2px); }
+.pod-top { transition: transform 0.14s ease-out; }
+.pod-1 .pod-box { animation: pod-shimmer 5s ease-in-out infinite; }
+@keyframes pod-shimmer { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.12); } }
+
+/* ============ Tegnede tomme tilstande ============ */
+.art-empty { padding: 26px 16px 30px; color: var(--faint); }
+.art { width: 148px; height: auto; margin: 0 auto 10px; display: block; color: var(--muted); opacity: 0.75; }
+.art-empty .big { margin-bottom: 4px; }
+.art-sub { font-size: 15px; color: var(--faint); }
+.chart-card .art-empty { padding: 12px 8px 6px; }
+.chart-card .art { width: 116px; }
+.sheet-body .art { width: 120px; }
+
+/* ============ Metalliske hædersbevisninger ============ */
+.award {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 7px;
+  border-radius: 999px; padding: 7px 14px 7px 9px;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.02em;
+  border: 1px solid rgba(255,255,255,0.28);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -2px 6px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.4);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.25);
+}
+.award::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay; opacity: 0.5;
+}
+.award .aw-ic { display: inline-flex; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4)); }
+.award .aw-lbl { position: relative; z-index: 1; }
+.award.guld { background: linear-gradient(155deg, #ffeaa8 0%, #e0a91c 42%, #8a6108 100%); color: #2a1f04; }
+.award.soelv { background: linear-gradient(155deg, #f6f9fc 0%, #b6bec7 42%, #6f7880 100%); color: #1c2126; }
+.award.ild { background: linear-gradient(155deg, #ffc59a 0%, #f0722e 45%, #8d3510 100%); color: #2a1105; }
+.award.groen { background: linear-gradient(155deg, #b8f2cd 0%, #35a35f 45%, #14562f 100%); color: #06210f; }
+.badge-row.tight { gap: 6px; margin-top: 8px; }
+.badge-row.tight .award { font-size: 12px; padding: 5px 11px 5px 8px; }
+
+/* ============ Stryg for at fortryde ============ */
+.fine-log { position: relative; }
+.log-wrap { position: relative; overflow: hidden; }
+.log-wrap .log-item { position: relative; z-index: 1; background: var(--bg); }
+.log-wrap.swiping { touch-action: pan-y; }
+.swipe-back {
+  position: absolute; inset: 0; z-index: 0;
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  padding-right: 20px; background: linear-gradient(90deg, transparent, rgba(224,92,110,0.28));
+  color: var(--red); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; font-size: 13px;
+}
+.log-wrap.armed .swipe-back { background: var(--red); color: #fff; }
+.log-wrap.armed .swipe-back svg { color: #fff; }
+
+/* ============ Kasseapparat-rulning ============ */
+.dgt { display: inline-block; height: 1em; overflow: hidden; vertical-align: bottom; }
+.dgt i { display: block; font-style: normal; animation: dgt-roll 0.75s cubic-bezier(0.2, 0.85, 0.25, 1) forwards; }
+.dgt i b { display: block; height: 1em; line-height: 1em; font-weight: inherit; }
+.dgt-s { display: inline-block; }
+@keyframes dgt-roll { from { transform: translateY(0); } to { transform: translateY(var(--to)); } }
+
+/* ============ Ikoner der reagerer ============ */
+.fine-ic.pop { animation: ic-pop 0.5s cubic-bezier(0.2, 1.3, 0.35, 1); }
+@keyframes ic-pop {
+  0% { transform: scale(1) rotate(0deg); }
+  35% { transform: scale(1.35) rotate(-12deg); }
+  65% { transform: scale(1.1) rotate(8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+body.crown-glint .crown svg { animation: crown-flash 1.4s ease-out; }
+@keyframes crown-flash {
+  0% { filter: brightness(1); transform: scale(1) rotate(0deg); }
+  18% { filter: brightness(2.2) drop-shadow(0 0 8px rgba(251,191,36,0.95)); transform: scale(1.3) rotate(-10deg); }
+  45% { filter: brightness(1.4); transform: scale(1.1) rotate(6deg); }
+  100% { filter: brightness(1); transform: scale(1) rotate(0deg); }
+}
+.sprout { transition: transform 0.3s ease-out; transform-origin: 50% 90%; }
+.sprout[data-grow="1"] { transform: scale(1.08); }
+.sprout[data-grow="2"] { transform: scale(1.18); }
+.sprout[data-grow="3"] { transform: scale(1.3); filter: drop-shadow(0 0 5px rgba(159,232,112,0.6)); }
+.prospect-strip {
+  display: flex; align-items: center; gap: 10px; margin-top: 12px;
+  background: linear-gradient(90deg, rgba(159,232,112,0.14), transparent);
+  border-left: 4px solid #9fe870; border-radius: 4px; padding: 10px 12px;
+}
+.prospect-strip .grow { flex-grow: 1; min-width: 0; }
+.prospect-strip .t { font-weight: 600; font-size: 15px; }
+.pp-track { height: 6px; border-radius: 999px; background: var(--line-soft); margin-top: 6px; overflow: hidden; }
+.pp-track i { display: block; height: 100%; background: #9fe870; border-radius: 999px; transition: width 0.4s ease-out; }
+.pp-pct { font-family: var(--display); font-size: 17px; color: #9fe870; }
+
+/* ============ Medlemskort ============ */
+.mcard {
+  position: relative; overflow: hidden;
+  background: linear-gradient(165deg, var(--card) 0%, var(--bg) 100%);
+  border: 2px solid transparent;
+  border-radius: 14px; padding: 18px 16px 16px; text-align: center;
+  background-image:
+    linear-gradient(165deg, #1c2530 0%, #10141a 100%),
+    linear-gradient(150deg, #ffe08a, #fbbf24 45%, #8a6108);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 12px 34px rgba(0,0,0,0.5);
+}
+.mcard-shine {
+  position: absolute; top: -40%; left: -30%; width: 60%; height: 200%;
+  background: linear-gradient(105deg, transparent, rgba(255,240,200,0.09), transparent);
+  transform: rotate(8deg); pointer-events: none;
+  animation: mcard-shine 6s ease-in-out infinite;
+}
+@keyframes mcard-shine { 0%, 70% { left: -40%; } 92%, 100% { left: 110%; } }
+.mcard-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.mcard-role { font-size: 12px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--amber); }
+.mcard-club { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.mcard-av .avatar { width: 88px; height: 88px; font-size: 32px; }
+.mcard-name {
+  font-family: var(--display); font-size: 28px; letter-spacing: 0.03em;
+  text-transform: uppercase; margin-top: 10px; line-height: 1.05;
+}
+.mcard-years { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.mcard-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 8px;
+  margin: 16px 0 12px; padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+.mcard-grid b { display: block; font-family: var(--display); font-size: 22px; color: var(--amber); }
+.mcard-grid span { font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.mcard-sin { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.mcard-sin b { font-family: var(--display); font-size: 18px; letter-spacing: 0.02em; color: var(--text); text-transform: none; }
+.mcard .badge-row { justify-content: center; }
+.mcard-none { font-size: 13px; color: var(--faint); margin-top: 12px; }
+
+/* ============ Hall of Fame ============ */
+.hof-season { border-left: 4px solid var(--yc); border-radius: 4px; padding: 2px 0 6px 12px; margin-bottom: 14px; }
+.hof-season:last-child { margin-bottom: 0; }
+.hof-year {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--display); font-size: 19px; letter-spacing: 0.04em; color: var(--yc); margin-bottom: 4px;
+}
+.hof-year span { font-size: 15px; color: var(--muted); }
+.hof-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  min-height: 54px; padding: 6px 0; border-top: 1px solid var(--line-soft); text-align: left;
+}
+.hof-row:first-of-type { border-top: none; }
+.hof-row .grow { flex-grow: 1; min-width: 0; }
+.hof-row .t { font-size: 16px; font-weight: 600; }
+.hof-row .s { font-size: 13px; color: var(--muted); }
+.hof-row .amount { font-family: var(--display); font-size: 18px; color: var(--amber); white-space: nowrap; }
+.hof-row .amount.zero { color: var(--green); }
+.hof-row .rank.medal svg { width: 24px; height: 30px; }
+.hof-row.now .t { color: var(--amber); }
+.rec-ic.green { color: var(--green); }
+.rec-ic.gold { color: var(--amber); }
+.hof-awards { padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.hof-awards:first-child { border-top: none; }
+.hof-awards .t { font-size: 15px; font-weight: 600; }
+
+/* Fanetekst: "Hall of Fame" på brede skærme, "Hall" på smalle */
+.tab .lbl-short { display: none; }
+.tab .lbl-long { display: inline; }
+@media (max-width: 560px) {
+  .tab .lbl-long { display: none; }
+  .tab .lbl-short { display: inline; }
+}
+
+/* ============ Levende baggrund pr. fane ============ */
+body::before {
+  background:
+    radial-gradient(120% 60% at 50% -10%, var(--view-glow, rgba(251,191,36,0.07)) 0%, rgba(16,20,26,0) 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  transition: background 0.5s ease-out;
+}
+body::after {
+  content: ''; position: fixed; inset: -20% -20% auto -20%; height: 70%; z-index: 0; pointer-events: none;
+  background: radial-gradient(40% 50% at 30% 20%, var(--view-glow, rgba(251,191,36,0.07)), transparent 70%);
+  opacity: 0.8; animation: drift 26s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  from { transform: translate3d(-4%, 0, 0) scale(1); }
+  to { transform: translate3d(6%, 3%, 0) scale(1.12); }
+}
+:root { --view-glow: rgba(251,191,36,0.07); }
+html[data-view="liga"] { --view-glow: rgba(251,191,36,0.09); }
+html[data-view="aar"], html[data-view="aar-detalje"], html[data-view="mode"] { --view-glow: rgba(94,234,212,0.07); }
+html[data-view="medlemmer"] { --view-glow: rgba(167,139,250,0.07); }
+html[data-view="statistik"] { --view-glow: rgba(63,158,99,0.09); }
+html[data-view="takster"] { --view-glow: rgba(94,176,245,0.07); }
+html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
+
+@media (prefers-reduced-motion: reduce) {
+  body::after, .mcard-shine, .pod-1 .pod-box { animation: none !important; }
+}
+
+@media (max-width: 380px) {
+  .podium { gap: 3px; }
+  .pod-name { font-size: 13px; }
+  .pod-sum { font-size: 18px; }
+  .pod-1 .pod-sum { font-size: 21px; }
+  .pod-sub { font-size: 11px; }
+  .mcard-name { font-size: 23px; }
+}
+
+/* ============ Justeringer efter seks faner ============ */
+/* Beløb i statstriben må aldrig brække midt i tallet */
+.stat .v { white-space: nowrap; }
+@media (max-width: 420px) {
+  .stat { padding: 10px 9px 9px; }
+  .stat .v { font-size: 21px; }
+  .stat .k { font-size: 12px; letter-spacing: 0.08em; }
+}
+/* Seks faner skal have luft imellem sig hele vejen ned til 320 px */
+.tab { padding: 0 3px; }
+@media (max-width: 480px) {
+  .tab { font-size: 10.5px; letter-spacing: 0.01em; gap: 2px; padding: 0 1px; }
+  .tab svg { width: 19px; height: 19px; }
+}
+@media (max-width: 360px) {
+  .tab { font-size: 9px; }
+  .tab svg { width: 17px; height: 17px; }
+}

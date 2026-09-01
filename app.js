@@ -790,20 +790,44 @@
       '<circle cx="106" cy="74" r="1.3" fill="currentColor" opacity="0.3"></circle></svg>'
   };
 
-  /* Bødemesteren: klubbens lille maskot i menubjælken */
+  /* Bødemesteren: klubbens bødekasse er vågnet og har fået meninger.
+     Pengeskrin med låg, møntslids som mundvig, hævet øjenbryn og en mønt
+     der falder i — hele klubbens institution som én lille figur. */
   ART.buddy = '<svg viewBox="0 0 64 64" class="buddy" aria-hidden="true">' +
-    '<ellipse cx="32" cy="58" rx="17" ry="3.5" fill="#000" opacity="0.28"></ellipse>' +
-    '<path d="M14 30a18 18 0 0 1 36 0v9a18 18 0 0 1-36 0z" fill="#1f2a36" stroke="#3b4856" stroke-width="2"></path>' +
-    '<path d="M12 26h40l-3-6a19 19 0 0 0-34 0z" fill="#fbbf24"></path>' +
-    '<path d="M12 26h40v3.5H12z" fill="#d9a010"></path>' +
-    '<circle cx="25" cy="36" r="3.6" fill="#f4f6f8"></circle>' +
-    '<circle cx="26.2" cy="36.6" r="1.8" fill="#10141a"></circle>' +
-    '<circle cx="39" cy="36" r="3.6" fill="#f4f6f8"></circle>' +
-    '<circle cx="40.2" cy="36.6" r="1.8" fill="#10141a"></circle>' +
-    '<path d="M23 44.5c4 3.5 12 3.5 16 0" stroke="#fbbf24" stroke-width="2.4" fill="none" stroke-linecap="round"></path>' +
-    '<path d="M44 44l7 3.5-7 3.5z" fill="#c0c7ce"></path>' +
-    '<circle cx="44" cy="47.5" r="3" fill="#9fb0c0"></circle>' +
-    '<path d="M17 33.5c1.6-1.4 4-1.4 5.6 0M36.4 33.5c1.6-1.4 4-1.4 5.6 0" stroke="#6b7a89" stroke-width="1.8" fill="none" stroke-linecap="round"></path>' +
+    '<defs><linearGradient id="bmLid" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="#ffe08a"></stop><stop offset="0.55" stop-color="#fbbf24"></stop>' +
+    '<stop offset="1" stop-color="#c98f10"></stop></linearGradient>' +
+    '<linearGradient id="bmBody" x1="0" y1="0" x2="0.3" y2="1">' +
+    '<stop offset="0" stop-color="#26323f"></stop><stop offset="1" stop-color="#151d26"></stop></linearGradient></defs>' +
+    '<ellipse cx="32" cy="59" rx="19" ry="3" fill="#000" opacity="0.32"></ellipse>' +
+    // mønt på vej ned i slidsen
+    '<g class="bm-coin"><circle cx="32" cy="9" r="5.2" fill="url(#bmLid)" stroke="#8a6108" stroke-width="1.2"></circle>' +
+    '<path d="M30 7.2h2.6M30 9h3M30 10.8h2.2" stroke="#8a6108" stroke-width="1.1" stroke-linecap="round"></path></g>' +
+    // ben
+    '<rect x="17.5" y="53" width="8" height="4.5" rx="2.2" fill="#3b4856"></rect>' +
+    '<rect x="38.5" y="53" width="8" height="4.5" rx="2.2" fill="#3b4856"></rect>' +
+    // krop
+    '<rect x="10" y="24" width="44" height="30" rx="6" fill="url(#bmBody)" stroke="#3b4856" stroke-width="2"></rect>' +
+    // låg med nitter
+    '<rect x="7.5" y="17.5" width="49" height="9" rx="3.5" fill="url(#bmLid)" stroke="#8a6108" stroke-width="1.2"></rect>' +
+    '<circle cx="13" cy="22" r="1.3" fill="#8a6108"></circle><circle cx="51" cy="22" r="1.3" fill="#8a6108"></circle>' +
+    // møntslids
+    '<rect x="26" y="20" width="12" height="3" rx="1.5" fill="#3a2a06"></rect>' +
+    // øjne med skævt blik
+    '<circle cx="24" cy="35" r="5.4" fill="#f4f6f8"></circle><circle cx="25.6" cy="35.8" r="2.5" fill="#10141a"></circle>' +
+    '<circle cx="40" cy="35" r="5.4" fill="#f4f6f8"></circle><circle cx="41.4" cy="35.8" r="2.5" fill="#10141a"></circle>' +
+    '<circle cx="26.4" cy="34.4" r="0.9" fill="#fff"></circle><circle cx="42.2" cy="34.4" r="0.9" fill="#fff"></circle>' +
+    // hævet øjenbryn — det kække blik
+    '<path class="bm-brow" d="M18.5 28.8c2-2.2 6-2.4 8.4-.8" stroke="#fbbf24" stroke-width="2.2" fill="none" stroke-linecap="round"></path>' +
+    '<path d="M36.4 29.4c2.2-1.4 6-1.2 8 .8" stroke="#6b7a89" stroke-width="2.2" fill="none" stroke-linecap="round"></path>' +
+    // smilende mundvig
+    '<path d="M25 45.5c3.5 3 9.5 3.2 13.5.2" stroke="#fbbf24" stroke-width="2.4" fill="none" stroke-linecap="round"></path>' +
+    '<path d="M38.5 45.7l3.2-1.6" stroke="#fbbf24" stroke-width="2.2" fill="none" stroke-linecap="round"></path>' +
+    // arme: den ene holder blyanten klar
+    '<path d="M10 38c-3.5.6-5 2.6-4.6 5.4" stroke="#3b4856" stroke-width="3" fill="none" stroke-linecap="round"></path>' +
+    '<path d="M54 38c3.6.4 5.2 2.2 5 4.8" stroke="#3b4856" stroke-width="3" fill="none" stroke-linecap="round"></path>' +
+    '<g class="bm-pen"><path d="M57.5 43.5l4.5-8" stroke="#c0c7ce" stroke-width="2.6" stroke-linecap="round"></path>' +
+    '<path d="M61.4 36.6l1.2-2.2" stroke="#fbbf24" stroke-width="2.6" stroke-linecap="round"></path></g>' +
     '</svg>';
 
   function emptyState(kind, title, sub, extra) {
@@ -1424,6 +1448,20 @@
       return;
     }
     root.style.setProperty('--tabs-top', Math.round(brand.getBoundingClientRect().bottom + 26) + 'px');
+
+    // Maskotten sætter sig midt i det ledige felt mellem menuen og værktøjerne
+    var tabs = document.querySelector('.tabs');
+    var tools = document.querySelector('.appbar .tools');
+    var side = document.getElementById('mascot-side');
+    if (!tabs || !tools || !side) return;
+    var top = tabs.getBoundingClientRect().bottom + 12;
+    var bottom = tools.getBoundingClientRect().top - 12;
+    root.style.setProperty('--mascot-top', Math.round(top) + 'px');
+    root.style.setProperty('--mascot-bottom', Math.round(window.innerHeight - bottom) + 'px');
+    // Lidt plads: maskotten lægger sig vandret. Meget lidt: den viger helt.
+    var gap = bottom - top;
+    side.classList.toggle('tight', gap >= 62 && gap < 150);
+    side.classList.toggle('cramped', gap < 62);
   }
   window.addEventListener('resize', layoutSidebar);
 

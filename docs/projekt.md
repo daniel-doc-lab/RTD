@@ -90,7 +90,7 @@ Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeho
 - **Ikoner der reagerer**: bødeikonet vipper, kronen glimter når formanden får en bøde, og spiren vokser med prospektets fremdrift (5 møder til optagelse).
 - **To udgange i modalerne**: tilbage-pil i arkets hoved (ét skridt tilbage, fx til medlemmets profil) ved siden af krydset, der lukker helt ud.
 - **Prospect-forløb i møder**: »x af 3 møder« med startdato, valgfri længde og manuel overstyring af de gennemførte møder.
-- **Bødemesteren**: maskot i sidebaren (og på forsiden på mobil) med kække replikker bygget af klubbens live-tal, plus »Spørg AI« der henter en frisk replik via `sample`-kapabiliteten. Kaldet sker kun på klik.
+- **Bødemesteren**: maskotten er bødekassen selv — pengeskrin med guldlåg, mønt i slidsen, hævet øjenbryn og blyant. Står midt i det ledige felt i sidebaren (og på forsiden på mobil) med kække replikker bygget af klubbens live-tal, plus »Spørg AI« der henter en frisk replik via `sample`-kapabiliteten. Kaldet sker kun på klik. `layoutSidebar()` måler feltet og skifter til vandret layout (`.tight`) eller skjuler figuren (`.cramped`), hvis vinduet er lavt.
 - **Regelarket er fjernet** efter ønske; feltet `rules` ligger stadig i gemte data, men bruges ikke.
 - **Sidebaren måler sig selv**: `layoutSidebar()` sætter `--tabs-top` ud fra klubnavnets faktiske højde, så menuen aldrig lægger sig oven på undertitlen.
 - **Hall of Fame**: egen fane efter Takster med alle tiders rekorder, kårede pr. sæson, formandsrækken (ny `formandHistory`) og alle uddelte hædersbevisninger.

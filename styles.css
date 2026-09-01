@@ -188,7 +188,7 @@ label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: 
 /* Bottom tabs (mobile) */
 .tabs {
   background: var(--panel); border-top: 1px solid var(--line);
-  display: flex; padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+  display: flex; padding: 8px 6px 4px;
   margin-top: 10px;
 }
 .tab {
@@ -771,3 +771,20 @@ body { overflow-x: clip; max-width: 100%; }
 }
 .report-paper .rp-sign { flex-wrap: wrap; gap: 28px 60px; }
 .report-paper .rp-line { width: min(190px, 60vw); }
+
+/* ============ Kreditering nederst i menubjælken ============ */
+.credit {
+  background: var(--panel);
+  color: var(--faint);
+  font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0 16px calc(8px + env(safe-area-inset-bottom));
+  text-align: left;
+}
+@media (min-width: 900px) {
+  /* På desktop bor menuen i sidebaren — krediteringen sidder nederst til venstre der */
+  .credit {
+    position: fixed; left: 20px; bottom: 72px; z-index: 21;
+    background: none; padding: 0; max-width: 180px; line-height: 1.35;
+  }
+}

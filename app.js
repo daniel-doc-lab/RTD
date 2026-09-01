@@ -305,7 +305,7 @@
     st.textContent = JSON.stringify(state).replace(/</g, '\\u003c');
     var app = clone.querySelector('#app');
     if (app) app.innerHTML = '';
-    var junk = clone.querySelectorAll('.modal-root, .toast');
+    var junk = clone.querySelectorAll('.modal-root, .toast, .tip, .confetti, .bigfine, .report-overlay');
     for (var i = 0; i < junk.length; i++) junk[i].parentNode.removeChild(junk[i]);
     return '<!doctype html>\n' + clone.outerHTML;
   }
@@ -475,6 +475,89 @@
       if (t) return fineIcon(t);
     }
     return '<span class="fine-ic">' + FI[fineIconKey(f.label, '')] + '</span>';
+  }
+
+
+  /* ---------- Visuelle byggeklodser ---------- */
+
+  /* #2 Avatar: monogram i en fast farve afledt af medlemmets id */
+  var AVATAR_HUES = [12, 32, 48, 96, 145, 172, 196, 214, 250, 280, 315, 340];
+  function avatarHue(id) {
+    var h = 0, str = String(id || '');
+    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 100000;
+    return AVATAR_HUES[h % AVATAR_HUES.length];
+  }
+  function initials(name) {
+    var parts = String(name || '?').trim().split(/\s+/);
+    var a = parts[0] ? parts[0].charAt(0) : '?';
+    var b = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return (a + b).toUpperCase();
+  }
+  function avatar(m, cls) {
+    return '<span class="avatar' + (cls ? ' ' + cls : '') + '" style="--av: ' + avatarHue(m.id) + '">' +
+      esc(initials(m.name)) + '</span>';
+  }
+
+  /* #3 Medalje til top-3 i stedet for et tal */
+  var MEDAL_COLS = {
+    1: ['#ffe9a8', '#fbbf24', '#a9760a'],
+    2: ['#f2f5f8', '#c0c7ce', '#7d868f'],
+    3: ['#e6bd92', '#b07b45', '#6f4a26']
+  };
+  function medal(rank) {
+    var c = MEDAL_COLS[rank];
+    if (!c) return '<div class="rank">' + rank + '</div>';
+    var gid = 'mg' + rank;
+    return '<div class="rank medal"><svg viewBox="0 0 34 42" aria-hidden="true">' +
+      '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="' + c[0] + '"></stop><stop offset="0.55" stop-color="' + c[1] + '"></stop>' +
+      '<stop offset="1" stop-color="' + c[2] + '"></stop></linearGradient></defs>' +
+      '<path d="M8 1h7l-3.5 12L5 10z" fill="' + c[1] + '" opacity="0.75"></path>' +
+      '<path d="M26 1h-7l3.5 12L29 10z" fill="' + c[2] + '" opacity="0.75"></path>' +
+      '<circle cx="17" cy="28" r="12" fill="url(#' + gid + ')"></circle>' +
+      '<circle cx="17" cy="28" r="12" fill="none" stroke="' + c[2] + '" stroke-width="1.2"></circle>' +
+      '<text x="17" y="33.5" text-anchor="middle" class="medal-no">' + rank + '</text>' +
+      '</svg></div>';
+  }
+
+  /* #4 Mini-sparkline: medlemmets bøder i de seneste afholdte møder */
+  function sparkline(mid) {
+    var held = heldMeetings().slice(-6);
+    if (held.length < 3) return '';
+    var vals = held.map(function (mt) {
+      return state.fines.reduce(function (a, f) {
+        return f.meetingId === mt.id && f.memberId === mid ? a + f.amount : a;
+      }, 0);
+    });
+    var max = vals.reduce(function (a, v) { return Math.max(a, v); }, 0);
+    var n = vals.length, bw = 5, gap = 3, hgt = 16, w = n * bw + (n - 1) * gap;
+    var out = '<svg class="spark" viewBox="0 0 ' + w + ' ' + hgt + '" aria-hidden="true">';
+    vals.forEach(function (v, i) {
+      var x = i * (bw + gap);
+      if (max === 0 || v === 0) {
+        out += '<rect x="' + x.toFixed(1) + '" y="' + (hgt - 2) + '" width="' + bw.toFixed(1) + '" height="2" rx="1" fill="#2c3846"></rect>';
+      } else {
+        var bh = Math.max(3, Math.round((hgt - 2) * (v / max)));
+        out += '<rect x="' + x.toFixed(1) + '" y="' + (hgt - bh) + '" width="' + bw.toFixed(1) + '" height="' + bh + '" rx="1.5" fill="currentColor"></rect>';
+      }
+    });
+    return out + '</svg>';
+  }
+
+  /* #5 Fremskridtsbjælke: hvor stor en del af de samlede bøder der er betalt */
+  function payBar(mid) {
+    var fined = memberFineTotal(mid), paid = memberPaidTotal(mid);
+    if (fined <= 0) return '';
+    var pct = Math.max(0, Math.min(100, Math.round(100 * paid / fined)));
+    return '<span class="paybar"><i style="width: ' + pct + '%"></i></span>';
+  }
+
+  /* #8 Fast farve pr. klubår — følger med i lister, headere og grafer */
+  var YEAR_COLORS = ['#fbbf24', '#5eead4', '#f3798d', '#a78bfa', '#7dd3fc', '#9fe870'];
+  function yearColor(y) {
+    if (!y) return '#fbbf24';
+    var i = ((y.startYear % YEAR_COLORS.length) + YEAR_COLORS.length) % YEAR_COLORS.length;
+    return YEAR_COLORS[i];
   }
 
   /* ---------- Streaks og dyre bøder ---------- */
@@ -690,6 +773,7 @@
   /* ---------- UI-tilstand ---------- */
 
   var view = { name: 'liga' };
+  var lastRanks = {};   // medlem → seneste placering (til rangskifte-animation)
   var pickerMemberId = null; // valgt medlem i bødevælgeren
 
   /* ---------- Ikoner ---------- */
@@ -767,6 +851,9 @@
         var from = lastCounts[key];
         lastCounts[key] = to;
         if (from === undefined || from === to || reducedMotion) { el.textContent = fmt(to); return; }
+        el.classList.remove('cnt-pulse');
+        void el.offsetWidth;                 // genstart animationen
+        el.classList.add('cnt-pulse');
         var t0 = performance.now();
         function tick(t) {
           var p = Math.min(1, (t - t0) / 300);
@@ -777,6 +864,21 @@
         requestAnimationFrame(tick);
       })(els[i]);
     }
+  }
+
+  /* #12: fuldskærms-overlay ved rigtig store bøder */
+  var BIG_FINE = 500;
+  function bigFineOverlay(amount, who, label) {
+    if (reducedMotion) return;
+    var old = document.querySelector('.bigfine');
+    if (old) old.parentNode.removeChild(old);
+    var el = h('<div class="bigfine"><div class="bf-inner">' +
+      '<div class="bf-word">BØDE!</div>' +
+      '<div class="bf-amt">' + esc(kr(amount)) + '</div>' +
+      '<div class="bf-who">' + esc(who) + ' — ' + esc(label) + '</div>' +
+      '</div></div>').firstChild;
+    document.body.appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1250);
   }
 
   /* Pakke A: konfetti ved dyre bøder */
@@ -829,27 +931,35 @@
     });
     var rows = '';
     var rank = 0, lastBal = null, shown = 0;
+    var nextRanks = {};
     ranked.forEach(function (m) {
       var bal = memberBalance(m.id);
       shown++;
       if (bal !== lastBal) { rank = shown; lastBal = bal; }
       var cnt = memberFineCount(m.id);
       var streak = memberMeetingStreak(m.id);
-      var streakTxt = streak >= 2 ? ' · ' + streak + ' møder i træk' : '';
+      var paid = memberPaidTotal(m.id);
+      var streakTxt = streak >= 2 ? ' · ' + streak + ' i træk' : '';
+      // #14: markér dem der er rykket op siden sidste visning
+      var moved = lastRanks[m.id] !== undefined && bal > 0 && rank < lastRanks[m.id];
+      nextRanks[m.id] = bal > 0 ? rank : 999;
       if (bal <= 0) {
         rows += '<button class="lb-row clean" data-action="open-member" data-id="' + esc(m.id) + '">' +
-          '<div class="rank">–</div><div class="who"><div class="name"><span class="nm">' + esc(m.name) + '</span>' + nameIcons(m.id) + '</div>' +
-          '<div class="sub">Rent ark' + streakTxt + '</div></div>' +
-          '<div class="count">' + cnt + '</div><div class="sum">0</div></button>';
+          '<div class="rank">–</div>' + avatar(m) +
+          '<div class="who"><div class="name"><span class="nm">' + esc(m.name) + '</span>' + nameIcons(m.id) + '</div>' +
+          '<div class="subrow"><div class="sub">Rent ark' + streakTxt + '</div>' + sparkline(m.id) + '</div></div>' +
+          '<div class="count">' + cnt + '</div><div class="sum">0</div>' + payBar(m.id) + '</button>';
       } else {
-        rows += '<button class="lb-row rank-' + rank + '" data-action="open-member" data-id="' + esc(m.id) + '">' +
-          '<div class="rank">' + rank + '</div>' +
+        rows += '<button class="lb-row rank-' + rank + (moved ? ' rank-up' : '') + '" data-action="open-member" data-id="' + esc(m.id) + '">' +
+          medal(rank) + avatar(m) +
           '<div class="who"><div class="name"><span class="nm">' + esc(m.name) + '</span>' + nameIcons(m.id) + (streak >= 2 ? flames(streak) : '') + '</div>' +
-          '<div class="sub">' + cnt + ' bøde' + (cnt === 1 ? '' : 'r') + ' · betalt ' + kr(memberPaidTotal(m.id)) + streakTxt + '</div></div>' +
+          '<div class="subrow"><div class="sub">' + cnt + ' bøde' + (cnt === 1 ? '' : 'r') +
+          (paid > 0 ? ' · betalt ' + kr(paid) : '') + streakTxt + '</div>' + sparkline(m.id) + '</div></div>' +
           '<div class="count">' + cnt + '</div>' +
-          '<div class="sum">' + nf(bal) + '</div></button>';
+          '<div class="sum">' + nf(bal) + '</div>' + payBar(m.id) + '</button>';
       }
     });
+    lastRanks = nextRanks;
     var sm = suggestMeeting();
     return statStrip() +
       streakPanel(members) +
@@ -910,7 +1020,7 @@
     var rows = years.map(function (y) {
       var ms = yearMeetings(y.id);
       var held = ms.filter(function (m) { return meetingFineCount(m.id) > 0 || m.closedAt; }).length;
-      return '<button class="row" data-action="open-year" data-id="' + esc(y.id) + '">' +
+      return '<button class="row year-row" style="--yc: ' + yearColor(y) + '" data-action="open-year" data-id="' + esc(y.id) + '">' +
         '<div class="grow"><div class="t">Klubår ' + esc(y.label) + '</div>' +
         '<div class="s">' + ms.length + ' møder · ' + held + ' afholdt</div></div>' +
         (y.closedAt ? '<span class="badge">Afsluttet</span>' : '') +
@@ -941,7 +1051,7 @@
         (cnt ? '<div class="amount">' + kr(meetingTotal(m.id)) + '</div>' : '<div class="amount" style="color: var(--faint)">–</div>') +
         '</button>';
     }).join('');
-    return '<div class="meet-head">' +
+    return '<div class="meet-head year-head" style="--yc: ' + yearColor(y) + '">' +
       '<button class="iconbtn" data-action="goto" data-view="aar" aria-label="Tilbage">' + IC.left + '</button>' +
       '<div class="grow"><div class="t">Klubår ' + esc(y.label) + '</div><div class="s">' + ms.length + ' møder' + (y.closedAt ? ' · sæson afsluttet' : '') + '</div></div>' +
       '<div class="total">' + kr(yearTotal(y.id)) + '</div></div>' +
@@ -979,7 +1089,7 @@
       var sum = perMember[m.id] || 0;
       var n = meetFines.filter(function (f) { return f.memberId === m.id; }).length;
       return '<button class="member-cell' + (sum > 0 ? ' hit' : '') + '" data-action="pick-fines" data-id="' + esc(m.id) + '"' + (meet.closedAt || viewerMode ? ' disabled style="opacity:0.55"' : '') + '>' +
-        '<div class="name">' + esc(m.name) + (state.formandId === m.id ? '<span class="crown">' + IC.crown + '</span>' : '') + '</div>' +
+        '<div class="mc-top">' + avatar(m, 'sm') + '<div class="name">' + esc(m.name) + (state.formandId === m.id ? '<span class="crown">' + IC.crown + '</span>' : '') + '</div></div>' +
         '<div class="meta">' + (sum > 0 ? n + ' bøde' + (n === 1 ? '' : 'r') + ' · ' + kr(sum) : 'Ingen bøder') + '</div></button>';
     }).join('');
 
@@ -1024,6 +1134,7 @@
       .map(function (m) {
         var bal = memberBalance(m.id);
         return '<button class="row' + (m.active ? '' : ' inactive') + '" data-action="open-member" data-id="' + esc(m.id) + '">' +
+          avatar(m) +
           '<div class="grow"><div class="t">' + esc(m.name) + (state.formandId === m.id ? ' <span class="crown">' + IC.crown + '</span>' : '') + '</div>' +
           '<div class="s">' + memberFineCount(m.id) + ' bøder · betalt ' + kr(memberPaidTotal(m.id)) + (m.active ? '' : ' · udmeldt') + '</div></div>' +
           '<div class="amount' + (bal <= 0 ? ' zero' : '') + '">' + kr(Math.max(0, bal)) + '</div></button>';
@@ -1142,8 +1253,9 @@
     statsYearId = sel.id;
 
     var chips = '<div class="chips">' + years.map(function (y) {
-      return '<button class="chip' + (y.id === sel.id ? ' active' : '') + '" data-action="stats-year" data-id="' + esc(y.id) + '">' + esc(y.label) + '</button>';
+      return '<button class="chip year-chip' + (y.id === sel.id ? ' active' : '') + '" style="--yc: ' + yearColor(y) + '" data-action="stats-year" data-id="' + esc(y.id) + '">' + esc(y.label) + '</button>';
     }).join('') + '</div>';
+    var yc = yearColor(sel);
 
     var ms = yearMeetings(sel.id);
     var held = ms.filter(function (m) { return meetingFineCount(m.id) > 0 || m.closedAt; });
@@ -1153,7 +1265,7 @@
     var paidInYear = state.payments.reduce(function (a, p) { return p.date >= w.from && p.date <= w.to ? a + p.amount : a; }, 0);
 
     var kpis = '<div class="stats kpi4">' +
-      '<div class="stat"><div class="k">Bøder i alt</div><div class="v amber">' + kr(total) + '</div></div>' +
+      '<div class="stat" style="--yc: ' + yc + '"><div class="k">Bøder i alt</div><div class="v yc">' + kr(total) + '</div></div>' +
       '<div class="stat"><div class="k">Antal bøder</div><div class="v">' + fineCount + '</div></div>' +
       '<div class="stat"><div class="k">Gns. pr. møde</div><div class="v">' + kr(held.length ? total / held.length : 0) + '</div></div>' +
       '<div class="stat"><div class="k">Indbetalt</div><div class="v green">' + kr(paidInYear) + '</div></div>' +
@@ -1189,17 +1301,17 @@
         var s = yearFineTotalFor(m.id, y.id);
         if (s > 0 && (!worst || s > worst.s)) worst = { m: m, s: s };
       });
-      return '<tr><td>' + esc(y.label) + '</td><td>' + yheld + '</td><td>' + nf(yt) + '</td>' +
+      return '<tr><td><span class="ydot" style="background: ' + yearColor(y) + '"></span>' + esc(y.label) + '</td><td>' + yheld + '</td><td>' + nf(yt) + '</td>' +
         '<td>' + nf(yheld ? Math.round(yt / yheld) : 0) + '</td>' +
         '<td>' + (worst ? esc(worst.m.name) : '–') + '</td></tr>';
     }).join('');
 
     return '<div class="section-title"><h2>Statistik</h2><div class="hint">Klubår ' + esc(sel.label) + '</div></div>' +
       chips + kpis +
-      '<div class="chart-card"><div class="chart-title">Bøder pr. møde <span class="chart-sub">' + esc(sel.label) + ' · kr.</span></div>' + barChartSVG(barPoints, '#fbbf24') + '</div>' +
+      '<div class="chart-card"><div class="chart-title">Bøder pr. møde <span class="chart-sub">' + esc(sel.label) + ' · kr.</span></div>' + barChartSVG(barPoints, yc) + '</div>' +
       '<div class="chart-card"><div class="chart-title">Kassebeholdning over tid <span class="chart-sub">alle år · kr.</span></div>' + lineChartSVG(linePoints, '#3f9e63') + '</div>' +
       '<div class="chart-card"><div class="chart-title">Top bødetyper <span class="chart-sub">' + esc(sel.label) + ' · kr.</span></div>' +
-      (topTypes.length ? hBars(topTypes, '#fbbf24') : '<div class="note">Ingen bøder i dette klubår endnu.</div>') + '</div>' +
+      (topTypes.length ? hBars(topTypes, yc) : '<div class="note">Ingen bøder i dette klubår endnu.</div>') + '</div>' +
       '<div class="chart-card"><div class="chart-title">Sæsonrekorder <span class="chart-sub">alle år</span></div>' + recHtml + '</div>' +
       '<div class="chart-card"><div class="chart-title">Sammenlign klubår</div>' +
       '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>År</th><th>Møder</th><th>Bøder kr.</th><th>Gns./møde</th><th>Værste synder</th></tr></thead><tbody>' + cmpRows + '</tbody></table></div></div>' +
@@ -1409,7 +1521,7 @@
       histChips +
       '<div class="hist">' + (events.map(function (e) { return e.html; }).join('') || '<div class="note">Ingen posteringer' + (fy ? ' i ' + esc(fy.label) : '') + '.</div>') + '</div>';
 
-    openModal(esc(m.name) + (state.formandId === m.id ? ' <span class="crown">' + IC.crown + '</span>' : ''), body,
+    openModal(avatar(m, 'sm') + esc(m.name) + (state.formandId === m.id ? ' <span class="crown">' + IC.crown + '</span>' : ''), body,
       (state.formandId === m.id ? 'Formand' : '') + (m.active ? '' : (state.formandId === m.id ? ' · udmeldt' : 'Udmeldt')));
   }
 
@@ -1532,7 +1644,7 @@
     var medals = ['guld', 'soelv', 'bronze'];
     var titles = ['Årets synder', '2. pladsen', '3. pladsen'];
     var rows = top.map(function (t, i) {
-      return '<div class="podium-row ' + medals[i] + '">' +
+      return '<div class="podium-row ' + medals[i] + '" style="animation-delay: ' + ((top.length - 1 - i) * 0.22) + 's">' +
         '<div class="podium-rank">' + (i + 1) + '</div>' +
         '<div class="grow"><div class="t">' + esc(t.m.name) + '</div><div class="s">' + titles[i] + '</div></div>' +
         '<div class="podium-sum">' + kr(t.sum) + '</div></div>';
@@ -1751,6 +1863,7 @@
       commitQuiet();
       toast(m.name + ': ' + t.category + ' · ' + kr(t.amount));
       if (t.amount >= HOT_FINE) spawnConfetti();
+      if (t.amount >= BIG_FINE) bigFineOverlay(t.amount, m.name, t.category);
       openFinePicker(m.id); // genopfrisk vælgeren med nye tællere
     },
     'special-fine': function () { openSpecialFineForm(); },
@@ -1765,6 +1878,7 @@
       commitQuiet();
       toast(m.name + ': ' + label + ' · ' + kr(amount));
       if (amount >= HOT_FINE) spawnConfetti();
+      if (amount >= BIG_FINE) bigFineOverlay(amount, m.name, label);
       openFinePicker(m.id);
     },
     'remove-fine': function (el) {

@@ -1,34 +1,54 @@
-# 15 idéer til at gøre Bødeligaen visuelt mere interessant
+# Visuelle idéer til Bødeligaen
 
-Status 1. sep. 2026. ✅ = implementeret. Alle idéer bygger videre på scoreboard-identiteten (mørk bund, Anton-typografi, amber-accent) — ingen skifter retning.
+Status 1. sep. 2026. Runde 1 er gennemført — herunder følger runde 2 med 15 nye idéer, som bygger videre på det, appen nu kan.
 
-## Implementeret
+## Runde 1 — implementeret ✅
 
-1. ✅ **Ikon til hver bøde** — alle 18 takster har fået deres eget symbol (mobil, stopur, spøgelse, kongekrone, kæde, kalender, toilet, hammer …). Ikonet vises i Takster, bødevælgeren, mødets bødeliste, medlemshistorik og statistik. Nye og redigerede takster får automatisk et passende ikon ud fra navnet, og der kan vælges manuelt blandt 21 ikoner i en ikonvælger.
+1. ✅ **Ikon til hver bøde** — 21 tegnede symboler; automatisk match på navn/beskrivelse, manuel ikonvælger, vises i Takster, bødevælger, mødeliste, historik og statistik.
+2. ✅ **Medlems-avatarer** — monogram i en fast, unik farve pr. medlem (rangliste, mødegrid, medlemsliste, profil).
+3. ✅ **Rang-medaljer** — tegnede guld/sølv/bronze-medaljer med bånd på top-3 i stedet for tal.
+4. ✅ **Mini-sparkline** — de seneste 6 afholdte møder som små søjler i hver rangliste-række.
+5. ✅ **Fremskridtsbjælke** — tynd grøn bar i bunden af rækken viser, hvor stor en del af bøderne der er betalt.
+6. ✅ **Sæsonfarve pr. klubår** — hvert år har sin egen farve, der følger med i årsliste, årsheader, statistik-chips og grafer.
+7. ✅ **Dybde på kortene** — indvendig lyskant foroven og blødere skygge forneden på alle flader.
+8. ✅ **"BØDE!"-overlay** — fuldskærms-stempel med beløb ved bøder på 500 kr.+.
+9. ✅ **Animeret podie** — top-3 rejser sig 3→2→1 ved sæsonafslutning.
+10. ✅ **Rangskifte-fremhævning** — rækken blinker gyldent, når nogen rykker op på ranglisten.
+11. ✅ **Pulserende live-tæller** — mødets total og kassetallene pulserer, når de ændrer sig.
 
-## Foreslået — hurtige, stor effekt
+*Ikke implementeret fra runde 1: farvekodning pr. bødetype, møde-forsider, tegnede tomme tilstande, metallisk tekstur på badges — de går videre som idé 1, 2 og 3 herunder.*
 
-2. **Medlems-avatarer** — genereret figur pr. medlem (monogram i unik farve fra en fast palet, evt. med lille "kant" i rangfarven). Giver liv til ranglisten, mødegrid og profiler uden at kræve billeder.
-3. **Rang-medaljer i stedet for tal** — 1./2./3. plads får en tegnet medalje med bånd frem for et ciffer; resten beholder tallet.
-4. **Mini-sparkline pr. medlem** — 6 små søjler i ranglisten, der viser bødeudviklingen over de seneste møder direkte i rækken.
-5. **Fremskridtsbjælke på gælden** — tynd bar under hvert navn, der viser hvor stor en del af gælden der er betalt (grøn) mod resten (amber).
-6. **Bødetype-farvekodning** — hver ikonkategori får sin egen tone (fx afbud = blå, forsinkelse = orange, adfærd = lilla), så mønstre kan aflæses på et blik i lister og grafer.
+---
 
-## Foreslået — stemning og dybde
+# Runde 2 — 15 nye idéer
 
-7. **Møde-forsider** — hvert møde får et abstrakt genereret bånd (mønster afledt af mødets nummer og dato) øverst på mødesiden, så møder er visuelt adskilte.
-8. **Sæsonbånd i klubårslisten** — hvert klubår får sin egen accentfarve, som følger med i grafer og møder for det år.
-9. **Levende tomme tilstande** — i stedet for tekstlinjer: en tegnet illustration (tom bødekasse, sovende dommer) når en liste er tom.
-10. **Dybde på kortene** — svag indvendig kant foroven og blødere skygge forneden, så kort får fysisk "plade"-fornemmelse som et rigtigt scoreboard.
-11. **Tekstur på hædersbevisninger** — badges får metallisk gradient og fin støjtekstur, så de ligner rigtige emblemer frem for chips.
+## Ranglisten og forsiden
 
-## Foreslået — bevægelse og øjeblikke
+1. **Farvetema pr. bødekategori** — hver ikongruppe får sin egen tone (afbud blå, forsinkelse orange, adfærd lilla, pligt grøn). Ikonbaggrunden, søjlerne i "Top bødetyper" og prikkerne i sparklinen farves ens, så mønstre kan aflæses på et blik.
+2. **Podie på forsiden** — top-3 vises som et rigtigt podie øverst på Ligaen (guld i midten, hævet) i stedet for tre almindelige rækker; resten af listen fortsætter nedenunder.
+3. **Tegnede tomme tilstande** — illustration i stedet for en tekstlinje: en tom bødekasse, en sovende dommer, en støvet pokal — med en kort, drilsk sætning.
+4. **Gældstermometer** — lodret måler i statstriben, der viser klubbens samlede gæld mod et mål (fx "næste klubtur betales, når kassen når 10.000 kr.").
+5. **Sammenlign to medlemmer** — vælg to spillere og se dem side om side: bøder, favoritsynd, streaks og en lille head-to-head-graf. Perfekt til intern drilleri.
 
-12. **"BØDE!"-fuldskærmsoverlay** — ved bøder på 500 kr.+ et kort overlay (0,8 sek.) med beløbet i kæmpe typografi, der stemples ind — som et måls-overlay på et sportsprogram.
-13. **Animeret podie ved sæsonafslutning** — de tre pladser rejser sig fra bunden i rækkefølge 3→2→1 med konfetti, i stedet for at blive vist på én gang.
-14. **Rangskifte-animation** — når en bøde ændrer ranglistens rækkefølge, glider rækkerne på plads, og den der rykker op blinker kort i sin nye medaljefarve.
-15. **Live-tæller under mødet** — mødets total i toppen vokser med en kort "pulse" og lille lyd-agtig visuel bølge for hver bøde, så registrering føles som at score point.
+## Mødet
+
+6. **Fremmøde-tavle** — mødegrid får tre tilstande pr. medlem (til stede / afbud / ikke mødt) med farvekant, så tavlen også fungerer som fremmødeliste.
+7. **Bødekvittering pr. møde** — én knap laver mødet om til et delbart kvitteringsbillede (i stil med mockup 07 "Kvitteringen"), klar til klubbens gruppechat.
+8. **Tidslinje i mødet** — bøderne vises som en lodret tidslinje med klokkeslæt, så man kan se, hvornår i mødet det gik galt.
+9. **Hurtigvalg af favoritbøder** — de 4 mest brugte takster lægger sig øverst i bødevælgeren som store knapper, resten foldes ned. Færre tryk under mødet.
+
+## Data og indsigt
+
+10. **Varmekort medlem × bødetype** — gitter med farveintensitet, der på ét blik viser, hvem der synder hvordan.
+11. **Årshjul** — cirkulær graf over klubåret, hvor hvert møde er en søjle udad fra midten, så sæsonens rytme bliver synlig.
+12. **Formands-visning** — nøgletal for den siddende formand (bøder givet under hans periode, kassens vækst), med kronen som gennemgående motiv.
+
+## Stemning og øjeblikke
+
+13. **Sæsonplakat** — første åbning i et nyt klubår viser en fuldskærmsplakat med årstallet i kæmpetypografi og sæsonens farve, før ligaen fader ind.
+14. **Metalliske badges** — hædersbevisninger får ægte metal-look (gradient, fin støjtekstur, blank kant), så de ligner emblemer frem for chips.
+15. **Valgfri lyd** — kort "kaching" ved indbetaling og dommerfløjt ved dyre bøder. Slået fra som standard, tændes i indstillinger.
 
 ## Anbefaling til næste runde
 
-Tag **2 (avatarer)**, **3 (medaljer)** og **5 (fremskridtsbjælke)** — de tre løfter forsiden mest pr. arbejdsindsats og bruger data, appen allerede har. Derefter **12 ("BØDE!"-overlay)** som det store øjeblik, der gør det sjovt at uddele bøder.
+Tag **1 (farvetema pr. kategori)**, **2 (podie på forsiden)** og **9 (hurtigvalg af favoritbøder)** — de to første løfter forsiden markant, og den tredje gør selve registreringen hurtigere under mødet. Derefter **7 (kvitteringsbillede)**, som giver klubben noget at dele efter hvert møde.

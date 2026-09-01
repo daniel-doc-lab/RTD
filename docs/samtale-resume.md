@@ -40,6 +40,9 @@ To kommentarer i artifact-tråden: (a) "nogle medlemmer mangler i dette view" og
 ### 10. Ikoner + strukturel menu-rettelse (1. sep. 2026)
 Opfølgende kommentar: menubjælken overlappede stadig indholdet i Claude-desktop-appen. Årsag: `position: fixed` opfører sig anderledes i appens indlejrede visning end i en browser — afstands-justeringer hjalp derfor ikke. Løst strukturelt: CTA-knap og faner er samlet i `.bottombar`, som er `position: sticky` i normalt flow (mobil) og fixed i sidebar-layoutet (≥900 px); `render()` flytter viewets `.actionbar` ned i `#cta-slot`. Bjælken optager nu rigtig plads og kan ikke overlappe. Samtidig: **bøde-ikoner** — 21 inline-SVG'er (`FI`) og et regelsæt (`FINE_ICON_RULES`, frase-match på kategori → beskrivelse) giver hver takst sit eget ikon i Takster, bødevælger, mødeliste, historik og statistik; nye/ændrede takster får automatisk ikon, og `t.icon` kan sættes manuelt via ikonvælgeren. 15 nye visuelle idéer i `docs/visuelle-ideer.md`.
 
+### 11. Visuelt løft, runde 2 (1. sep. 2026)
+Daniel valgte 10 af de 15 visuelle idéer: medlems-avatarer (monogram, farve fra id-hash), rang-medaljer som SVG med bånd, mini-sparkline (seneste 6 afholdte møder, vises fra 3 møder), fremskridtsbjælke (betalt/bøder), sæsonfarve pr. klubår (`YEAR_COLORS`, følger med i årsliste, header, statistik-chips og grafer), dybde på kort (inset-highlight + skygge), "BØDE!"-fuldskærmsoverlay ved 500 kr.+ (`BIG_FINE`), animeret podie 3→2→1, rangskifte-fremhævning (`lastRanks`) og pulserende live-tæller. Ranglisten blev samtidig strammet: sparkline flyttet under navnet, kortere undertekst, mindre typografi på mobil — ingen navne afkortes længere. Ny idérunde i `docs/visuelle-ideer.md` (15 nye). Bemærk: serialiseringen ryddede ikke midlertidige overlays — `.tip`, `.confetti`, `.bigfine` og `.report-overlay` fjernes nu også, så de ikke gemmes med i den delte version.
+
 ## Rettelseslog (alle QA-/reviewrunder samlet)
 
 1. **Mockup-review:** Tidende-overløb; Scoreboard manglende kolonne + forskudt header; Kridttavle-tallies matchede ikke beløb; Protokol-stempel-overlap; da. stavning (ajour, særbøde, væddemål, "11 flere"); dato-konsistens på tværs af mockups; dingbat→SVG.
@@ -50,12 +53,14 @@ Opfølgende kommentar: menubjælken overlappede stadig indholdet i Claude-deskto
 6. **Bundplads (fra artifact-kommentarer):** faste bjælker i bunden dækkede nederste indhold — bundplads og bjælke-placering rettet, verificeret på fire skærmbredder.
 7. **Menubjælke i indlejret visning:** `position: fixed` virkede ikke som forventet i Claude-appen → bjælken lagt i normalt flow (sticky). Strukturel løsning frem for afstands-plaster.
 8. **Ikon-match:** første udgave splittede nøgleord på mellemrum, så "Ikke rejse sig" matchede ordet "ikke" fra en anden regel → frase-match (`|`-adskilt) indført.
+9. **Rangliste-plads:** avatar + medalje + sparkline gjorde rækken for trang (7 af 12 navne afkortet) → sparkline flyttet under navnet, kolonnebredder og typografi strammet på mobil.
+10. **Efterladte overlays i gemt dokument:** `serializeDocument()` fjernede kun modal og toast → nu også tooltip, konfetti, BØDE-overlay og rapport.
 
 ## Nuværende tilstand (pr. 1. sep. 2026)
 
-- State-version **4**; live-data: klub "RT 11 Frederiksberg", 12 medlemmer (Romanas Markovas kom til), formand = Marco Brøndsted, 3 klubår (2024/25, 2025/26, 2026/27 à 20 møder), "Møde 1 - Fisketur" i gang med 8 registrerede bøder, ingen indbetalinger endnu.
+- State-version **4**; live-data: klub "RT 11 Frederiksberg", 15 medlemmer, formand = Marco Brøndsted, 3 klubår (2024/25, 2025/26, 2026/27 à 20 møder), "Møde 1 - Fisketur" afsluttet med 1.250 kr., i alt 15 bøder registreret, ingen indbetalinger endnu.
 - Testsuite `test/test-app.mjs`: 32 tjek, alle grønne.
-- Visuelle idéer: `docs/visuelle-ideer.md` (15 stk., nr. 1 implementeret).
+- Visuelle idéer: `docs/visuelle-ideer.md` — runde 1 (11 implementeret) + runde 2 (15 nye forslag).
 - Uimplementerede idéer: `docs/feature-ideer.md` uden ✅ (MobilePay-genvej, rykkerbesked, fortryd-i-toast, avisnotits, formandens dobbelttakst, fremmøderegistrering, notifikationer, PWA) + Pakke C-rest i `docs/visuelt-oplaeg.md`.
 
 ## Instruks til en ny model

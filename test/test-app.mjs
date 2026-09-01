@@ -353,17 +353,6 @@ if (!(await page.locator('.chart-card:has(.cash-row)').textContent()).includes('
 if (await page.locator('.chart-card:has-text("Betalingsdisciplin")').count() !== 1) fail('betalingsdisciplin-kort mangler');
 ok('udgifter og betalingsdisciplin virker');
 
-// 27) Regelark under Takster
-await page.click('[data-tab="takster"]');
-await page.waitForSelector('.rules-card');
-await page.click('[data-action="rules-edit"]');
-await page.fill('#rules-text', 'Bøden betales samme aften.\nFormanden har altid ret.');
-await page.click('[data-action="rules-save"]');
-await page.waitForSelector('.modal-root', { state: 'detached' });
-if (!(await page.locator('.rules-card').textContent()).includes('Formanden har altid ret')) fail('regelark ikke gemt');
-if (await page.locator('.rules-card .rules-list li').count() !== 2) fail('regelark: forkert antal regler');
-ok('regelark virker');
-
 // 28) Årsopgørelse ved sæsonskifte: gæld kan afskrives
 await page.click('[data-tab="aar"]');
 await page.click('.row:has-text("2025/26")');
@@ -540,6 +529,24 @@ await page.waitForSelector('.sheet-head:has-text("Indstillinger")');
 await page.click('.sheet-close');
 await page.click('[data-action="member-filter"][data-key="aktive"]');
 ok('tilbage-pil og luk-kryds virker');
+
+// 39) Bødemesteren: kække replikker ud fra klubbens data
+await page.click('[data-tab="liga"]');
+await page.waitForSelector('#mascot-inline .mascot');
+const replikker = new Set();
+for (let i = 0; i < 10; i++) {
+  replikker.add((await page.locator('#mascot-inline .mc-msg').textContent()).trim());
+  await page.click('#mascot-inline [data-action="mascot-next"]');
+  await page.waitForTimeout(50);
+}
+if (replikker.size < 4) fail('maskotten gentager sig: kun ' + replikker.size + ' replikker');
+const navne = await page.evaluate(() => [...document.querySelectorAll('.lb-row .nm, .pod-name')].map(e => e.textContent.trim().split(' ')[0]));
+const dataDrevet = [...replikker].some(t => navne.some(n => n && t.includes(n)));
+if (!dataDrevet) fail('ingen replik nævner et medlem: ' + [...replikker][0]);
+if ([...replikker].some(t => t.includes('kr..'))) fail('dobbelt punktum i replik');
+// AI-knappen vises kun når sample-capability er tilgængelig (den er den ikke på file://)
+if (await page.locator('#mascot-inline [data-action="mascot-ai"]').count() !== 0) fail('AI-knap vist uden capability');
+ok('bødemesteren roterer replikker');
 
 // 15) Desktop-visning
 await page.setViewportSize({ width: 1440, height: 900 });

@@ -39,9 +39,8 @@ state = {
   payments:  [{ id, memberId, amount, date, note, ts }],
   expenses:  [{ id, amount, date, note, ts }],              // v5: udgifter afholdt af kassen
   writeoffs: [{ id, memberId, clubYearId, amount, date, ts }], // v5: gæld afskrevet ved årsopgørelsen
-  rules:     "…",                     // v5: regelark, én regel pr. linje
   formandHistory: [{ memberId, from, to }],  // v6: formandsrækken til Hall of Fame
-  // v7 på members: prospectGoal (måneder, std. 3), prospectFrom (ISO), prospectDone (null = beregn selv)
+  // v7 på members: prospectGoal (møder, std. 3), prospectFrom (ISO), prospectDone (null = tæl selv)
   audit:     [{ ts, text }],          // revisionslog, nyeste først, maks 800
   trash:     [{ id, kind, deletedAt, ... }]  // møder/medlemmer, ryddes efter 30 dage
 }
@@ -90,7 +89,10 @@ Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeho
 - **Levende baggrund pr. fane**: `html[data-view]` styrer et svagt, drivende lysskær i fanens farve.
 - **Ikoner der reagerer**: bødeikonet vipper, kronen glimter når formanden får en bøde, og spiren vokser med prospektets fremdrift (5 møder til optagelse).
 - **To udgange i modalerne**: tilbage-pil i arkets hoved (ét skridt tilbage, fx til medlemmets profil) ved siden af krydset, der lukker helt ud.
-- **Prospect-forløb i måneder**: »x af 3 måneder« med startdato, valgfri længde og manuel overstyring af de gennemførte måneder.
+- **Prospect-forløb i møder**: »x af 3 møder« med startdato, valgfri længde og manuel overstyring af de gennemførte møder.
+- **Bødemesteren**: maskot i sidebaren (og på forsiden på mobil) med kække replikker bygget af klubbens live-tal, plus »Spørg AI« der henter en frisk replik via `sample`-kapabiliteten. Kaldet sker kun på klik.
+- **Regelarket er fjernet** efter ønske; feltet `rules` ligger stadig i gemte data, men bruges ikke.
+- **Sidebaren måler sig selv**: `layoutSidebar()` sætter `--tabs-top` ud fra klubnavnets faktiske højde, så menuen aldrig lægger sig oven på undertitlen.
 - **Hall of Fame**: egen fane efter Takster med alle tiders rekorder, kårede pr. sæson, formandsrækken (ny `formandHistory`) og alle uddelte hædersbevisninger.
 
 ## Udestående / kendte begrænsninger

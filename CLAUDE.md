@@ -8,7 +8,7 @@ Dansk klub-bødekasse-app for RT 11 Frederiksberg. Al UI-tekst er på dansk; bel
 - `node build.mjs` → `dist/rtd-boedeliga.html` (enkeltfil til den delte live-udgave).
 - `test/test-app.mjs` — Playwright ende-til-ende-suite. Kør: `npm install playwright && node test/test-app.mjs` (sæt evt. `CHROMIUM_PATH`). **Kør altid suiten før commit.**
 - `design/` — 10 mockup-retninger (kun historik; retning 06 blev appen). `docs/` — mål, idékatalog, visuelt oplæg.
-- Datamodel v7: `members` (`active`, `prospect`, `years[]`, `prospectGoal/From/Done`), `fineTypes`, `clubYears`, `meetings`, `fines`, `payments`, `expenses`, `writeoffs`, `rules`, `formandHistory`, `audit`, `trash`, `formandId`.
+- Datamodel v7: `members` (`active`, `prospect`, `years[]`, `prospectGoal/From/Done`), `fineTypes`, `clubYears`, `meetings`, `fines`, `payments`, `expenses`, `writeoffs`, `formandHistory`, `audit`, `trash`, `formandId`.
 
 ## Vigtige regler
 
@@ -20,4 +20,5 @@ Dansk klub-bødekasse-app for RT 11 Frederiksberg. Al UI-tekst er på dansk; bel
 - Sletning af møder/medlemmer går via `state.trash` (blødt slet), aldrig hårdt slet.
 - Live-udgaven er en delt Claude-artifact hvor brugere kan have gemt data inde fra siden. Ved republicering: flet altid den nyeste publicerede state (`#rtd-state`-blokken) ind i den nye `dist`-fil — overskriv aldrig brugerdata.
 - Bøder farves efter ikongruppe (`FINE_GROUPS`/`GROUP_INFO`): afbud blå, forsinkelse orange, adfærd lilla, pligt grøn, øvrigt amber. Nye ikoner skal have en gruppe, ellers falder de i »øvrigt«. Farven sættes som `--fc`/`--fcb` via `colorVars()`.
+- Artifact-kapabiliteter: `artifact` (delt gem), `downloads` (filer), `sample` (maskottens AI-replikker). Ved publicering skal alle tre altid med — et ikke-tomt `capabilities`-objekt erstatter hele sættet.
 - Design: mørkt scoreboard-tema (CSS-variabler i `:root`), Anton + Barlow Condensed, amber-accent. Ingen emoji i UI — inline SVG-ikoner (`IC`-objektet, illustrationer i `ART`). Hit targets ≥ 44 px. Respekter `prefers-reduced-motion` — alle nye animationer skal kunne slås fra der.

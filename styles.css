@@ -546,9 +546,13 @@ table.cmp td:nth-child(3), table.cmp td:nth-child(4) { font-family: var(--displa
     flex-direction: column; align-items: flex-start; justify-content: flex-start;
     border-bottom: none; border-right: 1px solid var(--line); padding: 28px 20px;
   }
-  .appbar .brand { font-size: 30px; }
+  /* Klubnavn og »Bødeligaen« på hver sin linje, med luft ned til menuen */
+  .appbar .brand { font-size: 27px; line-height: 1.06; }
+  .appbar .brand .bn-suffix { display: block; }
+  .appbar .brand small { margin-top: 10px; }
+  /* Menuen begynder under navnet — højden måles, så lange klubnavne også går an */
   .tabs {
-    position: fixed; left: 0; right: auto; top: 130px; bottom: auto; width: 220px;
+    position: fixed; left: 0; right: auto; top: var(--tabs-top, 150px); bottom: auto; width: 220px;
     flex-direction: column; background: none; border: none; padding: 0 12px; gap: 2px; margin-top: 0;
   }
   .tab { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 0 12px; min-height: 48px; font-size: 15px; flex-grow: 0; flex-basis: auto; }
@@ -830,7 +834,7 @@ body { overflow-x: clip; max-width: 100%; }
   font-family: var(--display); font-size: 15px; color: var(--faint);
 }
 
-/* ============ Regelark ============ */
+/* ============ Korttitler med knap ============ */
 .chart-title { display: flex; align-items: center; gap: 8px; }
 .chart-title .chart-sub { margin-left: auto; }
 .chart-title .btn.small { margin-left: auto; }
@@ -1222,3 +1226,50 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
 
 /* "Bødeligaen" i amber, så navnet og ligaen skiller sig fra hinanden */
 .bn-suffix { color: var(--amber); }
+
+/* ============ Bødemesteren: klubbens maskot ============ */
+.mascot { display: flex; align-items: flex-start; gap: 10px; }
+.buddy { width: 46px; height: 46px; flex-shrink: 0; animation: buddy-bob 4.5s ease-in-out infinite; }
+@keyframes buddy-bob {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-3px) rotate(1.5deg); }
+}
+.mc-bubble {
+  position: relative; flex-grow: 1; min-width: 0;
+  background: var(--card); border: 1px solid var(--card-raised); border-radius: 8px;
+  padding: 9px 11px 7px;
+}
+.mc-bubble::before {
+  content: ''; position: absolute; left: -6px; top: 14px;
+  width: 10px; height: 10px; background: var(--card);
+  border-left: 1px solid var(--card-raised); border-bottom: 1px solid var(--card-raised);
+  transform: rotate(45deg);
+}
+.mc-msg { margin: 0; font-size: 14px; line-height: 1.35; color: var(--text); overflow-wrap: anywhere; }
+.mc-msg.fade { animation: mc-fade 0.4s ease-out; }
+@keyframes mc-fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.mc-tools { display: flex; gap: 6px; margin-top: 7px; }
+.mc-btn {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--faint); border: 1px solid var(--card-raised); border-radius: 999px;
+  padding: 4px 10px; min-height: 26px;
+}
+.mc-btn:hover { color: var(--amber); border-color: var(--amber); }
+.mc-btn.ai { color: var(--amber); border-color: rgba(251,191,36,0.4); }
+.mc-btn[disabled] { opacity: 0.5; cursor: default; }
+
+/* På telefon står maskotten på forsiden, på desktop i sidebaren */
+#mascot-side { display: none; }
+#mascot-inline { margin: 0 0 18px; }
+@media (min-width: 900px) {
+  #mascot-inline { display: none; }
+  #mascot-side {
+    display: block; position: fixed; left: 12px; width: 196px;
+    bottom: 168px; z-index: 21;
+  }
+  .mascot.side { flex-direction: column; gap: 6px; }
+  .mascot.side .buddy { width: 40px; height: 40px; align-self: flex-start; margin-left: 4px; }
+  .mascot.side .mc-bubble::before { left: 14px; top: -6px; border: none; border-top: 1px solid var(--card-raised); border-left: 1px solid var(--card-raised); }
+  .mascot.side .mc-msg { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) { .buddy { animation: none; } }

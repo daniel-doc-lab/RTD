@@ -60,12 +60,14 @@ Kommentar: vandret scroll på statistiksiden. Systematisk måling af hvert eleme
 10. **Efterladte overlays i gemt dokument:** `serializeDocument()` fjernede kun modal og toast → nu også tooltip, konfetti, BØDE-overlay og rapport.
 11. **Vandret scroll:** fem årsager fundet ved systematisk måling på seks skærmbredder (se afsnit 12) — alle rettet, verificeret uden overløb nogen steder.
 
-## Nuværende tilstand (pr. 1. sep. 2026)
+## Nuværende tilstand (pr. 4. sep. 2026)
 
-- State-version **4**; live-data: klub "RT 11 Frederiksberg", 15 medlemmer, formand = Marco Brøndsted, 3 klubår (2024/25, 2025/26, 2026/27 à 20 møder), "Møde 1 - Fisketur" (1.250 kr.) og "Møde 2 - Formuepleje" (510 kr.) afsluttet, i alt 15 bøder registreret, ingen indbetalinger endnu.
-- Testsuite `test/test-app.mjs`: 32 tjek, alle grønne.
-- Visuelle idéer: `docs/visuelle-ideer.md` — runde 1 (11 implementeret) + runde 2 (15 nye forslag).
-- Uimplementerede idéer: `docs/feature-ideer.md` uden ✅ (MobilePay-genvej, rykkerbesked, fortryd-i-toast, avisnotits, formandens dobbelttakst, fremmøderegistrering, notifikationer, PWA) + Pakke C-rest i `docs/visuelt-oplaeg.md`.
+- State-version **7**; live-data: klub "RT 11 Frederiksberg", 15 medlemmer, formand = Marco Brøndsted, 3 klubår (2024/25, 2025/26, 2026/27 à 20 møder = 60 møder i alt), 19 takster, "Møde 1 - Fisketur" (1.250 kr.) og "Møde 2 - Formuepleje" (510 kr.) afsluttet, i alt 15 bøder registreret, ingen indbetalinger endnu, 33 poster i revisionsloggen. Senest gemt 1. sep. 2026.
+- Testsuite `test/test-app.mjs`: 44 tjek, alle grønne.
+- Repoets `dist/rtd-boedeliga.html` er verificeret identisk med den publicerede live-udgave — samme kode og samme data.
+- Alt arbejde ligger på grenen `claude/fines-app-mockups-kvz4pe`, som er åben som pull request #1 mod `main`.
+- Visuelle idéer: `docs/visuelle-ideer.md` — runde 1 (11 implementeret), runde 2 (10 implementeret i runde 6) + runde 3 (nye forslag).
+- Uimplementerede idéer: `docs/feature-ideer.md` uden ✅ (MobilePay-genvej, rykkerbesked, fremmøderegistrering, mødeskabelon, notifikationer, PWA, flettende import) + Pakke C-rest i `docs/visuelt-oplaeg.md`.
 
 ## Instruks til en ny model
 

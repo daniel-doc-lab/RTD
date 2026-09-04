@@ -2,32 +2,41 @@
 
 Klubbens digitale bødekasse — bygget til RT 11 Frederiksberg. Registrer bøder på klubmøder med få tryk, følg ranglisten over syndere, håndtér indbetalinger og få statistik og kassererrapporter. Designet som et mørkt stadion-scoreboard, mobil-først med fuldt desktop-layout.
 
-**Live-udgave:** Appen kører som en delt Claude-artifact (delbart link med fælles gemte data). Den kan også åbnes direkte fra `index.html` eller hostes via GitHub Pages.
+**Live-udgave:** Appen kører som en delt Claude-artifact (delbart link med fælles gemte data). Den kan også åbnes direkte fra `index.html` eller hostes via GitHub Pages — dog uden det delte gem, som kun findes i artifact-udgaven.
 
 ## Funktioner
 
 ### Kernen
-- **Ligaen** — rangliste sorteret efter gæld med guld/sølv/bronze, "rent ark" for de artige, pulje og udestående. Tal tæller op ved ændringer.
+- **Ligaen** — rangliste sorteret efter gæld, med podie for top-3, "rent ark" for de artige, pulje og udestående. Tal tæller op ved ændringer.
 - **Klubår** — møder organiseret i regnskabsår (2024/25, 2025/26, …). Hvert år autogenereres med 20 placeholder-møder (hver 14. dag fra første mandag i september), som frit kan redigeres med titel, dato, beskrivelse og links.
 - **Bøderegistrering** — klik en spiller → klik bøderne. Tællere på hver takst, hurtig skift mellem medlemmer, fortryd i mødeloggen. Særbøder med frit beløb og egen tekst.
-- **Takster** — klubbens 18 bøder forudindlæst (Mobil 30 kr. … Ingen fremmøde ved tilmelding på RTD 800 kr.), fuldt redigerbare.
-- **Medlemmer** — dynamisk liste (forudindlæst med klubbens 11 medlemmer), omdøb, udmeld/genindmeld, slet med gendannelse.
+- **Bulk-bøde** — vælg én takst, vælg flere medlemmer, giv bøden til alle på én gang.
+- **Takster** — klubbens 18 bøder forudindlæst (Mobil 30 kr. … Ingen fremmøde ved tilmelding på RTD 800 kr.), fuldt redigerbare med eget ikon.
+- **Medlemmer** — dynamisk liste (forudindlæst med 11 medlemmer), medlemskab pr. klubår, filtre (Aktive, Prospects, Udgåede, Skylder, Alle), omdøb, udmeld/genindmeld, slet med gendannelse.
 - **Indbetalinger** — forudfyldt med hele gælden, delbetaling, note (fx MobilePay). Saldo falder, kassen vokser.
+- **Kassen** — beholdning = indbetalinger − udgifter. Udgiftsposter registreres og trækkes fra, både i statistikken og i kassererrapporten.
+- **Fortryd/gendan** — undo/redo over de seneste 20 dataændringer, med Ctrl/Cmd+Z og Ctrl+Shift+Z. Stryg en bøde til venstre i mødets liste for at fjerne den.
+- **Søg og spring til** — ét søgefelt på tværs af medlemmer, møder og takster.
 
 ### Gamification
-- **Formand** — ét medlem kan krones 👑; kronen vises overalt og glimter.
-- **Dyre bøder** — takster på 300 kr.+ markeres med rødt lyn og konfettiregn, når de uddeles.
+- **Formand** — ét medlem kan krones; kronen vises overalt og glimter, når formanden selv får en bøde.
+- **Prospects** — kommende medlemmer med eget spire-ikon og forløb: »x af 3 møder«, med valgfri længde og manuel overstyring.
+- **Dyre bøder** — takster på 300 kr.+ markeres med rødt lyn, kasseapparat-rulning på mødets total og konfettiregn; 500 kr.+ giver et "BØDE!"-fuldskærmsoverlay.
 - **Streaks** — bødestreaks ("3 møder i træk" med titler fra *Varm* til *LEGENDE*), "Stamkunde" (samme bøde gentagne gange) og den omvendte "Fredet" (møder i træk uden bøde). Samlet streak-panel på forsiden.
-- **Hædersbevisninger** — "Årets synder", "Mest artige", "Comeback" og "Grand Slam" vises på medlemsprofilen.
-- **Sæsonafslutning** — én knap låser alle årets møder og kårer podiet med konfetti.
+- **Hædersbevisninger** — "Årets synder", "Mest artige", "Comeback" og "Grand Slam" som metalliske badges på medlemsprofilen.
+- **Medlemskort** — profilen som et samlekort, der kan gemmes som SVG og deles.
+- **Hall of Fame** — egen fane med alle tiders rekorder, kårede pr. sæson, formandsrækken og alle uddelte hædersbevisninger.
+- **Sæsonafslutning** — én knap låser alle årets møder, kårer podiet med konfetti og åbner årsopgørelsen, hvor restgæld kan afskrives eller overføres.
+- **Bødemesteren** — appens maskot i sidebaren: bødekassen selv, med kække replikker der roterer af sig selv og bygges på klubbens egne tal.
 
 ### Overblik og drift
-- **Statistik** pr. klubår: bøder pr. møde (søjler), kassebeholdning over tid (kurve), top bødetyper, sæsonrekorder og sammenligning på tværs af klubår.
+- **Statistik** pr. klubår: bøder pr. møde (søjler), kassebeholdning over tid (kurve), top bødetyper, sæsonrekorder, betalingsdisciplin (dage fra bøde til betaling) og sammenligning på tværs af klubår.
+- **Farvetema pr. bødekategori** — afbud blå, forsinkelse orange, adfærd lilla, pligt grøn, øvrigt amber. Farven følger ikoner, søjler og sparkline, så mønstre kan aflæses på et blik.
 - **Kassererrapport** — pæn printbar rapport pr. klubår (print/PDF eller gem som fil).
 - **Afbudsforslag** — ved afbud tæt på mødedato foreslår bødevælgeren automatisk den rette afmeldingsbøde.
-- **Visningstilstand** — skjul al registrering på en enhed, så linket trygt kan deles med medlemmerne.
+- **Visningstilstand** — skjul al registrering på en enhed, så linket trygt kan deles med medlemmerne. Delevejledning ligger i indstillinger.
 - **Papirkurv** — slettede møder og medlemmer kan gendannes i 30 dage.
-- **Revisionslog** — alle registreringer logges med tidspunkt.
+- **Revisionslog** — alle registreringer logges med tidspunkt (seneste 800).
 - **Backup** — JSON-eksport/-import under Indstillinger.
 
 ## Kørsel og udvikling
@@ -51,15 +60,15 @@ node test/test-app.mjs
 |---|---|
 | `index.html` | Skal + faner + fonte (Anton/Barlow Condensed via Google Fonts) |
 | `styles.css` | Hele designsystemet: scoreboard-tema, animationer, print-CSS |
-| `app.js` | Al logik: state, migrering, views, handlinger, grafer (~2.000 linjer vanilla JS) |
+| `app.js` | Al logik: state, migrering, views, handlinger, grafer (~3.700 linjer vanilla JS) |
 | `build.mjs` | Samler appen i én HTML-fil til deling |
-| `test/test-app.mjs` | Ende-til-ende røgtest (Playwright) af alle flows |
+| `test/test-app.mjs` | Ende-til-ende røgtest (Playwright), 44 tjek af alle flows |
 | `design/` | De 10 oprindelige mockup-retninger (nr. 06 "Bødeligaen" blev valgt) |
 | `docs/` | Projektmål, feature-katalog, visuelt oplæg |
 
-**Datamodel (state v4):** `clubYears` → `meetings` → `fines` (takst- eller særbøde) pr. `member`; `payments` reducerer saldo; `fineTypes` er takstkataloget; `audit` er revisionsloggen; `trash` er papirkurven. Se `docs/projekt.md` for felter og regler.
+**Datamodel (state v7):** `clubYears` → `meetings` → `fines` (takst- eller særbøde) pr. `member`; `payments` reducerer saldo, `writeoffs` nulstiller den uden at fylde kassen, `expenses` tømmer kassen; `fineTypes` er takstkataloget; `formandHistory` er formandsrækken; `audit` er revisionsloggen; `trash` er papirkurven. Medlemskab er pr. klubår (`members[].years`). Se `docs/projekt.md` for felter og regler.
 
-**Lagring:** localStorage (autosave ved hver handling) + valgfri delt lagring når appen kører som Claude-artifact ("Gem ændringer"-knappen publicerer til alle). `migrate()` løfter automatisk gamle dataversioner (v1→v4), og `normalize()` gør importeret data ufarligt.
+**Lagring:** localStorage (autosave ved hver handling) + delt lagring når appen kører som Claude-artifact ("Gem ændringer"-knappen publicerer til alle med linket). `migrate()` løfter automatisk gamle dataversioner (v1→v7), og `normalize()` gør importeret data ufarligt. Ved republicering skal den nyeste live-state altid flettes ind i den nye `dist`-fil — se `CLAUDE.md`.
 
 ## Videre arbejde
 

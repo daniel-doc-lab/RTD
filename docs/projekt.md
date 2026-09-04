@@ -1,6 +1,6 @@
 # Projekt: RTD Bødeligaen — mål, beslutninger og status
 
-Arkivdokument, så arbejdet kan genoptages fra enhver computer. Sidst opdateret: 31. august 2026.
+Arkivdokument, så arbejdet kan genoptages fra enhver computer. Sidst opdateret: 4. september 2026.
 Den fulde udviklingshistorik og rettelseslog ligger komprimeret i `docs/samtale-resume.md` — start dér ved overlevering til en ny model/session.
 
 ## Målsætning
@@ -26,11 +26,11 @@ Byg en app, der gør det **nemt, hurtigt og simpelt** at administrere bøder i R
 | Blødt slet (papirkurv, 30 dage) frem for hårdt slet | Kassererdata må ikke kunne forsvinde ved en fejl |
 | Takstkatalog fra klubbens regneark (18 bøder) | Forudindlæst som redigerbare takster, 30–800 kr. |
 
-## Datamodel (state v4)
+## Datamodel (state v7)
 
 ```
 state = {
-  version: 4, updatedAt, clubName, formandId,
+  version: 7, updatedAt, clubName, formandId,
   members:   [{ id, name, active, createdAt }],
   fineTypes: [{ id, category, description, amount, active }],
   clubYears: [{ id, startYear, label, closedAt }],

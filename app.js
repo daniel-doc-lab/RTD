@@ -283,6 +283,7 @@
       state = local || embedded || freshState();
     }
     purgeTrash();
+    stashed = readConflict();
   }
 
   /* Papirkurv: poster ryddes permanent efter 30 dage */
@@ -312,6 +313,53 @@
     viewerMode = on;
     try { localStorage.setItem(VIEWER_KEY, on ? '1' : '0'); } catch (e) { /* utilgængelig */ }
   }
+
+  /* Konflikt ved delt gem: en anden nåede at gemme først. Runtimen genindlæser
+     alle visninger til vinderens udgave, og er vinderens tidsstempel nyere end
+     vores, ville vores ugemte ændringer forsvinde lydløst. De lægges derfor til
+     side her og kan hentes frem igen efter genindlæsningen. */
+  var CONFLICT_KEY = 'rtd-conflict';
+  var CONFLICT_DAYS = 7;
+  var stashed = null;
+
+  function stashConflict() {
+    try {
+      localStorage.setItem(CONFLICT_KEY, JSON.stringify({ ts: Date.now(), state: state }));
+    } catch (e) { /* fuld eller blokeret */ }
+  }
+  function readConflict() {
+    try {
+      var raw = localStorage.getItem(CONFLICT_KEY);
+      if (!raw) return null;
+      var c = JSON.parse(raw);
+      if (!c || !c.ts || !c.state || !c.state.version) return null;
+      if (Date.now() - c.ts > CONFLICT_DAYS * 24 * 60 * 60 * 1000) { clearConflict(); return null; }
+      return c;
+    } catch (e) { return null; }
+  }
+  function clearConflict() {
+    stashed = null;
+    try { localStorage.removeItem(CONFLICT_KEY); } catch (e) { /* utilgængelig */ }
+  }
+
+  /* Backup-påmindelse: hvornår tog denne enhed sidst en JSON-eksport.
+     Ligger uden for state — det er en enhedsvane, ikke klubbens data. */
+  var EXPORT_KEY = 'rtd-last-export';
+  var BACKUP_DAYS = 30;
+  var BACKUP_CHANGES = 30;
+
+  function lastExport() {
+    try { return parseInt(localStorage.getItem(EXPORT_KEY), 10) || 0; } catch (e) { return 0; }
+  }
+  function markExport() {
+    try { localStorage.setItem(EXPORT_KEY, String(Date.now())); } catch (e) { /* utilgængelig */ }
+  }
+  function backupOverdue() {
+    if (viewerMode || !state) return false;
+    var last = lastExport();
+    if (!last) return state.audit.length >= BACKUP_CHANGES;
+    return Date.now() - last > BACKUP_DAYS * 24 * 60 * 60 * 1000;
+  }
   /* Handlinger der ændrer data — blokeres i visningstilstand */
   var MUTATING = {
     'new-year': 1, 'add-meeting': 1, 'edit-meeting': 1, 'meeting-save': 1, 'close-meeting': 1,
@@ -325,7 +373,8 @@
     'bulk-open': 1, 'bulk-type': 1, 'bulk-toggle': 1, 'bulk-all': 1, 'bulk-save': 1,
     'expense-form': 1, 'expense-save': 1, 'remove-expense': 1,
     'settle-writeoff': 1, 'toggle-prospect': 1, 'toggle-member-year': 1,
-    'prospect-edit': 1, 'prospect-save': 1, 'prospect-auto': 1
+    'prospect-edit': 1, 'prospect-save': 1, 'prospect-auto': 1,
+    'conflict-restore': 1
   };
 
   function commit() {
@@ -439,6 +488,7 @@
     artifactNS.publish(serializeDocument()).then(function () {
       publishing = false;
       dirty = false;
+      clearConflict();
       toast('Gemt for alle');
       render();
     }).catch(function (err) {
@@ -446,7 +496,10 @@
       renderToolbar();
       var code = String((err && err.code) || err || '');
       if (code.indexOf('conflict') !== -1) {
-        toast('En anden har gemt — indlæser deres version');
+        // Runtimen genindlæser selv siden til vinderens udgave — vores ugemte
+        // ændringer lægges til side først, så de kan hentes frem bagefter.
+        stashConflict();
+        toast('En anden gemte først — dine ændringer er lagt til side');
       } else if (code.indexOf('not_writer') !== -1 || code.indexOf('not_granted') !== -1) {
         setViewerMode(true);
         toast('Du har kun læseadgang — visningstilstand slået til');
@@ -1461,6 +1514,7 @@
     redo: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9H10a5 5 0 0 0 0 10h4"></path><path d="m16 5 4 4-4 4"></path></svg>',
     coins: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="6.5" rx="7" ry="3"></ellipse><path d="M5 6.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"></path><path d="M5 11.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"></path></svg>',
     scroll: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h11a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6"></path><path d="M6 4a2 2 0 0 0-2 2v2h4"></path><path d="M9 9h7M9 13h7M9 17h4"></path></svg>',
+    warn: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5 2.8 20h18.4L12 4.5z"></path><path d="M12 10v4.2M12 17.2v.1"></path></svg>',
     check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5L19 7"></path></svg>'
   };
 
@@ -1480,6 +1534,16 @@
     var html = '';
     if (viewerMode) {
       html += '<div class="viewer-banner">' + IC.eye + '<span>Visningstilstand — registrering er slået fra på denne enhed</span></div>';
+    }
+    if (stashed && !viewerMode) {
+      html += '<div class="conflict-banner">' + IC.warn +
+        '<div class="grow"><b>En anden gemte først.</b> Dine ændringer fra ' + esc(fmtDateTime(stashed.ts)) +
+        ' nåede ikke med i den delte udgave, men de er lagt til side her.</div>' +
+        '<span class="cb-actions">' +
+        '<button class="btn small" data-action="conflict-restore">Hent frem</button>' +
+        '<button class="btn small secondary" data-action="conflict-dismiss">Kassér</button>' +
+        '</span>' +
+        '</div>';
     }
     if (view.name === 'liga') html += viewLiga();
     else if (view.name === 'aar') html += viewYears();
@@ -1649,6 +1713,8 @@
         '<button class="iconbtn" data-action="redo" aria-label="Gendan"' + (redoStack.length ? '' : ' disabled') +
         ' title="Gendan">' + IC.redo + '</button>';
     }
+    var setBtn = document.querySelector('.tools [data-action="settings"]');
+    if (setBtn) setBtn.classList.toggle('needs-backup', backupOverdue());
     var saveWrap = document.getElementById('save-wrap');
     if (!saveWrap) return;
     var long = publishing ? 'Gemmer …' : (dirty ? 'Gem ændringer' : 'Alt gemt');
@@ -2928,10 +2994,22 @@
           '<div class="btn-row"><button class="btn secondary" data-action="export-json">Eksportér data (JSON)</button>' +
           '<button class="btn secondary" data-action="import-json">Importér data</button></div>' +
           '<input id="import-file" type="file" accept="application/json" hidden>' +
+          backupNote() +
           '<hr class="divider">' +
           '<div class="btn-row"><button class="btn danger" data-action="reset-all">Nulstil alt</button></div>' +
           '<div class="note">Data gemmes automatisk i denne browser.' + (artifactNS ? ' Brug &raquo;Gem ændringer&laquo; i toppen for at gemme til den delte side.' : '') + '</div>');
     openModal('Indstillinger', body);
+  }
+
+  /* Hvornår tog denne enhed sidst en backup — og en blid opfordring når det trænger */
+  function backupNote() {
+    var last = lastExport();
+    var over = backupOverdue();
+    var txt = last
+      ? 'Seneste backup på denne enhed: ' + fmtDateTime(last) + '.'
+      : 'Der er aldrig taget en backup på denne enhed.';
+    if (over) txt += ' Tag en eksport — så har I en kopi, der hverken afhænger af browseren eller det delte link.';
+    return '<div class="note' + (over ? ' warn' : '') + '">' + (over ? IC.warn : '') + '<span>' + esc(txt) + '</span></div>';
   }
 
   /* Sådan deles ligaen med medlemmerne — kun læseadgang */
@@ -3483,10 +3561,15 @@
       var json = JSON.stringify(state, null, 2);
       var fname = state.clubName.toLowerCase().replace(/[^a-z0-9æøå-]+/g, '-') + '-boedeliga-' + todayISO() + '.json';
       if (downloadsNS) {
-        downloadsNS.save({ filename: fname, data: json }).then(function () { toast('Fil gemt'); })
-          .catch(function () { /* afvist af brugeren — ingen fejl */ });
+        downloadsNS.save({ filename: fname, data: json }).then(function () {
+          markExport();
+          renderToolbar();
+          toast('Fil gemt');
+        }).catch(function () { /* afvist af brugeren — ingen fejl */ });
         return;
       }
+      markExport();
+      renderToolbar();
       var blob = new Blob([json], { type: 'application/json' });
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -3495,6 +3578,20 @@
       a.click();
       document.body.removeChild(a);
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    },
+    'conflict-restore': function () {
+      if (!stashed) return;
+      var saved = stashed.state;
+      clearConflict();
+      state = migrate(saved);
+      log('Hentede ugemte ændringer frem efter konflikt med delt gem');
+      commit();
+      toast('Dine ændringer er hentet frem — husk at gemme');
+    },
+    'conflict-dismiss': function () {
+      clearConflict();
+      render();
+      toast('De henlagte ændringer er kasseret');
     },
     'import-json': function () {
       var input = document.getElementById('import-file');

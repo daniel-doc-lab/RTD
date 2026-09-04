@@ -95,10 +95,15 @@ Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeho
 - **Sidebaren måler sig selv**: `layoutSidebar()` sætter `--tabs-top` ud fra klubnavnets faktiske højde, så menuen aldrig lægger sig oven på undertitlen.
 - **Hall of Fame**: egen fane efter Takster med alle tiders rekorder, kårede pr. sæson, formandsrækken (ny `formandHistory`) og alle uddelte hædersbevisninger.
 
+### Runde 7 (4. sep. 2026) — konfliktsikring og backup
+
+- **Konflikt ved delt gem**: gemmer en anden først, afviser runtimen vores publicering og genindlæser alle visninger til vinderens udgave. Er vinderens tidsstempel nyere end vores, ville vores ugemte ændringer forsvinde lydløst. `stashConflict()` lægger dem derfor i `localStorage` under `rtd-conflict` (7 dage), og efter genindlæsningen tilbyder et banner øverst at hente dem frem eller kassere dem. Gendannelsen ligger i `MUTATING`, så den også kan fortrydes.
+- **Backup-påmindelse**: `rtd-last-export` husker, hvornår denne enhed sidst tog en JSON-eksport. Indstillinger viser datoen, og er der aldrig taget backup (med 30+ poster i revisionsloggen) eller er der gået over 30 dage, markeres linjen med amber og tandhjulet får en lille prik. Ingen modal, ingen nag.
+
 ## Udestående / kendte begrænsninger
 
 - Telefonens tilbage-knap lukker ikke dialoger (history-håndtering ikke implementeret).
-- Delt gem er "sidste skriver vinder" — fint med én bødemester, ikke bygget til samtidig redigering.
+- Delt gem er "sidste skriver vinder" — fint med én bødemester, ikke bygget til samtidig redigering. Ugemte ændringer går dog ikke tabt ved en konflikt: de henlægges og kan hentes frem igen.
 - Uimplementerede idéer: se `docs/feature-ideer.md` (bl.a. MobilePay-genvej, rykkerbesked, PWA, fremmøderegistrering, mødeskabelon, flettende import) og `docs/visuelle-ideer.md` runde 3.
 - Fortryd-stakken lever kun i hukommelsen: den nulstilles ved genindlæsning af siden.
 - Formandsrækken starter ved v6-migreringen: tidligere formænd før 1. sep. 2026 er ikke registreret.

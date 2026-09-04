@@ -1300,3 +1300,27 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
   #mascot-side.tight .mc-bubble::before { left: -6px; top: 12px; border: none; border-left: 1px solid var(--card-raised); border-bottom: 1px solid var(--card-raised); }
   #mascot-side.tight .mc-msg { font-size: 12.5px; }
 }
+
+/* ============ Konflikt ved delt gem ============ */
+.conflict-banner {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  background: rgba(255,159,67,0.10);
+  border: 1px solid rgba(255,159,67,0.35);
+  color: #ff9f43; border-radius: 6px;
+  padding: 11px 14px; margin-bottom: 14px; font-size: 14px;
+}
+.conflict-banner svg { flex-shrink: 0; }
+.conflict-banner .grow { flex-grow: 1; min-width: 190px; color: var(--text); line-height: 1.4; }
+.conflict-banner b { color: #ff9f43; }
+.conflict-banner .btn.small { flex-grow: 0; flex-basis: auto; }
+
+/* ============ Backup-påmindelse ============ */
+.note.warn { display: flex; align-items: flex-start; gap: 8px; color: #ff9f43; }
+.note.warn svg { flex-shrink: 0; margin-top: 1px; }
+.iconbtn.needs-backup { position: relative; }
+.iconbtn.needs-backup::after {
+  content: ''; position: absolute; top: 7px; right: 7px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #ff9f43; box-shadow: 0 0 0 2px var(--panel);
+}
+.conflict-banner .cb-actions { display: flex; gap: 8px; flex-shrink: 0; }

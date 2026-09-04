@@ -37,7 +37,8 @@ Klubbens digitale bødekasse — bygget til RT 11 Frederiksberg. Registrer bøde
 - **Visningstilstand** — skjul al registrering på en enhed, så linket trygt kan deles med medlemmerne. Delevejledning ligger i indstillinger.
 - **Papirkurv** — slettede møder og medlemmer kan gendannes i 30 dage.
 - **Revisionslog** — alle registreringer logges med tidspunkt (seneste 800).
-- **Backup** — JSON-eksport/-import under Indstillinger.
+- **Backup** — JSON-eksport/-import under Indstillinger, med påmindelse når der er gået for længe siden sidste eksport.
+- **Konfliktsikring** — gemmer en anden først, lægges dine ugemte ændringer til side og kan hentes frem igen efter genindlæsningen.
 
 ## Kørsel og udvikling
 

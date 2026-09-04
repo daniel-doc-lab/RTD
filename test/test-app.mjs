@@ -570,6 +570,59 @@ const brand2 = await page2.locator('#brand-name').textContent();
 if (!brand2.includes('Krøltest')) fail('malformet state ikke normaliseret: ' + brand2.slice(0, 40));
 else ok('malformet state normaliseres uden crash');
 
+// 18) Backup-påmindelse: prik på tandhjulet og linje i indstillinger
+// Bemærk: state skal være v7 — migreringen v3→v4 nulstiller revisionsloggen.
+const stateMedLog = (navn) => ({
+  version: 7, updatedAt: Date.now() + 2e9, clubName: navn, formandId: null,
+  members: [{ id: 'm1', name: 'Testperson', active: true, prospect: false, years: [] }],
+  fineTypes: [], clubYears: [], meetings: [], fines: [], payments: [],
+  expenses: [], writeoffs: [], formandHistory: [], trash: [],
+  audit: Array.from({ length: 32 }, (_, i) => ({ ts: Date.now() - i * 1000, text: 'testpost ' + i }))
+});
+await page2.evaluate((s) => {
+  localStorage.setItem('rtd-boedeliga-v1', JSON.stringify(s));
+  localStorage.removeItem('rtd-last-export');
+}, stateMedLog('Backuptest'));
+await page2.reload();
+await page2.waitForSelector('.appbar');
+if (!await page2.locator('.iconbtn.needs-backup').count()) fail('manglende backup-prik på tandhjulet');
+await page2.click('[data-action="settings"]');
+await page2.waitForSelector('.sheet');
+const bnote = await page2.locator('.note.warn').textContent();
+if (!/aldrig taget en backup/.test(bnote)) fail('backup-påmindelse mangler: ' + bnote);
+await page2.click('.sheet-close');
+await page2.evaluate(() => localStorage.setItem('rtd-last-export', String(Date.now())));
+await page2.reload();
+await page2.waitForSelector('.appbar');
+if (await page2.locator('.iconbtn.needs-backup').count()) fail('backup-prik forsvandt ikke efter eksport');
+await page2.click('[data-action="settings"]');
+await page2.waitForSelector('.sheet');
+if (!await page2.locator('.note').filter({ hasText: 'Seneste backup' }).count()) fail('datoen for seneste backup vises ikke');
+if (await page2.locator('.note.warn').count()) fail('påmindelsen står stadig som advarsel efter eksport');
+await page2.click('.sheet-close');
+ok('backup-påmindelse virker');
+
+// 19) Konflikt ved delt gem: ugemte ændringer lægges til side og kan hentes frem
+const henlaeg = async () => page2.evaluate((s) => {
+  localStorage.setItem('rtd-conflict', JSON.stringify({ ts: Date.now(), state: s }));
+}, stateMedLog('Henlagt Klub'));
+await henlaeg();
+await page2.reload();
+await page2.waitForSelector('.conflict-banner');
+const cbanner = await page2.locator('.conflict-banner').textContent();
+if (!/En anden gemte først/.test(cbanner)) fail('konfliktbanner har forkert tekst: ' + cbanner);
+await page2.click('[data-action="conflict-dismiss"]');
+if (await page2.locator('.conflict-banner').count()) fail('banneret forsvandt ikke ved kassering');
+if (await page2.evaluate(() => localStorage.getItem('rtd-conflict'))) fail('henlagte data blev ikke ryddet ved kassering');
+await henlaeg();
+await page2.reload();
+await page2.waitForSelector('.conflict-banner');
+await page2.click('[data-action="conflict-restore"]');
+await page2.waitForSelector('#brand-name:has-text("Henlagt Klub")');
+if (await page2.locator('.conflict-banner').count()) fail('banneret blev stående efter gendannelse');
+if (await page2.evaluate(() => localStorage.getItem('rtd-conflict'))) fail('henlagte data blev ikke ryddet efter gendannelse');
+ok('konflikt ved delt gem lægger ændringer til side og henter dem frem');
+
 await browser.close();
 console.log(failures ? 'FÆRDIG MED ' + failures + ' FEJL' : 'ALLE TJEK BESTÅET');
 process.exitCode = failures ? 1 : 0;

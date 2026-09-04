@@ -1304,6 +1304,30 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
   #mascot-side.tight .mc-msg { font-size: 12.5px; }
 }
 
+/* ============ Konflikt ved delt gem ============ */
+.conflict-banner {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  background: rgba(255,159,67,0.10);
+  border: 1px solid rgba(255,159,67,0.35);
+  color: #ff9f43; border-radius: 6px;
+  padding: 11px 14px; margin-bottom: 14px; font-size: 14px;
+}
+.conflict-banner svg { flex-shrink: 0; }
+.conflict-banner .grow { flex-grow: 1; min-width: 190px; color: var(--text); line-height: 1.4; }
+.conflict-banner b { color: #ff9f43; }
+.conflict-banner .btn.small { flex-grow: 0; flex-basis: auto; }
+
+/* ============ Backup-påmindelse ============ */
+.note.warn { display: flex; align-items: flex-start; gap: 8px; color: #ff9f43; }
+.note.warn svg { flex-shrink: 0; margin-top: 1px; }
+.iconbtn.needs-backup { position: relative; }
+.iconbtn.needs-backup::after {
+  content: ''; position: absolute; top: 7px; right: 7px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #ff9f43; box-shadow: 0 0 0 2px var(--panel);
+}
+.conflict-banner .cb-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
 </style>
 
 <script type="application/json" id="rtd-state">{"version":5,"updatedAt":1788265374478,"clubName":"RT 11 Frederiksberg","members":[{"id":"mthd8hob-uzg4in2","name":"Martin Mollerup","active":true,"createdAt":1788188454011,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false},{"id":"mthd8hob-a0868t9","name":"Miki Kjeldsen","active":true,"createdAt":1788188454011,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false},{"id":"mthd8hob-m10erkh","name":"Thomas Jarløv","active":true,"createdAt":1788188454011,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false},{"id":"mthd8hob-5pixhte","name":"Asger Holmsted","active":true,"createdAt":1788188454011,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false},{"id":"mthd8hob-i5gw7u5","name":"Marco Brøndsted","active":true,"createdAt":1788188454011,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false},{"id":"mthd8hob-zhxlp52","name":"Daniel Kuntkes","active":true,"createdAt":1788188454011,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false},{"id":"mthd8hob-d1tgzl5","name":"Steffen Desmond","active":true,"createdAt":1788188454011,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false},{"id":"mthd8hob-uioye9i","name":"Casper Infeld","active":true,"createdAt":1788188454011,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false},{"id":"mthd8hob-jcb83vk","name":"Benjamin Rasmussen","active":true,"createdAt":1788188454011,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false},{"id":"mthd8hob-qbct7qp","name":"Toke Suhr","active":true,"createdAt":1788188454011,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false},{"id":"mthd8hob-o5jb4pq","name":"Rasmus De Martino","active":true,"createdAt":1788188454011,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":true},{"id":"mtibkoya-a89ffr2","name":"Romanas Markovas","active":true,"createdAt":1788246130258,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false},{"id":"mtidapqi-ol604j4","name":"Daniel Prospect","active":true,"createdAt":1788249023946,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":true},{"id":"mtidefe3-9pkp83t","name":"Mads Birkelund","active":true,"createdAt":1788249197163,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false},{"id":"mtider64-iuh3zrp","name":"Kristoffer Østergaard","active":true,"createdAt":1788249212428,"years":["mthd8hob-u5azfz4","mthd8hob-518n34b","mthd8hob-gor3x1o"],"prospect":false}],"fineTypes":[{"id":"mth56rr2-2b06jz6","category":"Mobil","description":"Viser arrogance for andre og kigger på sin mobil i møde","amount":30,"active":true,"icon":""},{"id":"mth56rr2-6s84mom","category":"Dårlig adfærd","description":"Kan være mange forskellige ting — blander ting sammen, siger dumme ting","amount":30,"active":true,"icon":""},{"id":"mth56rr2-9q6bkz0","category":"Mads bøde","description":"Mads’ særskilte bøde","amount":500,"active":true,"icon":""},{"id":"mth56rr2-exuqmq1","category":"Diverse bøde","description":"Blander flere ting sammen, laver noget dumt etc.","amount":30,"active":true,"icon":""},{"id":"mth56rr2-t7exe5h","category":"Afmelding efter frist","description":"Afmelding efter 7 dages frist","amount":150,"active":true,"icon":""},{"id":"mth56rr2-ar19rcz","category":"Afmelding 24 timer","description":"Afmelder sig indenfor 24 timer (sygdom/force majeure kan forhandles)","amount":300,"active":true,"icon":""},{"id":"mth56rr2-rilsu7n","category":"Glemt formandskæde","description":"Ikke ret til at være formand-adfærd","amount":500,"active":true,"icon":""},{"id":"mth56rr2-c0mw473","category":"Ikke rejse sig","description":"Manglende pli — rejser sig ikke op, når man taler","amount":30,"active":true,"icon":""},{"id":"mth56rr2-w89j21w","category":"Afbryde","description":"Manglende pli — afbryder når en anden taler","amount":50,"active":true,"icon":""},{"id":"mth56rr2-rp1cnwc","category":"Mødereferat","description":"Overskrider frist for mødereferat med 7 dage","amount":350,"active":true,"icon":""},{"id":"mth56rr2-y9vhdog","category":"Ingen fremmøde ved tilmelding på RTD","description":"Respektløs adfærd over for mødearrangør og indlægsholder","amount":800,"active":true,"icon":""},{"id":"mth56rr2-84ywg9v","category":"Nål","description":"Glemmer nål — respektløst for klubben","amount":30,"active":true,"icon":""},{"id":"mth56rr2-1l4q1sm","category":"Toilet","description":"Går på toilet under indlæg (undtagelse ved akut diarré)","amount":50,"active":true,"icon":""},{"id":"mth56rr2-067f7ji","category":"Dårlig pligt","description":"Lever ikke op til forventet standard af sine pligter","amount":150,"active":true,"icon":""},{"id":"mth56rr2-x4mrprc","category":"To late BIG BET","description":"Kommer for sent til møde, dvs. over 15 minutter","amount":100,"active":true,"icon":""},{"id":"mth56rr2-tfff0ys","category":"To late SMALL BET","description":"Kommer for sent til møde, dvs. under 15 minutter","amount":50,"active":true,"icon":""},{"id":"mth56rr2-r0or6my","category":"Glemt pligt","description":"Har glemt sin pligt","amount":300,"active":true,"icon":""},{"id":"mth56rr2-l04mmhd","category":"Dårlig planlægning","description":"Har ikke planlagt sit møde i god tid (4 uger før)","amount":50,"active":true,"icon":""},{"id":"mtilv4xy-w6um43o","category":"Lavt Fremmøde","description":"Bøden gives hvis medlemmet har fremmøde procent under 60%","amount":500,"active":true,"icon":""}],"meetings":[{"id":"mth5anx4-mgsr7a0","number":1,"date":"2026-08-14","closedAt":1788249490273,"clubYearId":"mthd8hob-gor3x1o","title":"Møde 1 - Fisketur","description":"Årlige fisketur","links":""},{"id":"mthd8hob-npis0mf","clubYearId":"mthd8hob-u5azfz4","number":1,"title":"Møde 1","date":"2024-09-02","description":"","links":"","closedAt":null},{"id":"mthd8hob-l4gtrqx","clubYearId":"mthd8hob-u5azfz4","number":2,"title":"Møde 2","date":"2024-09-16","description":"","links":"","closedAt":null},{"id":"mthd8hob-x698qbc","clubYearId":"mthd8hob-u5azfz4","number":3,"title":"Møde 3","date":"2024-09-30","description":"","links":"","closedAt":null},{"id":"mthd8hob-6mm0mhv","clubYearId":"mthd8hob-u5azfz4","number":4,"title":"Møde 4","date":"2024-10-14","description":"","links":"","closedAt":null},{"id":"mthd8hob-0dhxr01","clubYearId":"mthd8hob-u5azfz4","number":5,"title":"Møde 5","date":"2024-10-28","description":"","links":"","closedAt":null},{"id":"mthd8hob-rl5ndhj","clubYearId":"mthd8hob-u5azfz4","number":6,"title":"Møde 6","date":"2024-11-11","description":"","links":"","closedAt":null},{"id":"mthd8hob-3j9s8at","clubYearId":"mthd8hob-u5azfz4","number":7,"title":"Møde 7","date":"2024-11-25","description":"","links":"","closedAt":null},{"id":"mthd8hob-2w5qsjy","clubYearId":"mthd8hob-u5azfz4","number":8,"title":"Møde 8","date":"2024-12-09","description":"","links":"","closedAt":null},{"id":"mthd8hob-dzzyxan","clubYearId":"mthd8hob-u5azfz4","number":9,"title":"Møde 9","date":"2024-12-23","description":"","links":"","closedAt":null},{"id":"mthd8hob-vurmhyq","clubYearId":"mthd8hob-u5azfz4","number":10,"title":"Møde 10","date":"2025-01-06","description":"","links":"","closedAt":null},{"id":"mthd8hob-gaeigud","clubYearId":"mthd8hob-u5azfz4","number":11,"title":"Møde 11","date":"2025-01-20","description":"","links":"","closedAt":null},{"id":"mthd8hob-idlo679","clubYearId":"mthd8hob-u5azfz4","number":12,"title":"Møde 12","date":"2025-02-03","description":"","links":"","closedAt":null},{"id":"mthd8hob-iu88ggv","clubYearId":"mthd8hob-u5azfz4","number":13,"title":"Møde 13","date":"2025-02-17","description":"","links":"","closedAt":null},{"id":"mthd8hob-lf48vf7","clubYearId":"mthd8hob-u5azfz4","number":14,"title":"Møde 14","date":"2025-03-03","description":"","links":"","closedAt":null},{"id":"mthd8hob-ef1e8dc","clubYearId":"mthd8hob-u5azfz4","number":15,"title":"Møde 15","date":"2025-03-17","description":"","links":"","closedAt":null},{"id":"mthd8hob-ce3prc0","clubYearId":"mthd8hob-u5azfz4","number":16,"title":"Møde 16","date":"2025-03-31","description":"","links":"","closedAt":null},{"id":"mthd8hob-mp4jgnm","clubYearId":"mthd8hob-u5azfz4","number":17,"title":"Møde 17","date":"2025-04-14","description":"","links":"","closedAt":null},{"id":"mthd8hob-n2dqx0a","clubYearId":"mthd8hob-u5azfz4","number":18,"title":"Møde 18","date":"2025-04-28","description":"","links":"","closedAt":null},{"id":"mthd8hob-hxdbf50","clubYearId":"mthd8hob-u5azfz4","number":19,"title":"Møde 19","date":"2025-05-12","description":"","links":"","closedAt":null},{"id":"mthd8hob-8iqapww","clubYearId":"mthd8hob-u5azfz4","number":20,"title":"Møde 20","date":"2025-05-26","description":"","links":"","closedAt":null},{"id":"mthd8hob-2ai6gl4","clubYearId":"mthd8hob-518n34b","number":1,"title":"Møde 1","date":"2025-09-01","description":"","links":"","closedAt":null},{"id":"mthd8hob-55529ig","clubYearId":"mthd8hob-518n34b","number":2,"title":"Møde 2","date":"2025-09-15","description":"","links":"","closedAt":null},{"id":"mthd8hob-ecreagt","clubYearId":"mthd8hob-518n34b","number":3,"title":"Møde 3","date":"2025-09-29","description":"","links":"","closedAt":null},{"id":"mthd8hob-y7vfxai","clubYearId":"mthd8hob-518n34b","number":4,"title":"Møde 4","date":"2025-10-13","description":"","links":"","closedAt":null},{"id":"mthd8hob-tpo1ltz","clubYearId":"mthd8hob-518n34b","number":5,"title":"Møde 5","date":"2025-10-27","description":"","links":"","closedAt":null},{"id":"mthd8hob-bjj80zi","clubYearId":"mthd8hob-518n34b","number":6,"title":"Møde 6","date":"2025-11-10","description":"","links":"","closedAt":null},{"id":"mthd8hob-n47hpqi","clubYearId":"mthd8hob-518n34b","number":7,"title":"Møde 7","date":"2025-11-24","description":"","links":"","closedAt":null},{"id":"mthd8hob-fa8uyv1","clubYearId":"mthd8hob-518n34b","number":8,"title":"Møde 8","date":"2025-12-08","description":"","links":"","closedAt":null},{"id":"mthd8hob-jwfkcrz","clubYearId":"mthd8hob-518n34b","number":9,"title":"Møde 9","date":"2025-12-22","description":"","links":"","closedAt":null},{"id":"mthd8hob-ejvs387","clubYearId":"mthd8hob-518n34b","number":10,"title":"Møde 10","date":"2026-01-05","description":"","links":"","closedAt":null},{"id":"mthd8hob-88108b2","clubYearId":"mthd8hob-518n34b","number":11,"title":"Møde 11","date":"2026-01-19","description":"","links":"","closedAt":null},{"id":"mthd8hob-a6c9uqg","clubYearId":"mthd8hob-518n34b","number":12,"title":"Møde 12","date":"2026-02-02","description":"","links":"","closedAt":null},{"id":"mthd8hob-ekvo80x","clubYearId":"mthd8hob-518n34b","number":13,"title":"Møde 13","date":"2026-02-16","description":"","links":"","closedAt":null},{"id":"mthd8hob-k64xa1z","clubYearId":"mthd8hob-518n34b","number":14,"title":"Møde 14","date":"2026-03-02","description":"","links":"","closedAt":null},{"id":"mthd8hob-41zjmhe","clubYearId":"mthd8hob-518n34b","number":15,"title":"Møde 15","date":"2026-03-16","description":"","links":"","closedAt":null},{"id":"mthd8hob-0pg9he3","clubYearId":"mthd8hob-518n34b","number":16,"title":"Møde 16","date":"2026-03-30","description":"","links":"","closedAt":null},{"id":"mthd8hob-rf5xoic","clubYearId":"mthd8hob-518n34b","number":17,"title":"Møde 17","date":"2026-04-13","description":"","links":"","closedAt":null},{"id":"mthd8hob-bu1eree","clubYearId":"mthd8hob-518n34b","number":18,"title":"Møde 18","date":"2026-04-27","description":"","links":"","closedAt":null},{"id":"mthd8hob-9zfypas","clubYearId":"mthd8hob-518n34b","number":19,"title":"Møde 19","date":"2026-05-11","description":"","links":"","closedAt":null},{"id":"mthd8hob-8bh95wq","clubYearId":"mthd8hob-518n34b","number":20,"title":"Møde 20","date":"2026-05-25","description":"","links":"","closedAt":null},{"id":"mthd8hob-f9476oj","clubYearId":"mthd8hob-gor3x1o","number":2,"title":"Møde 2 - Formuepleje","date":"2026-08-31","description":"","links":"","closedAt":1788261906457},{"id":"mthd8hob-8ohbrmv","clubYearId":"mthd8hob-gor3x1o","number":3,"title":"Møde 3","date":"2026-10-05","description":"","links":"","closedAt":null},{"id":"mthd8hob-p52jbul","clubYearId":"mthd8hob-gor3x1o","number":4,"title":"Møde 4","date":"2026-10-19","description":"","links":"","closedAt":null},{"id":"mthd8hob-fnm3eqy","clubYearId":"mthd8hob-gor3x1o","number":5,"title":"Møde 5","date":"2026-11-02","description":"","links":"","closedAt":null},{"id":"mthd8hob-jmq4in4","clubYearId":"mthd8hob-gor3x1o","number":6,"title":"Møde 6","date":"2026-11-16","description":"","links":"","closedAt":null},{"id":"mthd8hob-gxpmuaa","clubYearId":"mthd8hob-gor3x1o","number":7,"title":"Møde 7","date":"2026-11-30","description":"","links":"","closedAt":null},{"id":"mthd8hob-smx2vsa","clubYearId":"mthd8hob-gor3x1o","number":8,"title":"Møde 8","date":"2026-12-14","description":"","links":"","closedAt":null},{"id":"mthd8hob-bz5ngjh","clubYearId":"mthd8hob-gor3x1o","number":9,"title":"Møde 9","date":"2026-12-28","description":"","links":"","closedAt":null},{"id":"mthd8hob-bzdey7z","clubYearId":"mthd8hob-gor3x1o","number":10,"title":"Møde 10","date":"2027-01-11","description":"","links":"","closedAt":null},{"id":"mthd8hob-4jxcw66","clubYearId":"mthd8hob-gor3x1o","number":11,"title":"Møde 11","date":"2027-01-25","description":"","links":"","closedAt":null},{"id":"mthd8hob-soc294k","clubYearId":"mthd8hob-gor3x1o","number":12,"title":"Møde 12","date":"2027-02-08","description":"","links":"","closedAt":null},{"id":"mthd8hob-a6f51i8","clubYearId":"mthd8hob-gor3x1o","number":13,"title":"Møde 13","date":"2027-02-22","description":"","links":"","closedAt":null},{"id":"mthd8hob-t73oabz","clubYearId":"mthd8hob-gor3x1o","number":14,"title":"Møde 14","date":"2027-03-08","description":"","links":"","closedAt":null},{"id":"mthd8hob-hc9l73x","clubYearId":"mthd8hob-gor3x1o","number":15,"title":"Møde 15","date":"2027-03-22","description":"","links":"","closedAt":null},{"id":"mthd8hob-glzkrcf","clubYearId":"mthd8hob-gor3x1o","number":16,"title":"Møde 16","date":"2027-04-05","description":"","links":"","closedAt":null},{"id":"mthd8hob-fduuak0","clubYearId":"mthd8hob-gor3x1o","number":17,"title":"Møde 17","date":"2027-04-19","description":"","links":"","closedAt":null},{"id":"mthd8hob-rl4mh3u","clubYearId":"mthd8hob-gor3x1o","number":18,"title":"Møde 18","date":"2027-05-03","description":"","links":"","closedAt":null},{"id":"mthd8hob-vetmvvp","clubYearId":"mthd8hob-gor3x1o","number":19,"title":"Møde 19","date":"2027-05-17","description":"","links":"","closedAt":null},{"id":"mthd8hob-5dy91fr","clubYearId":"mthd8hob-gor3x1o","number":20,"title":"Møde 20","date":"2027-05-31","description":"","links":"","closedAt":null}],"fines":[{"id":"mtiblgpr-dv3s4gv","meetingId":"mthd8hob-f9476oj","memberId":"mtibkoya-a89ffr2","fineTypeId":"mth56rr2-ar19rcz","label":null,"amount":300,"ts":1788246166239},{"id":"mtiblrkb-e7567b3","meetingId":"mthd8hob-f9476oj","memberId":"mthd8hob-m10erkh","fineTypeId":"mth56rr2-c0mw473","label":null,"amount":30,"ts":1788246180299},{"id":"mtibqrdf-rzuza4i","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-uioye9i","fineTypeId":"mth56rr2-c0mw473","label":null,"amount":30,"ts":1788246413331},{"id":"mtibr9t7-iwzznxn","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-o5jb4pq","fineTypeId":"mth56rr2-6s84mom","label":null,"amount":30,"ts":1788246437227},{"id":"mtibsup0-vzhqof3","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-o5jb4pq","fineTypeId":null,"label":"Vanvittig fodbeklædning","amount":100,"ts":1788246510948},{"id":"mtibtamb-2qarfg8","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-jcb83vk","fineTypeId":"mth56rr2-y9vhdog","label":null,"amount":800,"ts":1788246531587},{"id":"mtidc7r4-9knjiip","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-5pixhte","fineTypeId":"mth56rr2-6s84mom","label":null,"amount":30,"ts":1788249093952},{"id":"mtidcm5o-ekkowyg","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-d1tgzl5","fineTypeId":"mth56rr2-067f7ji","label":null,"amount":150,"ts":1788249112620},{"id":"mtidd5vy-d8luig6","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-a0868t9","fineTypeId":"mth56rr2-6s84mom","label":null,"amount":30,"ts":1788249138190},{"id":"mtidf1eo-v56ly72","meetingId":"mth5anx4-mgsr7a0","memberId":"mtidefe3-9pkp83t","fineTypeId":"mth56rr2-6s84mom","label":null,"amount":30,"ts":1788249225696},{"id":"mtidjh0e-fdi90g7","meetingId":"mth5anx4-mgsr7a0","memberId":"mthd8hob-uioye9i","fineTypeId":null,"label":"3 åbne drikkevarer, som ikke er drukket op","amount":50,"ts":1788249432542},{"id":"mtidkzpe-kfjqy7e","meetingId":"mthd8hob-f9476oj","memberId":"mtider64-iuh3zrp","fineTypeId":"mth56rr2-c0mw473","label":null,"amount":30,"ts":1788249503426},{"id":"mtidl8jy-l49blbr","meetingId":"mthd8hob-f9476oj","memberId":"mtidefe3-9pkp83t","fineTypeId":"mth56rr2-tfff0ys","label":null,"amount":50,"ts":1788249514894},{"id":"mtidlf02-36a8u2w","meetingId":"mthd8hob-f9476oj","memberId":"mthd8hob-d1tgzl5","fineTypeId":"mth56rr2-tfff0ys","label":null,"amount":50,"ts":1788249523250},{"id":"mtidlglk-ivajirx","meetingId":"mthd8hob-f9476oj","memberId":"mthd8hob-uioye9i","fineTypeId":"mth56rr2-tfff0ys","label":null,"amount":50,"ts":1788249525320}],"payments":[],"clubYears":[{"id":"mthd8hob-u5azfz4","startYear":2024,"label":"2024/25","closedAt":null},{"id":"mthd8hob-518n34b","startYear":2025,"label":"2025/26","closedAt":null},{"id":"mthd8hob-gor3x1o","startYear":2026,"label":"2026/27","closedAt":null}],"formandId":"mthd8hob-i5gw7u5","audit":[{"ts":1788265374478,"text":"Rasmus De Martino blev markeret som prospect"},{"ts":1788265354197,"text":"Daniel Prospect blev markeret som prospect"},{"ts":1788263413702,"text":"Oprettede taksten »Lavt Fremmøde« (500 kr.)"},{"ts":1788261906457,"text":"Afsluttede Møde 2 - Formuepleje — 510 kr. i bøder"},{"ts":1788252849405,"text":"Redigerede taksten »Glemt pligt« (300 kr.)"},{"ts":1788249899089,"text":"Afsluttede Møde 2 - Formuepleje — 510 kr. i bøder"},{"ts":1788249893123,"text":"Redigerede Møde 2 - Formuepleje (31. aug. 2026)"},{"ts":1788249525320,"text":"Casper Infeld fik »To late SMALL BET« (50 kr.) i Møde 2"},{"ts":1788249523250,"text":"Steffen Desmond fik »To late SMALL BET« (50 kr.) i Møde 2"},{"ts":1788249514894,"text":"Mads Birkelund fik »To late SMALL BET« (50 kr.) i Møde 2"},{"ts":1788249503426,"text":"Kristoffer Østergaard fik »Ikke rejse sig« (30 kr.) i Møde 2"},{"ts":1788249490273,"text":"Afsluttede Møde 1 - Fisketur — 1.250 kr. i bøder"},{"ts":1788249432542,"text":"Casper Infeld fik særbøden »3 åbne drikkevarer, som ikke er drukket op« (50 kr.) i Møde 1 - Fisketur"},{"ts":1788249229459,"text":"Afsluttede Møde 1 - Fisketur — 1.200 kr. i bøder"},{"ts":1788249225696,"text":"Mads Birkelund fik »Dårlig adfærd« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788249212428,"text":"Tilføjede medlemmet Kristoffer Østergaard"},{"ts":1788249197164,"text":"Tilføjede medlemmet Mads Birkelund"},{"ts":1788249138190,"text":"Miki Kjeldsen fik »Dårlig adfærd« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788249125040,"text":"Fortrød bøden »Ikke rejse sig« (30 kr.) til Casper Infeld"},{"ts":1788249112620,"text":"Steffen Desmond fik »Dårlig pligt« (150 kr.) i Møde 1 - Fisketur"},{"ts":1788249093952,"text":"Asger Holmsted fik »Dårlig adfærd« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788249040607,"text":"Fortrød bøden »Dårlig adfærd« (30 kr.) til Rasmus De Martino"},{"ts":1788249023946,"text":"Tilføjede medlemmet Daniel Prospect"},{"ts":1788246531587,"text":"Benjamin Rasmussen fik »Ingen fremmøde ved tilmelding på RTD« (800 kr.) i Møde 1 - Fisketur"},{"ts":1788246510948,"text":"Rasmus De Martino fik særbøden »Vanvittig fodbeklædning« (100 kr.) i Møde 1 - Fisketur"},{"ts":1788246438383,"text":"Rasmus De Martino fik »Dårlig adfærd« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788246437227,"text":"Rasmus De Martino fik »Dårlig adfærd« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788246413331,"text":"Casper Infeld fik »Ikke rejse sig« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788246408835,"text":"Casper Infeld fik »Ikke rejse sig« (30 kr.) i Møde 1 - Fisketur"},{"ts":1788246397923,"text":"Redigerede Møde 1 - Fisketur (14. aug. 2026)"},{"ts":1788246180299,"text":"Thomas Jarløv fik »Ikke rejse sig« (30 kr.) i Møde 2"},{"ts":1788246166239,"text":"Romanas Markovas fik »Afmelding 24 timer« (300 kr.) i Møde 2"},{"ts":1788246130258,"text":"Tilføjede medlemmet Romanas Markovas"}],"trash":[],"expenses":[],"writeoffs":[],"rules":"Bøderne gives efter takstbladet og afgøres på selve mødet.\nBødemesteren registrerer bøden med det samme — indsigelser tages med samme aften.\nEr der uenighed, afgør formanden sagen. Indtil da står bødemesterens afgørelse ved magt.\nBøder betales til klubkassen senest ved næste møde.\nKassen bruges efter klubbens fælles beslutning."}</script>
@@ -1644,6 +1668,7 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
       state = local || embedded || freshState();
     }
     purgeTrash();
+    stashed = readConflict();
   }
 
   /* Papirkurv: poster ryddes permanent efter 30 dage */
@@ -1673,6 +1698,53 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
     viewerMode = on;
     try { localStorage.setItem(VIEWER_KEY, on ? '1' : '0'); } catch (e) { /* utilgængelig */ }
   }
+
+  /* Konflikt ved delt gem: en anden nåede at gemme først. Runtimen genindlæser
+     alle visninger til vinderens udgave, og er vinderens tidsstempel nyere end
+     vores, ville vores ugemte ændringer forsvinde lydløst. De lægges derfor til
+     side her og kan hentes frem igen efter genindlæsningen. */
+  var CONFLICT_KEY = 'rtd-conflict';
+  var CONFLICT_DAYS = 7;
+  var stashed = null;
+
+  function stashConflict() {
+    try {
+      localStorage.setItem(CONFLICT_KEY, JSON.stringify({ ts: Date.now(), state: state }));
+    } catch (e) { /* fuld eller blokeret */ }
+  }
+  function readConflict() {
+    try {
+      var raw = localStorage.getItem(CONFLICT_KEY);
+      if (!raw) return null;
+      var c = JSON.parse(raw);
+      if (!c || !c.ts || !c.state || !c.state.version) return null;
+      if (Date.now() - c.ts > CONFLICT_DAYS * 24 * 60 * 60 * 1000) { clearConflict(); return null; }
+      return c;
+    } catch (e) { return null; }
+  }
+  function clearConflict() {
+    stashed = null;
+    try { localStorage.removeItem(CONFLICT_KEY); } catch (e) { /* utilgængelig */ }
+  }
+
+  /* Backup-påmindelse: hvornår tog denne enhed sidst en JSON-eksport.
+     Ligger uden for state — det er en enhedsvane, ikke klubbens data. */
+  var EXPORT_KEY = 'rtd-last-export';
+  var BACKUP_DAYS = 30;
+  var BACKUP_CHANGES = 30;
+
+  function lastExport() {
+    try { return parseInt(localStorage.getItem(EXPORT_KEY), 10) || 0; } catch (e) { return 0; }
+  }
+  function markExport() {
+    try { localStorage.setItem(EXPORT_KEY, String(Date.now())); } catch (e) { /* utilgængelig */ }
+  }
+  function backupOverdue() {
+    if (viewerMode || !state) return false;
+    var last = lastExport();
+    if (!last) return state.audit.length >= BACKUP_CHANGES;
+    return Date.now() - last > BACKUP_DAYS * 24 * 60 * 60 * 1000;
+  }
   /* Handlinger der ændrer data — blokeres i visningstilstand */
   var MUTATING = {
     'new-year': 1, 'add-meeting': 1, 'edit-meeting': 1, 'meeting-save': 1, 'close-meeting': 1,
@@ -1686,7 +1758,8 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
     'bulk-open': 1, 'bulk-type': 1, 'bulk-toggle': 1, 'bulk-all': 1, 'bulk-save': 1,
     'expense-form': 1, 'expense-save': 1, 'remove-expense': 1,
     'settle-writeoff': 1, 'toggle-prospect': 1, 'toggle-member-year': 1,
-    'prospect-edit': 1, 'prospect-save': 1, 'prospect-auto': 1
+    'prospect-edit': 1, 'prospect-save': 1, 'prospect-auto': 1,
+    'conflict-restore': 1
   };
 
   function commit() {
@@ -1800,6 +1873,7 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
     artifactNS.publish(serializeDocument()).then(function () {
       publishing = false;
       dirty = false;
+      clearConflict();
       toast('Gemt for alle');
       render();
     }).catch(function (err) {
@@ -1807,7 +1881,10 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
       renderToolbar();
       var code = String((err && err.code) || err || '');
       if (code.indexOf('conflict') !== -1) {
-        toast('En anden har gemt — indlæser deres version');
+        // Runtimen genindlæser selv siden til vinderens udgave — vores ugemte
+        // ændringer lægges til side først, så de kan hentes frem bagefter.
+        stashConflict();
+        toast('En anden gemte først — dine ændringer er lagt til side');
       } else if (code.indexOf('not_writer') !== -1 || code.indexOf('not_granted') !== -1) {
         setViewerMode(true);
         toast('Du har kun læseadgang — visningstilstand slået til');
@@ -2822,6 +2899,7 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
     redo: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9H10a5 5 0 0 0 0 10h4"></path><path d="m16 5 4 4-4 4"></path></svg>',
     coins: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="6.5" rx="7" ry="3"></ellipse><path d="M5 6.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"></path><path d="M5 11.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"></path></svg>',
     scroll: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h11a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6"></path><path d="M6 4a2 2 0 0 0-2 2v2h4"></path><path d="M9 9h7M9 13h7M9 17h4"></path></svg>',
+    warn: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5 2.8 20h18.4L12 4.5z"></path><path d="M12 10v4.2M12 17.2v.1"></path></svg>',
     check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5L19 7"></path></svg>'
   };
 
@@ -2841,6 +2919,16 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
     var html = '';
     if (viewerMode) {
       html += '<div class="viewer-banner">' + IC.eye + '<span>Visningstilstand — registrering er slået fra på denne enhed</span></div>';
+    }
+    if (stashed && !viewerMode) {
+      html += '<div class="conflict-banner">' + IC.warn +
+        '<div class="grow"><b>En anden gemte først.</b> Dine ændringer fra ' + esc(fmtDateTime(stashed.ts)) +
+        ' nåede ikke med i den delte udgave, men de er lagt til side her.</div>' +
+        '<span class="cb-actions">' +
+        '<button class="btn small" data-action="conflict-restore">Hent frem</button>' +
+        '<button class="btn small secondary" data-action="conflict-dismiss">Kassér</button>' +
+        '</span>' +
+        '</div>';
     }
     if (view.name === 'liga') html += viewLiga();
     else if (view.name === 'aar') html += viewYears();
@@ -3010,6 +3098,8 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
         '<button class="iconbtn" data-action="redo" aria-label="Gendan"' + (redoStack.length ? '' : ' disabled') +
         ' title="Gendan">' + IC.redo + '</button>';
     }
+    var setBtn = document.querySelector('.tools [data-action="settings"]');
+    if (setBtn) setBtn.classList.toggle('needs-backup', backupOverdue());
     var saveWrap = document.getElementById('save-wrap');
     if (!saveWrap) return;
     var long = publishing ? 'Gemmer …' : (dirty ? 'Gem ændringer' : 'Alt gemt');
@@ -4289,10 +4379,22 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
           '<div class="btn-row"><button class="btn secondary" data-action="export-json">Eksportér data (JSON)</button>' +
           '<button class="btn secondary" data-action="import-json">Importér data</button></div>' +
           '<input id="import-file" type="file" accept="application/json" hidden>' +
+          backupNote() +
           '<hr class="divider">' +
           '<div class="btn-row"><button class="btn danger" data-action="reset-all">Nulstil alt</button></div>' +
           '<div class="note">Data gemmes automatisk i denne browser.' + (artifactNS ? ' Brug &raquo;Gem ændringer&laquo; i toppen for at gemme til den delte side.' : '') + '</div>');
     openModal('Indstillinger', body);
+  }
+
+  /* Hvornår tog denne enhed sidst en backup — og en blid opfordring når det trænger */
+  function backupNote() {
+    var last = lastExport();
+    var over = backupOverdue();
+    var txt = last
+      ? 'Seneste backup på denne enhed: ' + fmtDateTime(last) + '.'
+      : 'Der er aldrig taget en backup på denne enhed.';
+    if (over) txt += ' Tag en eksport — så har I en kopi, der hverken afhænger af browseren eller det delte link.';
+    return '<div class="note' + (over ? ' warn' : '') + '">' + (over ? IC.warn : '') + '<span>' + esc(txt) + '</span></div>';
   }
 
   /* Sådan deles ligaen med medlemmerne — kun læseadgang */
@@ -4844,10 +4946,15 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
       var json = JSON.stringify(state, null, 2);
       var fname = state.clubName.toLowerCase().replace(/[^a-z0-9æøå-]+/g, '-') + '-boedeliga-' + todayISO() + '.json';
       if (downloadsNS) {
-        downloadsNS.save({ filename: fname, data: json }).then(function () { toast('Fil gemt'); })
-          .catch(function () { /* afvist af brugeren — ingen fejl */ });
+        downloadsNS.save({ filename: fname, data: json }).then(function () {
+          markExport();
+          renderToolbar();
+          toast('Fil gemt');
+        }).catch(function () { /* afvist af brugeren — ingen fejl */ });
         return;
       }
+      markExport();
+      renderToolbar();
       var blob = new Blob([json], { type: 'application/json' });
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -4856,6 +4963,20 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
       a.click();
       document.body.removeChild(a);
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    },
+    'conflict-restore': function () {
+      if (!stashed) return;
+      var saved = stashed.state;
+      clearConflict();
+      state = migrate(saved);
+      log('Hentede ugemte ændringer frem efter konflikt med delt gem');
+      commit();
+      toast('Dine ændringer er hentet frem — husk at gemme');
+    },
+    'conflict-dismiss': function () {
+      clearConflict();
+      render();
+      toast('De henlagte ændringer er kasseret');
     },
     'import-json': function () {
       var input = document.getElementById('import-file');

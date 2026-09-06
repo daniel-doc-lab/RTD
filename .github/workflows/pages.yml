@@ -1,0 +1,57 @@
+# Udgiver appen på GitHub Pages — uden klubbens data.
+#
+# Pages serverer offentligt, så her bygges en frisk, tom udgave af appen:
+# node build.mjs skriver en tom #rtd-state-blok, og check-no-data.mjs stopper
+# udgivelsen, hvis der alligevel skulle ligge data i en af filerne.
+#
+# Den delte udgave med klubbens rigtige data bor fortsat i Claude-artifact'en.
+name: Udgiv appen på GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Én udgivelse ad gangen; igangværende afbrydes ikke
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  byg:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Byg en datafri udgave
+        run: |
+          node build.mjs
+          mkdir -p site
+          cp index.html styles.css app.js site/
+          cp dist/rtd-boedeliga.html site/enkeltfil.html
+
+      - name: Kontrollér at ingen klubdata følger med
+        run: node .github/scripts/check-no-data.mjs site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  udgiv:
+    needs: byg
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

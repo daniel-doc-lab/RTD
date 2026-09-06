@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>RTD Bødeligaen</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<script type="application/json" id="rtd-state"></script>
+<div class="layout">
+  <header class="appbar">
+    <div class="brand" id="brand-name"><span class="bn">RTD</span><span class="bn-suffix"> Bødeligaen</span><small>Klubbens bødekasse</small></div>
+    <div class="tools">
+      <button class="iconbtn" data-action="search" aria-label="Søg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg>
+      </button>
+      <span id="undo-wrap"></span>
+      <span id="save-wrap"></span>
+      <button class="iconbtn" data-action="settings" aria-label="Indstillinger">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.2 3h-4L9.4 5.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.4 2.7h4l.4-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"></path></svg>
+      </button>
+    </div>
+    <div id="mascot-side"></div>
+  </header>
+
+  <main class="content" id="app"></main>
+
+  <div class="bottombar">
+  <div id="cta-slot"></div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="liga">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"></path><path d="M8 5H5a3 3 0 0 0 3 5M16 5h3a3 3 0 0 1-3 5"></path><path d="M12 13v4m-4 4h8m-6 0v-4h4v4"></path></svg>
+      Ligaen
+    </button>
+    <button class="tab" data-tab="aar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg>
+      Klubår
+    </button>
+    <button class="tab" data-tab="medlemmer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"></path><path d="M16 9a3 3 0 1 0 2 5.2M21 20c0-2.5-1.5-4.6-3.7-5.5"></path></svg>
+      Medlemmer
+    </button>
+    <button class="tab" data-tab="statistik">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-9M22 20H2"></path></svg>
+      Statistik
+    </button>
+    <button class="tab" data-tab="takster">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6V3z"></path><path d="M9 9h6M9 13h6M9 17h4"></path></svg>
+      Takster
+    </button>
+    <button class="tab" data-tab="hall">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"></path><path d="M8 5H5a3 3 0 0 0 3 5M16 5h3a3 3 0 0 1-3 5"></path><path d="M12 13v4m-4 4h8m-6 0v-4h4v4"></path><path d="m12 5.5.7 1.5 1.6.2-1.2 1.1.3 1.6-1.4-.8-1.4.8.3-1.6-1.2-1.1 1.6-.2z" fill="currentColor" stroke="none"></path></svg>
+      <span class="lbl-long">Hall of Fame</span><span class="lbl-short">Hall</span>
+    </button>
+  </nav>
+  <div class="credit">Bygget af Daniel Big Guns</div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

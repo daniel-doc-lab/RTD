@@ -1,0 +1,3811 @@
+/* RTD Bødeligaen — klub-bødekasse. Vanilla JS, ingen afhængigheder. */
+(function () {
+  'use strict';
+
+  var LS_KEY = 'rtd-boedeliga-v1';
+  var MEETINGS_PER_YEAR = 20;
+
+  /* ---------- Seed data ---------- */
+
+  function seedFineTypes() {
+    var rows = [
+      ['Mobil', 'Viser arrogance for andre og kigger på sin mobil i møde', 30],
+      ['Dårlig adfærd', 'Kan være mange forskellige ting — blander ting sammen, siger dumme ting', 30],
+      ['Mads bøde', 'Mads’ særskilte bøde', 500],
+      ['Diverse bøde', 'Blander flere ting sammen, laver noget dumt etc.', 30],
+      ['Afmelding efter frist', 'Afmelding efter 7 dages frist', 150],
+      ['Afmelding 24 timer', 'Afmelder sig indenfor 24 timer (sygdom/force majeure kan forhandles)', 300],
+      ['Glemt formandskæde', 'Ikke ret til at være formand-adfærd', 500],
+      ['Ikke rejse sig', 'Manglende pli — rejser sig ikke op, når man taler', 30],
+      ['Afbryde', 'Manglende pli — afbryder når en anden taler', 50],
+      ['Mødereferat', 'Overskrider frist for mødereferat med 7 dage', 350],
+      ['Ingen fremmøde ved tilmelding på RTD', 'Respektløs adfærd over for mødearrangør og indlægsholder', 800],
+      ['Nål', 'Glemmer nål — respektløst for klubben', 30],
+      ['Toilet', 'Går på toilet under indlæg (undtagelse ved akut diarré)', 50],
+      ['Dårlig pligt', 'Lever ikke op til forventet standard af sine pligter', 150],
+      ['To late BIG BET', 'Kommer for sent til møde, dvs. over 15 minutter', 100],
+      ['To late SMALL BET', 'Kommer for sent til møde, dvs. under 15 minutter', 50],
+      ['Glemt pligt', 'Har glemt sin pligt', 150],
+      ['Dårlig planlægning', 'Har ikke planlagt sit møde i god tid (4 uger før)', 50]
+    ];
+    return rows.map(function (r) {
+      return { id: uid(), category: r[0], description: r[1], amount: r[2], active: true };
+    });
+  }
+
+  var SEED_MEMBERS = [
+    'Martin Mollerup', 'Miki Kjeldsen', 'Thomas Jarløv', 'Asger Holmsted',
+    'Marco Brøndsted', 'Daniel Kuntkes', 'Steffen Desmond', 'Casper Infeld',
+    'Benjamin Rasmussen', 'Toke Suhr', 'Rasmus De Martino'
+  ];
+
+  function seedMembers() {
+    return SEED_MEMBERS.map(function (n) {
+      return { id: uid(), name: n, active: true, prospect: false, years: [], createdAt: Date.now(),
+        prospectGoal: 3, prospectFrom: null, prospectDone: null };
+    });
+  }
+
+  function freshState() {
+    var s = {
+      version: 7,
+      updatedAt: Date.now(),
+      clubName: 'RTD',
+      formandId: null,
+      formandHistory: [],
+      members: seedMembers(),
+      fineTypes: seedFineTypes(),
+      clubYears: [],
+      meetings: [],
+      fines: [],
+      payments: [],
+      expenses: [],
+      writeoffs: [],
+      audit: [],
+      trash: []
+    };
+    for (var y = 2024; y <= startYearFromDate(null); y++) ensureYear(s, y);
+    s.clubYears.forEach(function (cy) { topUpMeetings(s, cy); });
+    var allYears = s.clubYears.map(function (y) { return y.id; });
+    s.members.forEach(function (m) { m.years = allYears.slice(); });
+    return s;
+  }
+
+  /* ---------- Utils ---------- */
+
+  function uid() {
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9);
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function nf(n) {
+    var neg = n < 0;
+    return (neg ? '−' : '') + String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+  function kr(n) { return nf(n) + ' kr.'; }
+
+  var MONTHS = ['jan.', 'feb.', 'mar.', 'apr.', 'maj', 'jun.', 'jul.', 'aug.', 'sep.', 'okt.', 'nov.', 'dec.'];
+  function fmtDate(iso) {
+    if (!iso) return 'Dato ikke sat';
+    var p = iso.split('-');
+    if (p.length !== 3) return iso;
+    return parseInt(p[2], 10) + '. ' + (MONTHS[parseInt(p[1], 10) - 1] || p[1]) + ' ' + p[0];
+  }
+  function isoOf(d) {
+    var m = d.getMonth() + 1, day = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+  }
+  function todayISO() { return isoOf(new Date()); }
+
+  /* ---------- Klubår ---------- */
+
+  function yearLabel(startYear) {
+    return startYear + '/' + String(startYear + 1).slice(2);
+  }
+
+  function ensureYear(s, startYear) {
+    var cy = s.clubYears.find(function (y) { return y.startYear === startYear; });
+    if (!cy) {
+      cy = { id: uid(), startYear: startYear, label: yearLabel(startYear) };
+      s.clubYears.push(cy);
+      s.clubYears.sort(function (a, b) { return a.startYear - b.startYear; });
+    }
+    return cy;
+  }
+
+  /* Placeholder-mødedato: hver 14. dag fra første mandag i september */
+  function scheduledDate(startYear, number) {
+    var d = new Date(startYear, 8, 1);
+    while (d.getDay() !== 1) d.setDate(d.getDate() + 1);
+    d.setDate(d.getDate() + (number - 1) * 14);
+    return isoOf(d);
+  }
+
+  function topUpMeetings(s, cy) {
+    var mine = s.meetings.filter(function (m) { return m.clubYearId === cy.id; });
+    var maxNo = mine.reduce(function (a, m) { return Math.max(a, m.number); }, 0);
+    while (mine.length < MEETINGS_PER_YEAR) {
+      maxNo++;
+      var m = {
+        id: uid(), clubYearId: cy.id, number: maxNo,
+        title: 'Møde ' + maxNo, date: scheduledDate(cy.startYear, mine.length + 1),
+        description: '', links: '', closedAt: null
+      };
+      s.meetings.push(m);
+      mine.push(m);
+    }
+  }
+
+  function startYearFromDate(iso) {
+    var now = new Date();
+    var y = now.getFullYear(), mo = now.getMonth();
+    if (iso) {
+      var p = iso.split('-');
+      if (p.length === 3) { y = parseInt(p[0], 10); mo = parseInt(p[1], 10) - 1; }
+    }
+    return mo >= 6 ? y : y - 1; // klubåret skifter 1. juli
+  }
+
+  /* ---------- Migration ---------- */
+
+  function migrate(s) {
+    if (s.version === 1) {
+      s.clubYears = [];
+      (s.meetings || []).forEach(function (m) {
+        var cy = ensureYear(s, startYearFromDate(m.date));
+        m.clubYearId = cy.id;
+        if (!m.title) m.title = 'Møde ' + m.number;
+        if (m.description == null) m.description = '';
+        if (m.links == null) m.links = '';
+      });
+      for (var y = 2024; y <= startYearFromDate(null); y++) ensureYear(s, y);
+      s.clubYears.forEach(function (cy) { topUpMeetings(s, cy); });
+      s.version = 2;
+    }
+    if (s.version === 2) {
+      if (!s.members || !s.members.length) s.members = seedMembers();
+      s.version = 3;
+    }
+    if (s.version === 3) {
+      s.audit = [];
+      s.trash = [];
+      s.version = 4;
+    }
+    if (s.version === 4) {
+      // v5: kassens udgifter, afskrivninger, prospect-status og medlemskab pr. klubår.
+      // Eksisterende medlemmer regnes med i alle hidtidige klubår, så intet regnskab ændrer sig.
+      s.expenses = [];
+      s.writeoffs = [];
+      var known = (s.clubYears || []).map(function (y) { return y.id; });
+      (s.members || []).forEach(function (m) {
+        if (!Array.isArray(m.years)) m.years = known.slice();
+        if (typeof m.prospect !== 'boolean') m.prospect = false;
+      });
+      s.version = 5;
+    }
+    if (s.version === 5) {
+      // v6: formandsrækken bevares, så Hall of Fame kan vise tidligere formænd
+      s.formandHistory = [];
+      if (s.formandId) s.formandHistory.push({ memberId: s.formandId, from: null, to: null });
+      s.version = 6;
+    }
+    if (s.version === 6) {
+      // v7: prospect-forløbet måles i måneder og kan sættes manuelt pr. medlem
+      (s.members || []).forEach(function (m) {
+        if (m.prospectGoal === undefined) m.prospectGoal = PROSPECT_MEETINGS;
+        if (m.prospectFrom === undefined) m.prospectFrom = null;
+        if (m.prospectDone === undefined) m.prospectDone = null;
+      });
+      s.version = 7;
+    }
+    return normalize(s);
+  }
+
+  /* Gør vilkårlig (fx importeret) state ufarlig: alle arrays findes, tal er tal */
+  function normalize(s) {
+    ['members', 'fineTypes', 'clubYears', 'meetings', 'fines', 'payments', 'expenses', 'writeoffs', 'formandHistory', 'audit', 'trash'].forEach(function (k) {
+      if (!Array.isArray(s[k])) s[k] = [];
+    });
+    s.clubYears.forEach(function (y) { if (y.closedAt === undefined) y.closedAt = null; });
+    if (typeof s.clubName !== 'string' || !s.clubName) s.clubName = 'RTD';
+    if (s.formandId === undefined) s.formandId = null;
+    var yearIds = s.clubYears.map(function (y) { return y.id; });
+    s.members.forEach(function (m) {
+      if (typeof m.active !== 'boolean') m.active = true;
+      if (typeof m.prospect !== 'boolean') m.prospect = false;
+      if (!Array.isArray(m.years)) m.years = yearIds.slice();
+      m.years = m.years.filter(function (id) { return yearIds.indexOf(id) !== -1; });
+      var pg = Number(m.prospectGoal);
+      m.prospectGoal = pg > 0 ? Math.round(pg) : PROSPECT_MEETINGS;
+      if (typeof m.prospectFrom !== 'string' || !m.prospectFrom) m.prospectFrom = null;
+      m.prospectDone = (m.prospectDone === null || m.prospectDone === undefined || m.prospectDone === '')
+        ? null : Math.max(0, Math.round(Number(m.prospectDone) || 0));
+    });
+    s.fineTypes.forEach(function (t) { t.amount = Number(t.amount) || 0; if (typeof t.icon !== 'string') t.icon = ''; });
+    s.fines.forEach(function (f) { f.amount = Number(f.amount) || 0; if (!f.ts) f.ts = 0; });
+    s.payments.forEach(function (p) { p.amount = Number(p.amount) || 0; if (!p.ts) p.ts = 0; });
+    s.expenses.forEach(function (x) { x.amount = Number(x.amount) || 0; if (!x.ts) x.ts = 0; });
+    s.writeoffs.forEach(function (w) { w.amount = Number(w.amount) || 0; if (!w.ts) w.ts = 0; });
+    s.meetings.forEach(function (m) {
+      if (typeof m.title !== 'string' || !m.title) m.title = 'Møde ' + m.number;
+      if (m.description == null) m.description = '';
+      if (m.links == null) m.links = '';
+    });
+    return s;
+  }
+
+  /* ---------- Storage ---------- */
+
+  var state = null;
+  var artifactNS = null;   // claude.use('artifact') namespace, når appen kører som artifact
+  var downloadsNS = null;  // claude.use('downloads') — fil-gem inde i artifact-viseren
+  var sampleNS = null;     // claude.use('sample') — maskottens AI-replikker
+  var dirty = false;       // ændringer der ikke er publiceret til artifact endnu
+
+  function readEmbedded() {
+    try {
+      var el = document.getElementById('rtd-state');
+      if (el && el.textContent && el.textContent.trim()) {
+        var s = JSON.parse(el.textContent);
+        if (s && s.version) return migrate(s);
+      }
+    } catch (e) { /* korrupt embedded state — ignorér */ }
+    return null;
+  }
+
+  function readLocal() {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        if (s && s.version) return migrate(s);
+      }
+    } catch (e) { /* localStorage utilgængelig eller korrupt */ }
+    return null;
+  }
+
+  function writeLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* fuld eller blokeret */ }
+  }
+
+  function loadState() {
+    var embedded = readEmbedded();
+    var local = readLocal();
+    if (embedded && local) {
+      if ((local.updatedAt || 0) > (embedded.updatedAt || 0)) { state = local; dirty = true; }
+      else state = embedded;
+    } else {
+      state = local || embedded || freshState();
+    }
+    purgeTrash();
+    stashed = readConflict();
+  }
+
+  /* Papirkurv: poster ryddes permanent efter 30 dage */
+  var TRASH_DAYS = 30;
+  function purgeTrash() {
+    var cutoff = Date.now() - TRASH_DAYS * 24 * 60 * 60 * 1000;
+    state.trash = state.trash.filter(function (t) { return (t.deletedAt || 0) >= cutoff; });
+  }
+
+  /* Revisionslog: hvad skete hvornår */
+  function log(text) {
+    state.audit.unshift({ ts: Date.now(), text: text });
+    if (state.audit.length > 800) state.audit.length = 800;
+  }
+  function fmtDateTime(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    var mi = d.getMinutes();
+    return fmtDate(isoOf(d)) + ' kl. ' + d.getHours() + ':' + (mi < 10 ? '0' : '') + mi;
+  }
+
+  /* Visningstilstand: skjuler al registrering på denne enhed */
+  var VIEWER_KEY = 'rtd-viewer-mode';
+  var viewerMode = false;
+  try { viewerMode = localStorage.getItem(VIEWER_KEY) === '1'; } catch (e) { /* utilgængelig */ }
+  function setViewerMode(on) {
+    viewerMode = on;
+    try { localStorage.setItem(VIEWER_KEY, on ? '1' : '0'); } catch (e) { /* utilgængelig */ }
+  }
+
+  /* Konflikt ved delt gem: en anden nåede at gemme først. Runtimen genindlæser
+     alle visninger til vinderens udgave, og er vinderens tidsstempel nyere end
+     vores, ville vores ugemte ændringer forsvinde lydløst. De lægges derfor til
+     side her og kan hentes frem igen efter genindlæsningen. */
+  var CONFLICT_KEY = 'rtd-conflict';
+  var CONFLICT_DAYS = 7;
+  var stashed = null;
+
+  function stashConflict() {
+    try {
+      localStorage.setItem(CONFLICT_KEY, JSON.stringify({ ts: Date.now(), state: state }));
+    } catch (e) { /* fuld eller blokeret */ }
+  }
+  function readConflict() {
+    try {
+      var raw = localStorage.getItem(CONFLICT_KEY);
+      if (!raw) return null;
+      var c = JSON.parse(raw);
+      if (!c || !c.ts || !c.state || !c.state.version) return null;
+      if (Date.now() - c.ts > CONFLICT_DAYS * 24 * 60 * 60 * 1000) { clearConflict(); return null; }
+      return c;
+    } catch (e) { return null; }
+  }
+  function clearConflict() {
+    stashed = null;
+    try { localStorage.removeItem(CONFLICT_KEY); } catch (e) { /* utilgængelig */ }
+  }
+
+  /* Backup-påmindelse: hvornår tog denne enhed sidst en JSON-eksport.
+     Ligger uden for state — det er en enhedsvane, ikke klubbens data. */
+  var EXPORT_KEY = 'rtd-last-export';
+  var BACKUP_DAYS = 30;
+  var BACKUP_CHANGES = 30;
+
+  function lastExport() {
+    try { return parseInt(localStorage.getItem(EXPORT_KEY), 10) || 0; } catch (e) { return 0; }
+  }
+  function markExport() {
+    try { localStorage.setItem(EXPORT_KEY, String(Date.now())); } catch (e) { /* utilgængelig */ }
+  }
+  function backupOverdue() {
+    if (viewerMode || !state) return false;
+    var last = lastExport();
+    if (!last) return state.audit.length >= BACKUP_CHANGES;
+    return Date.now() - last > BACKUP_DAYS * 24 * 60 * 60 * 1000;
+  }
+  /* Handlinger der ændrer data — blokeres i visningstilstand */
+  var MUTATING = {
+    'new-year': 1, 'add-meeting': 1, 'edit-meeting': 1, 'meeting-save': 1, 'close-meeting': 1,
+    'reopen-meeting': 1, 'delete-meeting': 1, 'season-close': 1, 'season-reopen': 1,
+    'pick-fines': 1, 'give-fine': 1, 'special-fine': 1, 'special-save': 1, 'remove-fine': 1,
+    'add-member': 1, 'member-save': 1, 'member-save-more': 1, 'rename-member': 1,
+    'retire-member': 1, 'revive-member': 1, 'delete-member': 1, 'toggle-formand': 1,
+    'pay-form': 1, 'pay-save': 1, 'remove-payment': 1,
+    'add-finetype': 1, 'edit-finetype': 1, 'finetype-save': 1, 'finetype-remove': 1,
+    'settings-save': 1, 'import-json': 1, 'reset-all': 1, 'trash-restore': 1,
+    'bulk-open': 1, 'bulk-type': 1, 'bulk-toggle': 1, 'bulk-all': 1, 'bulk-save': 1,
+    'expense-form': 1, 'expense-save': 1, 'remove-expense': 1,
+    'settle-writeoff': 1, 'toggle-prospect': 1, 'toggle-member-year': 1,
+    'prospect-edit': 1, 'prospect-save': 1, 'prospect-auto': 1,
+    'conflict-restore': 1
+  };
+
+  function commit() {
+    state.updatedAt = Date.now();
+    writeLocal();
+    dirty = true;
+    render();
+  }
+
+  /* Gem uden fuld re-render (bruges når en modal skal blive stående) */
+  function commitQuiet() {
+    state.updatedAt = Date.now();
+    writeLocal();
+    dirty = true;
+    renderToolbar();
+  }
+
+  /* ---------- Fortryd-stak ---------- */
+
+  /* Snapshots tages ét sted — i klik-håndteringen. State før handlingen gemmes
+     og lægges kun på stakken, hvis handlingen faktisk ændrede noget.
+     Stakken lever kun i hukommelsen; den følger ikke med i eksport eller backup. */
+  var UNDO_MAX = 20;
+  var undoStack = [];
+  var redoStack = [];
+
+  function pushUndo(snap, label) {
+    undoStack.push({ snap: snap, label: label });
+    if (undoStack.length > UNDO_MAX) undoStack.shift();
+    redoStack.length = 0;
+    renderToolbar();
+  }
+
+  function applySnapshot(snap) {
+    state = normalize(JSON.parse(snap));
+    state.updatedAt = Date.now();
+    writeLocal();
+    dirty = true;
+    closeModal();
+    closeReport();
+    pickerMemberId = null;
+    render();
+  }
+
+  function shortLabel(s) {
+    s = String(s || 'ændringen');
+    return s.length > 52 ? s.slice(0, 51) + '…' : s;
+  }
+
+  function undo() {
+    if (viewerMode || !undoStack.length) { toast('Ikke mere at fortryde'); return; }
+    var e = undoStack.pop();
+    redoStack.push({ snap: JSON.stringify(state), label: e.label });
+    if (redoStack.length > UNDO_MAX) redoStack.shift();
+    applySnapshot(e.snap);
+    toast('Fortrudt: ' + shortLabel(e.label));
+  }
+
+  function redo() {
+    if (viewerMode || !redoStack.length) { toast('Ikke mere at gendanne'); return; }
+    var e = redoStack.pop();
+    undoStack.push({ snap: JSON.stringify(state), label: e.label });
+    if (undoStack.length > UNDO_MAX) undoStack.shift();
+    applySnapshot(e.snap);
+    toast('Gendannet: ' + shortLabel(e.label));
+  }
+
+  /* Nøgle på øverste revisionslinje — bruges til at navngive fortryd-punktet */
+  function auditKey() {
+    var top = state.audit[0];
+    return top ? top.ts + '|' + top.text : '';
+  }
+  function changeLabel(keyBefore) {
+    var top = state.audit[0];
+    return top && (top.ts + '|' + top.text) !== keyBefore ? top.text : 'ændringen';
+  }
+
+  /* Kører en handling og gemmer et fortryd-punkt, hvis den ændrede data */
+  function runAction(name, el) {
+    if (!MUTATING[name]) { actions[name](el); return; }
+    var before = JSON.stringify(state);
+    var keyBefore = auditKey();
+    actions[name](el);
+    if (JSON.stringify(state) !== before) pushUndo(before, changeLabel(keyBefore));
+  }
+
+  /* ---------- Artifact-lagring (delt tilstand når appen kører som artifact) ---------- */
+
+  function serializeDocument() {
+    var clone = document.documentElement.cloneNode(true);
+    var st = clone.querySelector('#rtd-state');
+    if (!st) {
+      st = document.createElement('script');
+      st.type = 'application/json';
+      st.id = 'rtd-state';
+      (clone.querySelector('body') || clone).appendChild(st);
+    }
+    st.textContent = JSON.stringify(state).replace(/</g, '\\u003c');
+    var app = clone.querySelector('#app');
+    if (app) app.innerHTML = '';
+    var junk = clone.querySelectorAll('.modal-root, .toast, .tip, .confetti, .bigfine, .report-overlay');
+    for (var i = 0; i < junk.length; i++) junk[i].parentNode.removeChild(junk[i]);
+    return '<!doctype html>\n' + clone.outerHTML;
+  }
+
+  var publishing = false;
+  function publishShared() {
+    if (!artifactNS || !dirty || publishing) return;
+    publishing = true;
+    renderToolbar();
+    artifactNS.publish(serializeDocument()).then(function () {
+      publishing = false;
+      dirty = false;
+      clearConflict();
+      toast('Gemt for alle');
+      render();
+    }).catch(function (err) {
+      publishing = false;
+      renderToolbar();
+      var code = String((err && err.code) || err || '');
+      if (code.indexOf('conflict') !== -1) {
+        // Runtimen genindlæser selv siden til vinderens udgave — vores ugemte
+        // ændringer lægges til side først, så de kan hentes frem bagefter.
+        stashConflict();
+        toast('En anden gemte først — dine ændringer er lagt til side');
+      } else if (code.indexOf('not_writer') !== -1 || code.indexOf('not_granted') !== -1) {
+        setViewerMode(true);
+        toast('Du har kun læseadgang — visningstilstand slået til');
+        render();
+      } else {
+        toast('Kunne ikke gemme delt');
+      }
+    });
+  }
+
+  function initArtifact() {
+    if (!(window.claude && typeof window.claude.use === 'function')) return;
+    window.claude.use('artifact').then(function (ns) {
+      if (ns) { artifactNS = ns; render(); }
+    }).catch(function () { /* ikke tilgængelig */ });
+    window.claude.use('downloads').then(function (ns) {
+      if (ns) downloadsNS = ns;
+    }).catch(function () { /* ikke tilgængelig */ });
+    window.claude.use('sample').then(function (ns) {
+      if (!ns) return;
+      sampleNS = ns;
+      setTimeout(fetchCompanionLines, 25000);
+    }).catch(function () { /* ikke tilgængelig */ });
+  }
+
+  /* ---------- Afledte tal ---------- */
+
+  function memberFineTotal(mid) {
+    return state.fines.reduce(function (a, f) { return f.memberId === mid ? a + f.amount : a; }, 0);
+  }
+  function memberPaidTotal(mid) {
+    return state.payments.reduce(function (a, p) { return p.memberId === mid ? a + p.amount : a; }, 0);
+  }
+  /* Afskrivning: gæld der er eftergivet ved årsopgørelsen — nulstiller saldoen
+     uden at putte penge i kassen. */
+  function memberWriteoffTotal(mid) {
+    return state.writeoffs.reduce(function (a, w) { return w.memberId === mid ? a + w.amount : a; }, 0);
+  }
+  function memberBalance(mid) { return memberFineTotal(mid) - memberPaidTotal(mid) - memberWriteoffTotal(mid); }
+  function memberFineCount(mid) {
+    return state.fines.reduce(function (a, f) { return f.memberId === mid ? a + 1 : a; }, 0);
+  }
+  function paymentsInTotal() { return state.payments.reduce(function (a, p) { return a + p.amount; }, 0); }
+  function expenseTotal() { return state.expenses.reduce(function (a, x) { return a + x.amount; }, 0); }
+  /* Kassebeholdning = indbetalt − afholdte udgifter */
+  function potTotal() { return paymentsInTotal() - expenseTotal(); }
+  function outstandingTotal() {
+    return state.members.reduce(function (a, m) { return a + Math.max(0, memberBalance(m.id)); }, 0);
+  }
+
+  /* ---------- Medlemskab pr. klubår ---------- */
+
+  function memberYearIds(m) { return Array.isArray(m.years) ? m.years : []; }
+  function inYear(m, yearId) { return !yearId || memberYearIds(m).indexOf(yearId) !== -1; }
+  /* Klubår-etiketter for et medlem, ældste først */
+  function memberYearLabels(m) {
+    return state.clubYears.slice()
+      .filter(function (y) { return inYear(m, y.id); })
+      .sort(function (a, b) { return a.startYear - b.startYear; })
+      .map(function (y) { return y.label; });
+  }
+  function byName(a, b) { return a.name.localeCompare(b.name, 'da'); }
+  /* Fornavn — bruges hvor pladsen er trang; avataren viser initialerne */
+  function firstName(name) { return String(name).split(' ')[0]; }
+  /* Hvem står på tavlen til et møde: årets aktive medlemmer plus enhver,
+     der allerede har fået bøde i mødet (så historikken aldrig forsvinder). */
+  function meetingMembers(meet) {
+    var has = {};
+    state.fines.forEach(function (f) { if (f.meetingId === meet.id) has[f.memberId] = 1; });
+    return state.members.filter(function (m) {
+      return has[m.id] || (m.active && inYear(m, meet.clubYearId));
+    }).sort(byName);
+  }
+  function findMember(id) { return state.members.find(function (m) { return m.id === id; }); }
+  function findMeeting(id) { return state.meetings.find(function (m) { return m.id === id; }); }
+  function findYear(id) { return state.clubYears.find(function (y) { return y.id === id; }); }
+  function findFineType(id) { return state.fineTypes.find(function (t) { return t.id === id; }); }
+  function fineLabel(f) {
+    if (f.fineTypeId) { var t = findFineType(f.fineTypeId); return t ? t.category : 'Slettet takst'; }
+    return f.label || 'Særbøde';
+  }
+  function activeMembers() { return state.members.filter(function (m) { return m.active; }); }
+  function meetingTotal(meetId) {
+    return state.fines.reduce(function (a, f) { return f.meetingId === meetId ? a + f.amount : a; }, 0);
+  }
+  function meetingFineCount(meetId) {
+    return state.fines.reduce(function (a, f) { return f.meetingId === meetId ? a + 1 : a; }, 0);
+  }
+  function yearMeetings(yearId) {
+    return state.meetings.filter(function (m) { return m.clubYearId === yearId; })
+      .sort(function (a, b) { return a.number - b.number; });
+  }
+  function yearTotal(yearId) {
+    return yearMeetings(yearId).reduce(function (a, m) { return a + meetingTotal(m.id); }, 0);
+  }
+  function meetingYearLabel(m) {
+    var y = findYear(m.clubYearId);
+    return y ? y.label : '';
+  }
+  function currentClubYear() {
+    return state.clubYears.reduce(function (a, y) { return !a || y.startYear > a.startYear ? y : a; }, null);
+  }
+
+
+  /* ---------- Bøde-ikoner ---------- */
+
+  /* Ikonbibliotek til takster. Nøgleordene matcher mod kategori + beskrivelse,
+     så nye og redigerede bøder automatisk får et passende ikon. */
+  var FI = {
+    mobil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"></rect><path d="M10.5 5.5h3"></path><circle cx="12" cy="18" r="1"></circle><path d="M19.5 6.5c1 1 1 3 0 4M21.5 4.5c2 2 2 6 0 8" opacity="0.7"></path></svg>',
+    attitude: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M8.5 15.5c1-1.4 5.5-1.4 7 0"></path><path d="M8 9.5l2 1M16 9.5l-2 1"></path></svg>',
+    krone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 17.5 3 7.5l4.5 3L12 4.5l4.5 6 4.5-3-1 10z"></path><path d="M4.5 20.5h15" stroke-linecap="round"></path></svg>',
+    kaos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h7M4 12h5M4 18h9"></path><path d="M15 5l5 5M20 5l-5 5"></path><circle cx="17.5" cy="16.5" r="3"></circle></svg>',
+    kalender: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M8 3v4M16 3v4M3.5 10h17"></path><path d="M9.5 14.5l5 4M14.5 14.5l-5 4"></path></svg>',
+    stopur: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"></circle><path d="M12 9.5v4l2.5 1.5M9.5 2.5h5M18.5 7l1.5-1.5"></path></svg>',
+    kaede: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.5c-1 2.5-1 5 1 7M17 4.5c1 2.5 1 5-1 7"></path><path d="M8 11.5h8"></path><circle cx="12" cy="16.5" r="3.2"></circle><path d="M12 13.3v-1.8"></path></svg>',
+    rejsesig: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5.5" r="2.5"></circle><path d="M9 8.5v6M6.5 21l2.5-6.5L11.5 21M6 11.5h6"></path><path d="M17.5 14V6M15 8.5l2.5-2.5L20 8.5"></path></svg>',
+    afbryd: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5h9a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H7l-4 3z"></path><path d="M17 5l4 4M21 5l-4 4"></path></svg>',
+    dokument: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"></path><path d="M14 3v4h4M9 11h6M9 14.5h6M9 18h3.5"></path></svg>',
+    ghost: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V10a7 7 0 0 1 14 0v10l-2.3-2-2.4 2-2.3-2-2.4 2z"></path><path d="M9.5 9.5h.01M14.5 9.5h.01"></path></svg>',
+    naal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"></circle><path d="M12 11.5V21M9.5 13.5h5"></path></svg>',
+    toilet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V4"></path><path d="M4.5 4h15M9.5 17.5 8 21M14.5 17.5 16 21"></path></svg>',
+    pligt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4.5h6v2.5H9z"></path><path d="M6 6.5h12v14H6z"></path><path d="M9 12l2 2 4-4"></path></svg>',
+    loeb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="4.8" r="2.2"></circle><path d="M12.5 9 9 12l2.5 3 1 5M12.5 9l4 2 1.5 3M9 12l-3.5 1M12 15l-3.5 4"></path></svg>',
+    glemsom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-3 11.2V17h6v-2.8A6 6 0 0 0 12 3z"></path><path d="M9.5 20h5"></path><path d="M10.2 9.5a1.9 1.9 0 1 1 2.3 2c-.5.2-.7.6-.7 1.1"></path></svg>',
+    plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v13H4z"></path><path d="M4 9.5h16"></path><path d="M8.5 13h2.5M8.5 16h6"></path><path d="M17 13.5l2.5 2.5-2.5 2.5" opacity="0.65"></path></svg>',
+    penge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M14.5 9c-.7-.9-1.7-1.3-2.8-1.3-1.9 0-3.2 1.2-3.2 3s1.3 3 3.2 3c1.1 0 2.1-.4 2.8-1.3M8 11.2h5M8 13.2h4"></path></svg>',
+    hammer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 6.5 17 3l4 4-3.5 3.5z"></path><path d="M15.5 8.5 6 18l-2-2 9.5-9.5"></path><path d="M3 21h8"></path></svg>',
+    fest: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.5 9.5 9l5.5 5.5z"></path><path d="M14 3.5v2M18.5 6l1.5-1.5M17 10.5h2.5M13 8.5l1.5 1.5"></path></svg>',
+    stjerne: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m12 3.8 2.5 5.3 5.7.8-4.2 4 1 5.7-5-2.8-5 2.8 1-5.7-4.2-4 5.7-.8z"></path></svg>'
+  };
+
+  /* Nøgleord/fraser → ikon (adskilt af |). Første match vinder,
+     derfor står de mest specifikke regler øverst. */
+  var FINE_ICON_RULES = [
+    ['mobil|telefon|skærm|skaerm|sms', 'mobil'],
+    ['formandskæde|formandskaede|kæde|kaede', 'kaede'],
+    ['formand', 'krone'],
+    ['nål|naal|emblem', 'naal'],
+    ['toilet|wc|diarré|diarre', 'toilet'],
+    ['fremmøde|fremmode|fremmødt|udeblev|udebliver|mødte ikke op|modte ikke op', 'ghost'],
+    ['afmelding|afmelder|afbud|framelding', 'kalender'],
+    ['for sent|forsinket|forsinkelse|to late|kommer sent', 'stopur'],
+    ['referat|rapport|skriftlig|notat', 'dokument'],
+    ['rejse sig|rejser sig|oprejst|stå op|staa op', 'rejsesig'],
+    ['afbryd|i munden|taler i', 'afbryd'],
+    ['planlægning|planlaegning|planlagt|planlægger|planlaegger|god tid', 'plan'],
+    ['pligt|tjans|opgave', 'pligt'],
+    ['glemt|glemmer|glemsom|husker ikke', 'glemsom'],
+    ['adfærd|adfaerd|opførsel|opforsel|arrogance|respektløs|respektlos|dumme', 'attitude'],
+    ['diverse|blander|rod', 'kaos'],
+    ['væddemål|vaeddemaal|odds|spil om', 'penge'],
+    ['bøde|boede|straf', 'hammer'],
+    ['fest|øl|oel|drukket|skål|skaal', 'fest'],
+    ['løb|loeb|sport|træning|traening|motion', 'loeb']
+  ];
+
+  /* Vælger ikon for en takst — matcher på kategori først, derefter beskrivelse.
+     Uden match gives et neutralt stjerne-ikon, så alle bøder altid har grafik. */
+  function fineIconKey(category, description) {
+    var cat = String(category || '').toLowerCase();
+    var desc = String(description || '').toLowerCase();
+    for (var pass = 0; pass < 2; pass++) {
+      var hay = pass === 0 ? cat : cat + ' ' + desc;
+      for (var i = 0; i < FINE_ICON_RULES.length; i++) {
+        var phrases = FINE_ICON_RULES[i][0].split('|');
+        for (var w = 0; w < phrases.length; w++) {
+          if (phrases[w] && hay.indexOf(phrases[w]) !== -1) return FINE_ICON_RULES[i][1];
+        }
+      }
+    }
+    return 'stjerne';
+  }
+
+  /* ---------- Farvetema pr. bødekategori ---------- */
+
+  /* Ikonerne grupperes i fire familier med hver sin tone. Farven følger med
+     overalt — ikonbaggrund, søjler i Top bødetyper og prikker i sparklinen —
+     så mønstre kan aflæses uden at læse teksten. */
+  var FINE_GROUPS = {
+    kalender: 'afbud', ghost: 'afbud',
+    stopur: 'forsink', loeb: 'forsink',
+    attitude: 'adfaerd', afbryd: 'adfaerd', kaos: 'adfaerd', rejsesig: 'adfaerd',
+    mobil: 'adfaerd', toilet: 'adfaerd', fest: 'adfaerd',
+    pligt: 'pligt', dokument: 'pligt', plan: 'pligt', glemsom: 'pligt',
+    naal: 'pligt', kaede: 'pligt', krone: 'pligt',
+    penge: 'andet', hammer: 'andet', stjerne: 'andet'
+  };
+  var GROUP_INFO = {
+    afbud: { c: '#5eb0f5', n: 'Afbud' },
+    forsink: { c: '#ff9f43', n: 'Forsinkelse' },
+    adfaerd: { c: '#a78bfa', n: 'Adfærd' },
+    pligt: { c: '#4fbe7d', n: 'Pligt' },
+    andet: { c: '#fbbf24', n: 'Øvrigt' }
+  };
+  var GROUP_ORDER = ['afbud', 'forsink', 'adfaerd', 'pligt', 'andet'];
+
+  function groupOfKey(key) { return FINE_GROUPS[key] || 'andet'; }
+  function groupColor(g) { return (GROUP_INFO[g] || GROUP_INFO.andet).c; }
+
+  /* Hex → rgba, så ikonbaggrunden kan tone med uden color-mix */
+  function rgba(hex, a) {
+    var h = String(hex).replace('#', '');
+    return 'rgba(' + parseInt(h.slice(0, 2), 16) + ',' + parseInt(h.slice(2, 4), 16) + ',' +
+      parseInt(h.slice(4, 6), 16) + ',' + a + ')';
+  }
+  function colorVars(color) {
+    return '--fc: ' + color + '; --fcb: ' + rgba(color, 0.15);
+  }
+
+  function typeIconKey(t) {
+    return (t && t.icon && FI[t.icon]) ? t.icon : fineIconKey(t && t.category, t && t.description);
+  }
+  /* Gruppe for en given bøde — takstbaseret eller særbøde */
+  function fineGroup(f) {
+    if (f.fineTypeId) {
+      var t = findFineType(f.fineTypeId);
+      if (t) return groupOfKey(typeIconKey(t));
+    }
+    return groupOfKey(fineIconKey(f.label, ''));
+  }
+
+  function fineIcon(t, cls) {
+    var key = typeIconKey(t);
+    return '<span class="fine-ic' + (cls ? ' ' + cls : '') +
+      '" style="' + colorVars(groupColor(groupOfKey(key))) + '">' + FI[key] + '</span>';
+  }
+
+  /* Ikon for en given bøde (takstbaseret eller særbøde) */
+  function fineIconFor(f) {
+    if (f.fineTypeId) {
+      var t = findFineType(f.fineTypeId);
+      if (t) return fineIcon(t);
+    }
+    var key = fineIconKey(f.label, '');
+    return '<span class="fine-ic" style="' + colorVars(groupColor(groupOfKey(key))) + '">' + FI[key] + '</span>';
+  }
+
+
+  /* ---------- Visuelle byggeklodser ---------- */
+
+  /* #2 Avatar: monogram i en fast farve afledt af medlemmets id */
+  var AVATAR_HUES = [12, 32, 48, 96, 145, 172, 196, 214, 250, 280, 315, 340];
+  function avatarHue(id) {
+    var h = 0, str = String(id || '');
+    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 100000;
+    return AVATAR_HUES[h % AVATAR_HUES.length];
+  }
+  function initials(name) {
+    var parts = String(name || '?').trim().split(/\s+/);
+    var a = parts[0] ? parts[0].charAt(0) : '?';
+    var b = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return (a + b).toUpperCase();
+  }
+  function avatar(m, cls) {
+    return '<span class="avatar' + (cls ? ' ' + cls : '') + '" style="--av: ' + avatarHue(m.id) + '">' +
+      esc(initials(m.name)) + '</span>';
+  }
+
+  /* #3 Medalje til top-3 i stedet for et tal */
+  var MEDAL_COLS = {
+    1: ['#ffe9a8', '#fbbf24', '#a9760a'],
+    2: ['#f2f5f8', '#c0c7ce', '#7d868f'],
+    3: ['#e6bd92', '#b07b45', '#6f4a26']
+  };
+  function medal(rank) {
+    var c = MEDAL_COLS[rank];
+    if (!c) return '<div class="rank">' + rank + '</div>';
+    var gid = 'mg' + rank;
+    return '<div class="rank medal"><svg viewBox="0 0 34 42" aria-hidden="true">' +
+      '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="' + c[0] + '"></stop><stop offset="0.55" stop-color="' + c[1] + '"></stop>' +
+      '<stop offset="1" stop-color="' + c[2] + '"></stop></linearGradient></defs>' +
+      '<path d="M8 1h7l-3.5 12L5 10z" fill="' + c[1] + '" opacity="0.75"></path>' +
+      '<path d="M26 1h-7l3.5 12L29 10z" fill="' + c[2] + '" opacity="0.75"></path>' +
+      '<circle cx="17" cy="28" r="12" fill="url(#' + gid + ')"></circle>' +
+      '<circle cx="17" cy="28" r="12" fill="none" stroke="' + c[2] + '" stroke-width="1.2"></circle>' +
+      '<text x="17" y="33.5" text-anchor="middle" class="medal-no">' + rank + '</text>' +
+      '</svg></div>';
+  }
+
+  /* #4 Mini-sparkline: medlemmets bøder i de seneste afholdte møder */
+  function sparkline(mid) {
+    var held = heldMeetings().slice(-6);
+    if (held.length < 3) return '';
+    // Hver søjle bærer mødets beløb og farven på den bødegruppe der fyldte mest
+    var vals = held.map(function (mt) {
+      var sum = 0, byGroup = {};
+      state.fines.forEach(function (f) {
+        if (f.meetingId !== mt.id || f.memberId !== mid) return;
+        sum += f.amount;
+        var g = fineGroup(f);
+        byGroup[g] = (byGroup[g] || 0) + f.amount;
+      });
+      var top = null;
+      Object.keys(byGroup).forEach(function (g) { if (!top || byGroup[g] > byGroup[top]) top = g; });
+      return { v: sum, c: top ? groupColor(top) : null };
+    });
+    var max = vals.reduce(function (a, x) { return Math.max(a, x.v); }, 0);
+    var n = vals.length, bw = 5, gap = 3, hgt = 16, w = n * bw + (n - 1) * gap;
+    var out = '<svg class="spark" viewBox="0 0 ' + w + ' ' + hgt + '" aria-hidden="true">';
+    vals.forEach(function (x, i) {
+      var px = i * (bw + gap);
+      if (max === 0 || x.v === 0) {
+        out += '<rect x="' + px.toFixed(1) + '" y="' + (hgt - 2) + '" width="' + bw.toFixed(1) + '" height="2" rx="1" fill="#2c3846"></rect>';
+      } else {
+        var bh = Math.max(3, Math.round((hgt - 2) * (x.v / max)));
+        out += '<rect x="' + px.toFixed(1) + '" y="' + (hgt - bh) + '" width="' + bw.toFixed(1) + '" height="' + bh + '" rx="1.5" fill="' + (x.c || 'currentColor') + '"></rect>';
+      }
+    });
+    return out + '</svg>';
+  }
+
+  /* ---------- Tegnede tomme tilstande ---------- */
+
+  /* Tre illustrationer i stedet for en tekstlinje. Alle bruger --muted og en
+     enkelt amber-detalje, så de hører til i scoreboard-temaet. */
+  var ART = {
+    kasse: '<svg viewBox="0 0 160 110" class="art" aria-hidden="true">' +
+      '<ellipse cx="80" cy="98" rx="52" ry="7" fill="currentColor" opacity="0.10"></ellipse>' +
+      '<path d="M34 46h92v46a4 4 0 0 1-4 4H38a4 4 0 0 1-4-4z" fill="none" stroke="currentColor" stroke-width="3"></path>' +
+      '<path d="M28 32h104v14H28z" fill="none" stroke="currentColor" stroke-width="3"></path>' +
+      '<path d="M80 46v50" stroke="currentColor" stroke-width="2" opacity="0.45"></path>' +
+      '<path d="M62 32c0-10 8-18 18-18s18 8 18 18" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"></path>' +
+      '<circle cx="80" cy="70" r="9" fill="none" stroke="#fbbf24" stroke-width="2.5" opacity="0.75"></circle>' +
+      '<path d="M76.5 70h7M80 66.5v7" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" opacity="0.75"></path></svg>',
+    dommer: '<svg viewBox="0 0 160 110" class="art" aria-hidden="true">' +
+      '<ellipse cx="80" cy="99" rx="46" ry="6" fill="currentColor" opacity="0.10"></ellipse>' +
+      '<path d="M50 96c0-16 13-27 30-27s30 11 30 27" fill="none" stroke="currentColor" stroke-width="3"></path>' +
+      '<circle cx="80" cy="50" r="19" fill="none" stroke="currentColor" stroke-width="3"></circle>' +
+      '<path d="M71 50c2.5 2.5 5.5 2.5 8 0M85 50c1.8 1.8 4 1.8 5.8 0" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"></path>' +
+      '<path d="M74 60c4 3 8 3 12 0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.7"></path>' +
+      '<path d="M56 40c8-9 40-9 48 0" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"></path>' +
+      '<path d="M104 30c3-2 3-6 0-8M114 24c4-3 4-9 0-12" fill="none" stroke="#fbbf24" stroke-width="2.4" stroke-linecap="round" opacity="0.8"></path></svg>',
+    pokal: '<svg viewBox="0 0 160 110" class="art" aria-hidden="true">' +
+      '<ellipse cx="80" cy="99" rx="34" ry="6" fill="currentColor" opacity="0.10"></ellipse>' +
+      '<path d="M62 20h36v18a18 18 0 0 1-36 0z" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linejoin="round"></path>' +
+      '<path d="M62 24H50a10 10 0 0 0 12 12M98 24h12a10 10 0 0 1-12 12" fill="none" stroke="#fbbf24" stroke-width="2.6"></path>' +
+      '<path d="M80 56v14M68 92h24M74 92V70h12v22" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"></path>' +
+      '<path d="M46 62c3-3 3-7 0-10M40 74c4-4 4-10 0-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"></path>' +
+      '<circle cx="112" cy="58" r="2" fill="currentColor" opacity="0.45"></circle>' +
+      '<circle cx="120" cy="70" r="1.6" fill="currentColor" opacity="0.35"></circle>' +
+      '<circle cx="106" cy="74" r="1.3" fill="currentColor" opacity="0.3"></circle></svg>'
+  };
+
+  /* Bødemesteren: klubbens bødekasse er vågnet og har fået meninger.
+     Pengeskrin med låg, møntslids som mundvig, hævet øjenbryn og en mønt
+     der falder i — hele klubbens institution som én lille figur. */
+  ART.buddy = '<svg viewBox="0 0 64 64" class="buddy" aria-hidden="true">' +
+    '<defs><linearGradient id="bmLid" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="#ffe08a"></stop><stop offset="0.55" stop-color="#fbbf24"></stop>' +
+    '<stop offset="1" stop-color="#c98f10"></stop></linearGradient>' +
+    '<linearGradient id="bmBody" x1="0" y1="0" x2="0.3" y2="1">' +
+    '<stop offset="0" stop-color="#26323f"></stop><stop offset="1" stop-color="#151d26"></stop></linearGradient></defs>' +
+    '<ellipse cx="32" cy="59" rx="19" ry="3" fill="#000" opacity="0.32"></ellipse>' +
+    // mønt på vej ned i slidsen
+    '<g class="bm-coin"><circle cx="32" cy="9" r="5.2" fill="url(#bmLid)" stroke="#8a6108" stroke-width="1.2"></circle>' +
+    '<path d="M30 7.2h2.6M30 9h3M30 10.8h2.2" stroke="#8a6108" stroke-width="1.1" stroke-linecap="round"></path></g>' +
+    // ben
+    '<rect x="17.5" y="53" width="8" height="4.5" rx="2.2" fill="#3b4856"></rect>' +
+    '<rect x="38.5" y="53" width="8" height="4.5" rx="2.2" fill="#3b4856"></rect>' +
+    // krop
+    '<rect x="10" y="24" width="44" height="30" rx="6" fill="url(#bmBody)" stroke="#3b4856" stroke-width="2"></rect>' +
+    // låg med nitter
+    '<rect x="7.5" y="17.5" width="49" height="9" rx="3.5" fill="url(#bmLid)" stroke="#8a6108" stroke-width="1.2"></rect>' +
+    '<circle cx="13" cy="22" r="1.3" fill="#8a6108"></circle><circle cx="51" cy="22" r="1.3" fill="#8a6108"></circle>' +
+    // møntslids
+    '<rect x="26" y="20" width="12" height="3" rx="1.5" fill="#3a2a06"></rect>' +
+    // øjne med skævt blik
+    '<circle cx="24" cy="35" r="5.4" fill="#f4f6f8"></circle><circle cx="25.6" cy="35.8" r="2.5" fill="#10141a"></circle>' +
+    '<circle cx="40" cy="35" r="5.4" fill="#f4f6f8"></circle><circle cx="41.4" cy="35.8" r="2.5" fill="#10141a"></circle>' +
+    '<circle cx="26.4" cy="34.4" r="0.9" fill="#fff"></circle><circle cx="42.2" cy="34.4" r="0.9" fill="#fff"></circle>' +
+    // hævet øjenbryn — det kække blik
+    '<path class="bm-brow" d="M18.5 28.8c2-2.2 6-2.4 8.4-.8" stroke="#fbbf24" stroke-width="2.2" fill="none" stroke-linecap="round"></path>' +
+    '<path d="M36.4 29.4c2.2-1.4 6-1.2 8 .8" stroke="#6b7a89" stroke-width="2.2" fill="none" stroke-linecap="round"></path>' +
+    // smilende mundvig
+    '<path d="M25 45.5c3.5 3 9.5 3.2 13.5.2" stroke="#fbbf24" stroke-width="2.4" fill="none" stroke-linecap="round"></path>' +
+    '<path d="M38.5 45.7l3.2-1.6" stroke="#fbbf24" stroke-width="2.2" fill="none" stroke-linecap="round"></path>' +
+    // arme: den ene holder blyanten klar
+    '<path d="M10 38c-3.5.6-5 2.6-4.6 5.4" stroke="#3b4856" stroke-width="3" fill="none" stroke-linecap="round"></path>' +
+    '<path d="M54 38c3.6.4 5.2 2.2 5 4.8" stroke="#3b4856" stroke-width="3" fill="none" stroke-linecap="round"></path>' +
+    '<g class="bm-pen"><path d="M57.5 43.5l4.5-8" stroke="#c0c7ce" stroke-width="2.6" stroke-linecap="round"></path>' +
+    '<path d="M61.4 36.6l1.2-2.2" stroke="#fbbf24" stroke-width="2.6" stroke-linecap="round"></path></g>' +
+    '</svg>';
+
+  function emptyState(kind, title, sub, extra) {
+    return '<div class="empty art-empty">' + (ART[kind] || ART.kasse) +
+      '<div class="big">' + esc(title) + '</div>' +
+      (sub ? '<div class="art-sub">' + esc(sub) + '</div>' : '') +
+      (extra || '') + '</div>';
+  }
+
+  /* #5 Fremskridtsbjælke: hvor stor en del af de samlede bøder der er betalt */
+  function payBar(mid) {
+    var fined = memberFineTotal(mid), paid = memberPaidTotal(mid);
+    if (fined <= 0) return '';
+    var pct = Math.max(0, Math.min(100, Math.round(100 * paid / fined)));
+    return '<span class="paybar"><i style="width: ' + pct + '%"></i></span>';
+  }
+
+  /* #8 Fast farve pr. klubår — følger med i lister, headere og grafer */
+  var YEAR_COLORS = ['#fbbf24', '#5eead4', '#f3798d', '#a78bfa', '#7dd3fc', '#9fe870'];
+  function yearColor(y) {
+    if (!y) return '#fbbf24';
+    var i = ((y.startYear % YEAR_COLORS.length) + YEAR_COLORS.length) % YEAR_COLORS.length;
+    return YEAR_COLORS[i];
+  }
+
+  /* ---------- Streaks og dyre bøder ---------- */
+
+  var HOT_FINE = 300;  // beløb der markeres som "dyr bøde"
+  var MID_FINE = 100;
+
+  function amtClass(amount) {
+    if (amount >= HOT_FINE) return ' amt-hot';
+    if (amount >= MID_FINE) return ' amt-mid';
+    return '';
+  }
+
+  /* Afholdte møder = møder med mindst én bøde eller afsluttet, kronologisk */
+  function heldMeetings() {
+    return state.meetings.filter(function (m) { return meetingFineCount(m.id) > 0 || m.closedAt; })
+      .sort(function (a, b) {
+        var d = (a.date || '').localeCompare(b.date || '');
+        return d !== 0 ? d : a.number - b.number;
+      });
+  }
+
+  /* Antal afholdte møder i træk (bagfra) hvor medlemmet har fået bøde.
+     Et åbent møde uden bøde til medlemmet bryder ikke streaken endnu. */
+  function memberMeetingStreak(mid) {
+    var held = heldMeetings();
+    var s = 0;
+    for (var i = held.length - 1; i >= 0; i--) {
+      var mtg = held[i];
+      var hit = state.fines.some(function (f) { return f.meetingId === mtg.id && f.memberId === mid; });
+      if (hit) s++;
+      else if (!mtg.closedAt) continue;
+      else break;
+    }
+    return s;
+  }
+
+  /* Mest gentagne bødetype for et medlem: {typeId, count} eller null.
+     Ved uafgjort vinder typen med den senest givne bøde. */
+  function memberTopType(mid) {
+    var counts = {};
+    state.fines.forEach(function (f) {
+      if (f.memberId === mid && f.fineTypeId) {
+        var c = counts[f.fineTypeId] || { count: 0, lastTs: 0 };
+        c.count++;
+        c.lastTs = Math.max(c.lastTs, f.ts || 0);
+        counts[f.fineTypeId] = c;
+      }
+    });
+    var best = null;
+    Object.keys(counts).forEach(function (k) {
+      var c = counts[k];
+      if (!best || c.count > best.count || (c.count === best.count && c.lastTs > best.lastTs)) {
+        best = { typeId: k, count: c.count, lastTs: c.lastTs };
+      }
+    });
+    return best;
+  }
+
+  /* Bødefri-streak: afsluttede møder i træk (bagfra) uden bøde til medlemmet */
+  function memberCleanStreak(mid) {
+    var held = heldMeetings();
+    var s = 0;
+    for (var i = held.length - 1; i >= 0; i--) {
+      var mtg = held[i];
+      var hit = state.fines.some(function (f) { return f.meetingId === mtg.id && f.memberId === mid; });
+      if (hit) break;
+      if (mtg.closedAt) s++;
+    }
+    return s;
+  }
+
+  /* Længste bødestreak nogensinde for et medlem */
+  function memberLongestStreak(mid) {
+    var held = heldMeetings();
+    var best = 0, run = 0;
+    held.forEach(function (mtg) {
+      var hit = state.fines.some(function (f) { return f.meetingId === mtg.id && f.memberId === mid; });
+      if (hit) { run++; if (run > best) best = run; }
+      else if (mtg.closedAt) run = 0;
+    });
+    return best;
+  }
+
+  /* ---------- Betalingsdisciplin ---------- */
+
+  /* Hvornår "skete" en bøde: tidsstemplet, ellers mødets dato. */
+  function fineTime(f) {
+    if (f.ts) return f.ts;
+    var meet = findMeeting(f.meetingId);
+    return meet && meet.date ? new Date(meet.date + 'T12:00:00').getTime() : 0;
+  }
+  function payTime(p) {
+    if (p.date) return new Date(p.date + 'T12:00:00').getTime();
+    return p.ts || 0;
+  }
+
+  /* Gennemsnitlig tid fra bøde til betaling. Indbetalinger dækker de ældste
+     ubetalte bøder først (FIFO), og gennemsnittet vægtes efter beløb. */
+  function paymentSpeed(mid) {
+    var fines = state.fines.filter(function (f) { return f.memberId === mid; })
+      .map(function (f) { return { t: fineTime(f), left: f.amount }; })
+      .sort(function (a, b) { return a.t - b.t; });
+    var pays = state.payments.filter(function (p) { return p.memberId === mid; })
+      .map(function (p) { return { t: payTime(p), left: p.amount }; })
+      .sort(function (a, b) { return a.t - b.t; });
+    var settled = 0, weighted = 0, i = 0;
+    pays.forEach(function (p) {
+      while (p.left > 0 && i < fines.length) {
+        var f = fines[i];
+        if (f.left <= 0) { i++; continue; }
+        var take = Math.min(p.left, f.left);
+        f.left -= take;
+        p.left -= take;
+        settled += take;
+        weighted += take * Math.max(0, (p.t - f.t) / 86400000);
+        if (f.left <= 0) i++;
+      }
+    });
+    return settled > 0 ? { days: weighted / settled, settled: settled } : null;
+  }
+
+  function yearFineTotalFor(mid, yearId) {
+    var ids = {};
+    yearMeetings(yearId).forEach(function (m) { ids[m.id] = 1; });
+    return state.fines.reduce(function (a, f) { return ids[f.meetingId] && f.memberId === mid ? a + f.amount : a; }, 0);
+  }
+
+  /* Hædersbevisninger til et medlem */
+  function computeBadges(mid) {
+    var out = [];
+    state.clubYears.filter(function (y) { return y.closedAt; }).forEach(function (y) {
+      var totals = state.members.map(function (m) { return { id: m.id, sum: yearFineTotalFor(m.id, y.id) }; });
+      var max = totals.reduce(function (a, t) { return t.sum > a ? t.sum : a; }, 0);
+      if (max > 0 && totals.some(function (t) { return t.id === mid && t.sum === max; })) {
+        out.push({ ic: 'trophy', metal: 'guld', label: 'Årets synder ' + y.label, desc: kr(max) + ' i bøder' });
+      }
+      var min = totals.reduce(function (a, t) { return t.sum < a ? t.sum : a; }, Infinity);
+      if (max > 0 && totals.some(function (t) { return t.id === mid && t.sum === min; })) {
+        out.push({ ic: 'shield', metal: 'soelv', label: 'Mest artige ' + y.label, desc: 'Kun ' + kr(min) + ' i bøder' });
+      }
+    });
+    if (memberFineTotal(mid) >= HOT_FINE && memberBalance(mid) <= 0) {
+      out.push({ ic: 'star', metal: 'soelv', label: 'Comeback', desc: 'Fra synder til rent ark' });
+    }
+    var activeTypes = state.fineTypes.filter(function (t) { return t.active; });
+    if (activeTypes.length && activeTypes.every(function (t) {
+      return state.fines.some(function (f) { return f.memberId === mid && f.fineTypeId === t.id; });
+    })) {
+      out.push({ ic: 'flame', metal: 'ild', label: 'Grand Slam', desc: 'Har prøvet samtlige takster' });
+    }
+    if (memberMeetingStreak(mid) >= 4) {
+      out.push({ ic: 'flame', metal: 'ild', label: streakTitle(memberMeetingStreak(mid)), desc: memberMeetingStreak(mid) + ' møder i træk med bøde' });
+    }
+    if (memberCleanStreak(mid) >= 3) {
+      out.push({ ic: 'shield', metal: 'groen', label: 'Fredet', desc: memberCleanStreak(mid) + ' møder uden bøde' });
+    }
+    return out;
+  }
+
+  /* Afslutter den siddende formands periode i formandsrækken */
+  function closeFormandPeriod() {
+    state.formandHistory.forEach(function (h) { if (!h.to) h.to = todayISO(); });
+  }
+
+  /* Hædersbevisninger som metalemblemer — gradient, støjtekstur og blank kant */
+  function awardRow(badges, cls) {
+    return '<div class="badge-row' + (cls ? ' ' + cls : '') + '">' + badges.map(function (b) {
+      return '<span class="award ' + (b.metal || 'guld') + '" data-tip="' + esc(b.desc) + '">' +
+        '<span class="aw-ic">' + IC[b.ic] + '</span><span class="aw-lbl">' + esc(b.label) + '</span></span>';
+    }).join('') + '</div>';
+  }
+
+  /* Sæsonrekorder på tværs af alle klubår */
+  function seasonRecords() {
+    var out = [];
+    var topMeet = null;
+    state.meetings.forEach(function (m) {
+      var t = meetingTotal(m.id);
+      if (t > 0 && (!topMeet || t > topMeet.t)) topMeet = { m: m, t: t };
+    });
+    if (topMeet) out.push({ ic: 'zap', label: 'Dyreste møde', value: kr(topMeet.t), desc: esc(topMeet.m.title) + ' · ' + esc(meetingYearLabel(topMeet.m)) });
+    var topStreak = null;
+    state.members.forEach(function (m) {
+      var s = memberLongestStreak(m.id);
+      if (s >= 2 && (!topStreak || s > topStreak.s)) topStreak = { m: m, s: s };
+    });
+    if (topStreak) out.push({ ic: 'flame', label: 'Længste bødestreak', value: topStreak.s + ' møder', desc: esc(topStreak.m.name) });
+    var topPay = null;
+    state.payments.forEach(function (p) {
+      if (!topPay || p.amount > topPay.amount) topPay = p;
+    });
+    if (topPay) {
+      var pm = findMember(topPay.memberId);
+      out.push({ ic: 'star', label: 'Største indbetaling', value: kr(topPay.amount), desc: (pm ? esc(pm.name) + ' · ' : '') + fmtDate(topPay.date) });
+    }
+    var fastest = null;
+    state.members.forEach(function (m) {
+      var sp = paymentSpeed(m.id);
+      if (sp && (!fastest || sp.days < fastest.sp.days)) fastest = { m: m, sp: sp };
+    });
+    if (fastest) {
+      out.push({ ic: 'shield', label: 'Hurtigste betaler', value: Math.round(fastest.sp.days) + ' dage',
+        desc: esc(fastest.m.name) + ' · ' + kr(fastest.sp.settled) + ' betalt' });
+    }
+    return out;
+  }
+
+  /* Klubårets tidsvindue (1. juli — 30. juni) til betalinger og grafer */
+  function yearWindow(cy) {
+    return { from: cy.startYear + '-07-01', to: (cy.startYear + 1) + '-06-30' };
+  }
+
+  /* Afbudsforslag ud fra mødedato (#16) */
+  function suggestedFineTypeFor(meet) {
+    if (!meet.date) return null;
+    var days = Math.floor((new Date(meet.date + 'T12:00:00') - new Date(todayISO() + 'T12:00:00')) / 86400000);
+    var name = null, reason = null;
+    if (days <= 1) { name = 'Afmelding 24 timer'; reason = 'Mødet er om under 24 timer'; }
+    else if (days <= 7) { name = 'Afmelding efter frist'; reason = 'Under 7 dage til mødet'; }
+    if (!name) return null;
+    var t = state.fineTypes.find(function (x) { return x.active && x.category === name; }) ||
+      state.fineTypes.find(function (x) { return x.active && x.category.indexOf(name.slice(0, 12)) === 0; });
+    return t ? { type: t, reason: reason } : null;
+  }
+
+  function memberHotFineCount(mid) {
+    return state.fines.reduce(function (a, f) { return f.memberId === mid && f.amount >= HOT_FINE ? a + 1 : a; }, 0);
+  }
+
+  function streakTitle(n) {
+    if (n >= 6) return 'LEGENDE';
+    if (n >= 4) return 'Ustoppelig';
+    if (n >= 3) return 'I brand';
+    return 'Varm';
+  }
+
+  function flames(n) {
+    var c = Math.min(3, Math.max(1, Math.floor(n / 2)));
+    var out = '';
+    for (var i = 0; i < c; i++) out += IC.flame;
+    return '<span class="flames">' + out + '</span>';
+  }
+
+  /* Prospect-forløb: de første møder efter startdatoen. Spiren vokser et hak
+     undervejs, og både antallet og de gennemførte møder kan sættes manuelt. */
+  var PROSPECT_MEETINGS = 3;
+
+  /* Afholdte møder fra startdatoen — plus møder hvor prospektet allerede har fået bøde */
+  function prospectMeetings(m) {
+    var from = prospectStart(m);
+    return heldMeetings().filter(function (mt) {
+      return (mt.date || '') >= from ||
+        state.fines.some(function (f) { return f.meetingId === mt.id && f.memberId === m.id; });
+    }).length;
+  }
+
+  function prospectStart(m) {
+    if (m.prospectFrom) return m.prospectFrom;
+    return m.createdAt ? isoOf(new Date(m.createdAt)) : todayISO();
+  }
+
+  function prospectProgress(m) {
+    if (!m || !m.prospect) return null;
+    var goal = Math.max(1, Number(m.prospectGoal) || PROSPECT_MEETINGS);
+    var manual = m.prospectDone !== null && m.prospectDone !== undefined && m.prospectDone !== '';
+    var raw = manual ? Math.max(0, Number(m.prospectDone) || 0) : prospectMeetings(m);
+    var done = Math.min(goal, raw);
+    return {
+      done: done, raw: raw, goal: goal, manual: manual, from: prospectStart(m),
+      klar: raw >= goal,
+      grow: Math.min(3, Math.floor(3 * done / goal))
+    };
+  }
+  function sproutIcon(m) {
+    var p = prospectProgress(m);
+    if (!p) return '';
+    return '<span class="sprout" data-grow="' + p.grow + '" title="Prospect — ' + p.done + ' af ' + p.goal + ' møder">' + IC.sprout + '</span>';
+  }
+
+  function nameIcons(mid) {
+    var out = '';
+    var m = findMember(mid);
+    if (state.formandId === mid) out += '<span class="crown" title="Formand">' + IC.crown + '</span>';
+    if (m && m.prospect) out += sproutIcon(m);
+    var hot = memberHotFineCount(mid);
+    if (hot > 0) {
+      out += '<span class="zaps" title="Dyre bøder (' + HOT_FINE + ' kr.+)">';
+      for (var i = 0; i < Math.min(3, hot); i++) out += IC.zap;
+      out += '</span>';
+    }
+    return out;
+  }
+
+  /* Forslag til "næste møde" på forsiden: seneste åbne møde med bøder,
+     ellers det næste kommende åbne møde i det nyeste klubår. */
+  function suggestMeeting() {
+    var withFines = state.meetings.filter(function (m) { return !m.closedAt && meetingFineCount(m.id) > 0; })
+      .sort(function (a, b) { return (a.date || '').localeCompare(b.date || '') || a.number - b.number; });
+    if (withFines.length) return { meeting: withFines[withFines.length - 1], verb: 'Fortsæt' };
+    var cy = currentClubYear();
+    if (!cy) return null;
+    var ms = yearMeetings(cy.id);
+    var open = ms.filter(function (m) { return !m.closedAt; });
+    var today = todayISO();
+    var upcoming = open.find(function (m) { return m.date >= today; });
+    var pick = upcoming || open[0] || ms[ms.length - 1];
+    return pick ? { meeting: pick, verb: 'Åbn' } : null;
+  }
+
+  /* ---------- Bødemesteren: kække replikker ud fra klubbens data ---------- */
+
+  /* Replikkerne bygges af klubbens egne tal med flere formuleringer pr. fakta,
+     så puljen bliver stor nok til at man kan sidde med appen i lang tid uden
+     at se det samme to gange. Kun linjer med data bag sig kommer med. */
+  function mascotLines() {
+    var out = [];
+    var members = activeMembers();
+    var held = heldMeetings();
+    var f1 = function (m) { return firstName(m.name); };
+    var add = function () {
+      for (var i = 0; i < arguments.length; i++) if (arguments[i]) out.push(arguments[i]);
+    };
+
+    // Seneste afholdte møde
+    var last = held[held.length - 1];
+    if (last) {
+      var per = {};
+      state.fines.forEach(function (f) {
+        if (f.meetingId === last.id) per[f.memberId] = (per[f.memberId] || 0) + 1;
+      });
+      var topId = null;
+      Object.keys(per).forEach(function (k) { if (!topId || per[k] > per[topId]) topId = k; });
+      var tm = topId && findMember(topId);
+      if (tm && per[topId] >= 3) {
+        add('Typisk ' + f1(tm) + ' at få ' + per[topId] + ' bøder på ét møde. Det er satme ringe.',
+          f1(tm) + ' tog ' + per[topId] + ' bøder på én aften. Det er ikke uheld, det er en forretningsmodel.',
+          per[topId] + ' bøder til ' + f1(tm) + ' på ét møde. Har du overvejet en anden klub?');
+      } else if (tm && per[topId] === 2) {
+        add(f1(tm) + ' nåede to bøder i ' + last.title + '. Ambitiøst. Ikke imponerende, men ambitiøst.',
+          'To bøder til ' + f1(tm) + '. Han varmer bare op.');
+      }
+      var lastTotal = meetingTotal(last.id);
+      if (lastTotal > 0) {
+        add(last.title + ' kostede jer ' + kr(lastTotal) + ' Nogen skulle være blevet hjemme.',
+          kr(lastTotal) + ' på ét møde. I opfører jer som om pengene er gratis.');
+      }
+      if (lastTotal === 0 && last.closedAt) {
+        add(last.title + ' gav ikke én bøde. Enten var I artige, eller også sov bødemesteren i timen.');
+      }
+    }
+
+    // Gæld og kasse
+    var debt = members.slice().sort(function (a, b) { return memberBalance(b.id) - memberBalance(a.id); })[0];
+    if (debt && memberBalance(debt.id) > 0) {
+      var d = kr(memberBalance(debt.id));
+      add(f1(debt) + ' skylder ' + d + ' Jeg har set kviklån med bedre moral.',
+        f1(debt) + ' skylder ' + d + ' Kassereren sover dårligt, og det er ikke kaffens skyld.',
+        'Hvis ' + f1(debt) + ' betalte sine ' + d + ', kunne vi holde fest. Nu bliver det filterkaffe.',
+        f1(debt) + ' har ' + d + ' udestående. På et tidspunkt hedder det ikke glemsomhed længere.');
+    }
+    var tot = outstandingTotal();
+    if (tot > 0) {
+      add('Der mangler ' + kr(tot) + ' i kassen. Jeg nævner ingen navne. Jeg kigger bare.',
+        kr(tot) + ' udestående. Det er ikke pengene, det er princippet. Okay, det er også pengene.');
+    }
+    if (potTotal() > 0) {
+      add('Kassen står på ' + kr(potTotal()) + ' Det er ikke opsparing, det er jeres dårlige opførsel i tal.',
+        kr(potTotal()) + ' i kassen. Tak for bidraget, I har været flittige.');
+    }
+    if (expenseTotal() > 0) add('I har brugt ' + kr(expenseTotal()) + ' af kassen. Håber det var det værd.');
+
+    // Streaks og vaner
+    members.forEach(function (m) {
+      var st = memberMeetingStreak(m.id);
+      if (st >= 3) {
+        add(f1(m) + ' har bøde i ' + st + ' møder i træk. Det er ikke uheld længere, det er en livsstil.',
+          st + ' møder i træk med bøde til ' + f1(m) + '. Han er holdt op med at prøve.');
+      } else if (st === 2) {
+        add(f1(m) + ' er oppe på to i træk. Hattrick lurer, og han ved det godt.');
+      }
+      var cl = memberCleanStreak(m.id);
+      if (cl >= 3) {
+        add(f1(m) + ' har været bødefri i ' + cl + ' møder. Enten et bedre menneske — eller også er han holdt op med at komme.',
+          cl + ' møder uden en bøde til ' + f1(m) + '. Mistænkeligt pænt. Jeg holder øje.');
+      }
+      var hot = memberHotFineCount(m.id);
+      if (hot >= 2) {
+        add(f1(m) + ' har taget ' + hot + ' dyre bøder. Han køber vist abonnement.',
+          hot + ' store bøder til ' + f1(m) + '. Det må være en principsag.');
+      }
+      var top = memberTopType(m.id);
+      if (top && top.count >= 3) {
+        var t = findFineType(top.typeId);
+        if (t) add(f1(m) + ' har fået »' + t.category + '« ' + top.count + ' gange. På et tidspunkt er det en hobby.',
+          top.count + '× »' + t.category + '« til ' + f1(m) + '. Han har fundet sin niche.');
+      }
+      if (memberFineCount(m.id) === 0 && held.length >= 2) {
+        add(f1(m) + ' har ikke fået én eneste bøde. Enten et forbillede — eller også har ingen opdaget, han er med.',
+          'Nul bøder til ' + f1(m) + '. Det er enten disciplin eller fravær. Jeg har min mistanke.');
+      }
+    });
+
+    // Formand og prospects
+    var fm = state.formandId && findMember(state.formandId);
+    if (fm) {
+      var fc = memberFineCount(fm.id);
+      if (fc > 0) {
+        add('Formand ' + f1(fm) + ' har selv ' + fc + ' bøder. Kronen sidder løst.',
+          'Formanden har ' + fc + ' bøder. Godt han skal gå foran med et godt eksempel. Nå.');
+      } else {
+        add('Formand ' + f1(fm) + ' er helt ren. Enten dygtig — eller også tør ingen give ham en bøde.');
+      }
+    }
+    members.filter(function (m) { return m.prospect; }).forEach(function (m) {
+      var pp = prospectProgress(m);
+      if (!pp) return;
+      if (pp.klar) add(f1(m) + ' har klaret sine ' + pp.goal + ' møder. Velkommen til, nu koster det rigtige penge.');
+      else add(f1(m) + ' er prospect: ' + pp.done + ' af ' + pp.goal + ' møder. Nyd det, mens bøderne stadig overrasker.');
+    });
+
+    // Takster og rekorder
+    var perType = {};
+    state.fines.forEach(function (f) { var k = fineLabel(f); perType[k] = (perType[k] || 0) + 1; });
+    var favk = null;
+    Object.keys(perType).forEach(function (k) { if (!favk || perType[k] > perType[favk]) favk = k; });
+    if (favk && perType[favk] >= 3) {
+      add('»' + favk + '« er givet ' + perType[favk] + ' gange. I er ikke en klub, I er en gentagelsesforbrydelse.',
+        'Yndlingssynden er »' + favk + '« — ' + perType[favk] + ' gange. Fantasien fejler ikke noget.');
+    }
+    var big = null;
+    state.fines.forEach(function (f) { if (!big || f.amount > big.amount) big = f; });
+    if (big && big.amount >= HOT_FINE) {
+      var bm = findMember(big.memberId);
+      if (bm) add('Rekorden er ' + kr(big.amount) + ' til ' + f1(bm) + ' for »' + fineLabel(big) + '«. Den står stadig.',
+        kr(big.amount) + ' på én bøde. ' + f1(bm) + ' husker det stadig. Det gør jeg også.');
+    }
+    var fastest = null;
+    members.forEach(function (m) {
+      var sp = paymentSpeed(m.id);
+      if (sp && (!fastest || sp.days < fastest.sp.days)) fastest = { m: m, sp: sp };
+    });
+    if (fastest) add(f1(fastest.m) + ' betaler på ' + Math.round(fastest.sp.days) + ' dage i snit. Sådan en burde I alle sammen have været.');
+
+    // Altid noget på lager
+    add('Jeg holder øje. Det er hele mit job, og I gør det nemt.',
+      'En bøde er ikke en straf. Det er en donation med attitude.',
+      'Klubben har afholdt ' + held.length + ' møde' + (held.length === 1 ? '' : 'r') + '. Jeg har set ting.',
+      members.length + ' medlemmer, og ikke én kan møde til tiden. Imponerende konsekvent.',
+      'Bødekassen lyver aldrig. Undskyldningerne gør.',
+      'Jeg er bare en kasse. Alligevel er jeg den mest ansvarlige her.',
+      'Hver gang I siger »det var lige før«, bliver jeg lidt tungere.',
+      'I kalder det uheld. Regnskabet kalder det et mønster.',
+      'Jeg har hørt bedre undskyldninger fra en femårig.',
+      'Det er ikke mig, der giver bøderne. Jeg nyder dem bare.',
+      'Ingen af jer har nogensinde sagt »den bøde var fortjent«. Ingen.',
+      'Jeg husker alt. Det er derfor, I ikke kan lide mig.',
+      'Trafikken. Arbejdet. Bilen. Jeg har hørt dem alle sammen i år.',
+      'Der er to slags medlemmer: dem der betaler, og dem vi taler om.',
+      'I skylder ikke mig noget. I skylder hinanden en undskyldning.',
+      'Kom nu. Jeg har plads til meget mere end det her.',
+      'Det er ikke en bødekasse. Det er et arkiv over dårlige beslutninger.',
+      'Mit eneste ønske: én aften hvor ingen finder på noget.',
+      'Statistisk set gør en af jer noget dumt inden for en time.',
+      'Jeg dømmer ikke. Jeg noterer bare. Meget grundigt.',
+      'Andre klubber har vedtægter. I har mig.',
+      'Hvis god vilje var penge, ville kassen stadig være tom.');
+    return out;
+  }
+
+  var mascotMsg = '';
+  var mascotQueue = [];
+  var mascotTimer = null;
+  var mascotMax = 0;      // 0 = ingen grænse (mobil), ellers maks. tegn der er plads til
+  var aiLines = [];
+  var aiAsked = false;
+
+  /* Hvor lang en replik der er plads til i sidebarens ledige felt */
+  function mascotFit(gap, tight) {
+    var perLine = tight ? 22 : 25;
+    var avail = tight ? gap - 8 : gap - 63;
+    var lines = Math.floor((avail - 18) / 18);
+    return lines > 0 ? lines * perLine : 0;
+  }
+
+  /* Kø der spiller hele puljen igennem i tilfældig rækkefølge, før den gentager */
+  function refillQueue() {
+    var pool = mascotLines().concat(aiLines).filter(function (t) {
+      return !mascotMax || t.length <= mascotMax;
+    });
+    for (var i = pool.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+    }
+    if (pool.length > 1 && pool[0] === mascotMsg) pool.push(pool.shift());
+    mascotQueue = pool;
+  }
+
+  function mascotPick() {
+    if (!mascotQueue.length) refillQueue();
+    return mascotQueue.length ? mascotQueue.shift() : '';
+  }
+
+  function mascotBox(cls) {
+    return '<div class="mascot' + (cls ? ' ' + cls : '') + '">' + ART.buddy +
+      '<div class="mc-bubble"><p class="mc-msg">' + esc(mascotMsg) + '</p></div></div>';
+  }
+
+  /* Tegner maskotten begge steder: i sidebaren på desktop, på forsiden på mobil */
+  function renderMascot() {
+    if (!mascotMsg) mascotMsg = mascotPick();
+    if (mascotMax && mascotMsg.length > mascotMax) { mascotQueue = []; mascotMsg = mascotPick(); }
+    var side = document.getElementById('mascot-side');
+    if (side) side.innerHTML = mascotBox('side');
+    var inline = document.getElementById('mascot-inline');
+    if (inline) inline.innerHTML = mascotBox('inline');
+    if (reducedMotion) return;
+    var msgs = document.querySelectorAll('.mc-msg');
+    for (var i = 0; i < msgs.length; i++) {
+      msgs[i].classList.remove('fade'); void msgs[i].offsetWidth; msgs[i].classList.add('fade');
+    }
+  }
+
+  function nextMascotMsg() {
+    mascotMsg = mascotPick();
+    renderMascot();
+  }
+
+  function startMascot() {
+    if (mascotTimer) clearInterval(mascotTimer);
+    mascotTimer = setInterval(nextMascotMsg, 14000);
+  }
+
+  /* Én gang pr. besøg hentes en portion friske replikker fra Claude, som blandes
+     ind i rotationen. Kaldet sker først når siden har stået stille et stykke tid. */
+  function clubFacts() {
+    var held = heldMeetings();
+    var last = held[held.length - 1];
+    var lines = activeMembers().slice().sort(function (a, b) { return memberBalance(b.id) - memberBalance(a.id); })
+      .slice(0, 12).map(function (m) {
+        var top = memberTopType(m.id);
+        var t = top ? findFineType(top.typeId) : null;
+        return '- ' + m.name + ': ' + memberFineCount(m.id) + ' bøder, skylder ' + kr(Math.max(0, memberBalance(m.id))) +
+          ', streak ' + memberMeetingStreak(m.id) +
+          (t ? ', oftest »' + t.category + '« (' + top.count + '×)' : '') +
+          (state.formandId === m.id ? ', ER FORMAND' : '') + (m.prospect ? ', er prospect' : '');
+      });
+    return 'Klub: ' + state.clubName + '\n' +
+      'Møder afholdt: ' + held.length + (last ? '. Seneste: ' + last.title + ' (' + kr(meetingTotal(last.id)) + ')' : '') + '\n' +
+      'I kassen: ' + kr(potTotal()) + ' Udestående: ' + kr(outstandingTotal()) + '\n' +
+      'Medlemmer:\n' + lines.join('\n');
+  }
+
+  function fetchCompanionLines() {
+    if (!sampleNS || aiAsked) return;
+    aiAsked = true;
+    var maks = mascotMax ? Math.min(120, mascotMax) : 120;
+    var prompt = 'Du er »Bødemesteren«, en kæk maskot i en dansk klub-bødekasse-app. ' +
+      'Skriv 10 korte, drilske one-linere på dansk om klubben og de enkelte medlemmer, ' +
+      'baseret på tallene herunder. Hver replik maks ' + maks + ' tegn, ingen anførselstegn og ingen emoji. ' +
+      'Tonen er hård, tør klubhumor mellem venner: driller for bøder, gæld, forsinkelser og elendige undskyldninger. ' +
+      'Aldrig om udseende, familie, helbred, politik eller andet personligt. Brug rigtige navne fra listen. ' +
+      'Svar som JSON: {"lines": ["...", "..."]}\n\n' + clubFacts();
+    sampleNS.json(prompt, { modelTier: 'quick' }).then(function (r) {
+      var arr = (r && (r.lines || r)) || [];
+      if (!Array.isArray(arr)) return;
+      arr.forEach(function (t) {
+        t = String(t || '').trim().replace(/^[»"']+|[«"']+$/g, '');
+        if (t && t.length <= 160 && aiLines.indexOf(t) === -1) aiLines.push(t);
+      });
+      if (aiLines.length) mascotQueue = [];   // bland de nye ind med det samme
+    }).catch(function () { /* ingen AI-replikker denne gang — puljen kører videre */ });
+  }
+
+  /* ---------- UI-tilstand ---------- */
+  /* ---------- UI-tilstand ---------- */
+
+  var view = { name: 'liga' };
+  var lastRanks = {};   // medlem → seneste placering (til rangskifte-animation)
+  var pickerMemberId = null; // valgt medlem i bødevælgeren
+
+  /* ---------- Ikoner ---------- */
+
+  var IC = {
+    crown: '<svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24"><path d="M3 17 2 7l5 3.5L12 4l5 6.5L22 7l-1 10H3z"></path><rect x="3.5" y="18.5" width="17" height="2.5" rx="1"></rect></svg>',
+    flame: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.8 3.6-4.5 5.6-4.5 10a4.5 4.5 0 0 0 9 0c0-1.6-.9-2.9-.9-2.9s2.9 1.5 2.9 5.4a6.5 6.5 0 1 1-13 0C5.5 8.6 10.5 7 12 2z"></path></svg>',
+    zap: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"></path></svg>',
+    trophy: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"></path><path d="M8 5H5a3 3 0 0 0 3 5M16 5h3a3 3 0 0 1-3 5"></path><path d="M12 13v4m-4 4h8m-6 0v-4h4v4"></path></svg>',
+    shield: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3z"></path><path d="m9 12 2 2 4-4"></path></svg>',
+    star: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6L3.4 9.4l6-.8L12 3z"></path></svg>',
+    eye: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"></path><circle cx="12" cy="12" r="2.8"></circle></svg>',
+    bin: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m-9 0 1 14h10l1-14"></path><path d="M10 11v6M14 11v6"></path></svg>',
+    clock: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.5 2"></path></svg>',
+    print: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8V3h10v5M5 8h14a2 2 0 0 1 2 2v6h-4v5H7v-5H3v-6a2 2 0 0 1 2-2z"></path><path d="M7 16h10"></path></svg>',
+    x: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>',
+    left: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>',
+    right: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>',
+    plus: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>',
+    save: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5V3z"></path><path d="M8 3v5h7V3M8 21v-7h8v7"></path></svg>',
+    edit: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L20 8l-4-4L4 16v4z"></path><path d="M13.5 6.5l4 4"></path></svg>',
+    link: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"></path><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"></path></svg>',
+    /* Prospect: spire på vej op — modstykket til formandens krone */
+    sprout: '<svg width="16" height="16" viewBox="0 0 24 24" fill="#9fe870"><path d="M11 21v-6.2C8.3 14.4 6 12.2 6 9.3V7.6h1.7c2.6 0 4.8 1.8 5.4 4.3.9-2 2.8-3.4 5.1-3.4H20v1.7c0 3-2.5 5.4-5.6 5.4H13V21h-2z"></path><path d="M12 8.6c-.6-1.3-.5-2.9.4-4.1l.7-.9.8.9c1 1.2 1.1 2.8.5 4.1H12z"></path></svg>',
+    search: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg>',
+    undo: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h10a5 5 0 0 1 0 10h-4"></path><path d="M8 5 4 9l4 4"></path></svg>',
+    redo: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9H10a5 5 0 0 0 0 10h4"></path><path d="m16 5 4 4-4 4"></path></svg>',
+    coins: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="6.5" rx="7" ry="3"></ellipse><path d="M5 6.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"></path><path d="M5 11.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"></path></svg>',
+    scroll: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h11a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6"></path><path d="M6 4a2 2 0 0 0-2 2v2h4"></path><path d="M9 9h7M9 13h7M9 17h4"></path></svg>',
+    warn: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5 2.8 20h18.4L12 4.5z"></path><path d="M12 10v4.2M12 17.2v.1"></path></svg>',
+    check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5L19 7"></path></svg>'
+  };
+
+  /* ---------- Render ---------- */
+
+  function h(html) { var d = document.createElement('div'); d.innerHTML = html; return d; }
+
+  function render() {
+    var app = document.getElementById('app');
+    var brand = document.querySelector('#brand-name .bn');
+    if (brand) brand.textContent = state.clubName;
+    // Levende baggrund: hver fane har sin egen tone
+    document.documentElement.setAttribute('data-view', view.name);
+    document.title = state.clubName + ' Bødeligaen';
+    renderToolbar();
+
+    var html = '';
+    if (viewerMode) {
+      html += '<div class="viewer-banner">' + IC.eye + '<span>Visningstilstand — registrering er slået fra på denne enhed</span></div>';
+    }
+    if (stashed && !viewerMode) {
+      html += '<div class="conflict-banner">' + IC.warn +
+        '<div class="grow"><b>En anden gemte først.</b> Dine ændringer fra ' + esc(fmtDateTime(stashed.ts)) +
+        ' nåede ikke med i den delte udgave, men de er lagt til side her.</div>' +
+        '<span class="cb-actions">' +
+        '<button class="btn small" data-action="conflict-restore">Hent frem</button>' +
+        '<button class="btn small secondary" data-action="conflict-dismiss">Kassér</button>' +
+        '</span>' +
+        '</div>';
+    }
+    if (view.name === 'liga') html += viewLiga();
+    else if (view.name === 'aar') html += viewYears();
+    else if (view.name === 'aar-detalje') html += viewYearDetail();
+    else if (view.name === 'mode') html += viewMeeting();
+    else if (view.name === 'medlemmer') html += viewMembers();
+    else if (view.name === 'takster') html += viewFineTypes();
+    else if (view.name === 'hall') html += viewHall();
+    else if (view.name === 'statistik') html += viewStats();
+    app.innerHTML = html;
+    // Flyt CTA-knappen ned i bundbjælken, så den aldrig svæver oven på indholdet
+    var slot = document.getElementById('cta-slot');
+    if (slot) {
+      slot.innerHTML = '';
+      var ab = app.querySelector('.actionbar');
+      if (ab) slot.appendChild(ab);
+    }
+    runCountUps();
+    renderMascot();
+    layoutSidebar();
+
+    var tabs = document.querySelectorAll('.tab');
+    for (var i = 0; i < tabs.length; i++) {
+      var t = tabs[i].getAttribute('data-tab');
+      var active = (t === view.name) || (t === 'aar' && (view.name === 'aar-detalje' || view.name === 'mode'));
+      tabs[i].className = 'tab' + (active ? ' active' : '');
+    }
+  }
+
+  /* Sidebaren på desktop: menuen skal begynde under klubnavnet, uanset hvor
+     mange linjer navnet fylder. Måles i stedet for at være hardkodet. */
+  function layoutSidebar() {
+    var root = document.documentElement;
+    var brand = document.getElementById('brand-name');
+    if (!brand || !(window.matchMedia && window.matchMedia('(min-width: 900px)').matches)) {
+      root.style.removeProperty('--tabs-top');
+      return;
+    }
+    root.style.setProperty('--tabs-top', Math.round(brand.getBoundingClientRect().bottom + 26) + 'px');
+
+    // Maskotten sætter sig midt i det ledige felt mellem menuen og værktøjerne
+    var tabs = document.querySelector('.tabs');
+    var tools = document.querySelector('.appbar .tools');
+    var side = document.getElementById('mascot-side');
+    if (!tabs || !tools || !side) return;
+    var top = tabs.getBoundingClientRect().bottom + 12;
+    var bottom = tools.getBoundingClientRect().top - 12;
+    root.style.setProperty('--mascot-top', Math.round(top) + 'px');
+    root.style.setProperty('--mascot-bottom', Math.round(window.innerHeight - bottom) + 'px');
+    // Lidt plads: maskotten lægger sig vandret. Meget lidt: den viger helt.
+    var gap = bottom - top;
+    var tight = gap >= 62 && gap < 150;
+    side.classList.toggle('tight', tight);
+    side.classList.toggle('cramped', gap < 62);
+    // Replikkerne må aldrig blive længere end der er plads til
+    var fit = gap < 62 ? 0 : mascotFit(gap, tight);
+    if (fit !== mascotMax) {
+      mascotMax = fit;
+      mascotQueue = [];
+      if (mascotMsg && mascotMax && mascotMsg.length > mascotMax) { mascotMsg = ''; renderMascot(); }
+    }
+  }
+  window.addEventListener('resize', layoutSidebar);
+
+  /* Pakke A: tal der tæller op ved ændringer */
+  var lastCounts = {};
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function runCountUps() {
+    var els = document.querySelectorAll('[data-cnt]');
+    for (var i = 0; i < els.length; i++) {
+      (function (el) {
+        var key = el.getAttribute('data-cnt');
+        var to = Number(el.getAttribute('data-val')) || 0;
+        var fmt = el.getAttribute('data-fmt') === 'nf' ? nf : kr;
+        var from = lastCounts[key];
+        lastCounts[key] = to;
+        if (from === undefined || from === to || reducedMotion) { el.textContent = fmt(to); return; }
+        // Dyre bøder ruller ciffer for ciffer som et kasseapparat
+        if (el.hasAttribute('data-roll') && Math.abs(to - from) >= HOT_FINE) {
+          el.classList.remove('cnt-pulse');
+          void el.offsetWidth;
+          el.classList.add('cnt-pulse');
+          rollNumber(el, fmt(to));
+          return;
+        }
+        el.classList.remove('cnt-pulse');
+        void el.offsetWidth;                 // genstart animationen
+        el.classList.add('cnt-pulse');
+        var t0 = performance.now();
+        function tick(t) {
+          var p = Math.min(1, (t - t0) / 300);
+          p = 1 - Math.pow(1 - p, 2);
+          el.textContent = fmt(Math.round(from + (to - from) * p));
+          if (p < 1 && el.isConnected) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      })(els[i]);
+    }
+  }
+
+  /* Kasseapparat: hvert ciffer ruller på plads gennem et helt omløb */
+  function rollNumber(el, text) {
+    var chars = String(text).split('');
+    var col = '';
+    for (var d = 0; d < 20; d++) col += '<b>' + (d % 10) + '</b>';
+    el.innerHTML = chars.map(function (ch, i) {
+      if (ch < '0' || ch > '9') return '<span class="dgt-s">' + esc(ch) + '</span>';
+      return '<span class="dgt"><i style="--to: -' + ((10 + Number(ch)) * 100) + '%; animation-delay: ' + (i * 45) + 'ms">' + col + '</i></span>';
+    }).join('');
+    setTimeout(function () { if (el.isConnected) el.textContent = text; }, 950 + chars.length * 45);
+  }
+
+  /* #12: fuldskærms-overlay ved rigtig store bøder */
+  var BIG_FINE = 500;
+  function bigFineOverlay(amount, who, label) {
+    if (reducedMotion) return;
+    var old = document.querySelector('.bigfine');
+    if (old) old.parentNode.removeChild(old);
+    var el = h('<div class="bigfine"><div class="bf-inner">' +
+      '<div class="bf-word">BØDE!</div>' +
+      '<div class="bf-amt">' + esc(kr(amount)) + '</div>' +
+      '<div class="bf-who">' + esc(who) + ' — ' + esc(label) + '</div>' +
+      '</div></div>').firstChild;
+    document.body.appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1250);
+  }
+
+  /* Ikonet vipper når bøden lander — og kronen glimter, hvis det gik ud over formanden */
+  function reactToFine(memberId, typeId) {
+    if (reducedMotion) return;
+    if (typeId) {
+      var ic = document.querySelector('.modal-root [data-action="give-fine"][data-id="' + typeId + '"] .fine-ic');
+      if (ic) { ic.classList.remove('pop'); void ic.offsetWidth; ic.classList.add('pop'); }
+    }
+    if (memberId && state.formandId === memberId) {
+      document.body.classList.remove('crown-glint');
+      void document.body.offsetWidth;
+      document.body.classList.add('crown-glint');
+      setTimeout(function () { document.body.classList.remove('crown-glint'); }, 1500);
+    }
+  }
+
+  /* Pakke A: konfetti ved dyre bøder */
+  function spawnConfetti() {
+    if (reducedMotion) return;
+    var colors = ['#fbbf24', '#ff8a3d', '#ff5d5d', '#c0c7ce', '#5eead4'];
+    var root = document.createElement('div');
+    root.className = 'confetti';
+    for (var i = 0; i < 16; i++) {
+      var p = document.createElement('i');
+      p.style.left = (8 + Math.random() * 84) + '%';
+      p.style.background = colors[i % colors.length];
+      p.style.animationDelay = (Math.random() * 0.18) + 's';
+      p.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg)';
+      root.appendChild(p);
+    }
+    document.body.appendChild(root);
+    setTimeout(function () { if (root.parentNode) root.parentNode.removeChild(root); }, 1400);
+  }
+
+  function renderToolbar() {
+    var undoWrap = document.getElementById('undo-wrap');
+    if (undoWrap) {
+      undoWrap.innerHTML = viewerMode ? '' :
+        '<button class="iconbtn" data-action="undo" aria-label="Fortryd"' + (undoStack.length ? '' : ' disabled') +
+        ' title="Fortryd' + (undoStack.length ? ': ' + esc(shortLabel(undoStack[undoStack.length - 1].label)) : '') + '">' + IC.undo + '</button>' +
+        '<button class="iconbtn" data-action="redo" aria-label="Gendan"' + (redoStack.length ? '' : ' disabled') +
+        ' title="Gendan">' + IC.redo + '</button>';
+    }
+    var setBtn = document.querySelector('.tools [data-action="settings"]');
+    if (setBtn) setBtn.classList.toggle('needs-backup', backupOverdue());
+    var saveWrap = document.getElementById('save-wrap');
+    if (!saveWrap) return;
+    var long = publishing ? 'Gemmer …' : (dirty ? 'Gem ændringer' : 'Alt gemt');
+    var short = publishing ? 'Gemmer' : (dirty ? 'Gem' : 'Gemt');
+    saveWrap.innerHTML = artifactNS
+      ? '<button class="btn small' + (dirty && !publishing ? '' : ' secondary') + '" id="save-btn" data-action="publish"' + (publishing ? ' disabled' : '') + '>' + IC.save +
+        '<span class="lbl-long">' + long + '</span><span class="lbl-short">' + short + '</span></button>'
+      : '';
+  }
+
+  function statStrip() {
+    var cy = currentClubYear();
+    return '<div class="stats">' +
+      '<div class="stat"><div class="k">I kassen</div><div class="v green" data-cnt="pot" data-val="' + potTotal() + '">' + kr(potTotal()) + '</div></div>' +
+      '<div class="stat"><div class="k">Udestående</div><div class="v amber" data-cnt="due" data-val="' + outstandingTotal() + '">' + kr(outstandingTotal()) + '</div></div>' +
+      '<div class="stat"><div class="k">Klubår</div><div class="v">' + (cy ? esc(cy.label) : '–') + '</div></div>' +
+      '</div>';
+  }
+
+  function viewLiga() {
+    // Udgåede medlemmer bliver stående på tavlen, så længe de skylder — deres
+    // gæld tælles med i "Udestående", og så skal den også kunne ses.
+    var members = state.members.filter(function (m) { return m.active || memberBalance(m.id) > 0; });
+    if (!members.length) {
+      return statStrip() +
+        emptyState('kasse', 'Ingen spillere endnu', 'Bødekassen står tom og keder sig.',
+          viewerMode ? '' : '<div class="btn-row"><button class="btn" data-action="add-member">' + IC.plus + 'Tilføj medlem</button></div>');
+    }
+    var ranked = members.slice().sort(function (a, b) {
+      var d = memberBalance(b.id) - memberBalance(a.id);
+      return d !== 0 ? d : a.name.localeCompare(b.name, 'da');
+    });
+    // Top-3 løftes op på podiet; resten fortsætter som almindelige rækker
+    var podium = ranked.filter(function (m) { return memberBalance(m.id) > 0; }).slice(0, 3);
+    if (podium.length < 3) podium = [];
+    var onPodium = {};
+    podium.forEach(function (m) { onPodium[m.id] = 1; });
+
+    var rows = '';
+    var rank = 0, lastBal = null, shown = 0;
+    var nextRanks = {};
+    ranked.forEach(function (m) {
+      var bal = memberBalance(m.id);
+      shown++;
+      if (bal !== lastBal) { rank = shown; lastBal = bal; }
+      var cnt = memberFineCount(m.id);
+      var streak = memberMeetingStreak(m.id);
+      var paid = memberPaidTotal(m.id);
+      var streakTxt = streak >= 2 ? ' · ' + streak + ' i træk' : '';
+      // #14: markér dem der er rykket op siden sidste visning
+      var moved = lastRanks[m.id] !== undefined && bal > 0 && rank < lastRanks[m.id];
+      nextRanks[m.id] = bal > 0 ? rank : 999;
+      if (onPodium[m.id]) return;   // står allerede på podiet
+      if (bal <= 0) {
+        rows += '<button class="lb-row clean" data-action="open-member" data-id="' + esc(m.id) + '">' +
+          '<div class="rank">–</div>' + avatar(m) +
+          '<div class="who"><div class="name"><span class="nm">' + esc(m.name) + '</span>' + nameIcons(m.id) + '</div>' +
+          '<div class="subrow"><div class="sub">Rent ark' + streakTxt + '</div>' + sparkline(m.id) + '</div></div>' +
+          '<div class="count">' + cnt + '</div><div class="sum">0</div>' + payBar(m.id) + '</button>';
+      } else {
+        rows += '<button class="lb-row rank-' + rank + (moved ? ' rank-up' : '') + '" data-action="open-member" data-id="' + esc(m.id) + '">' +
+          medal(rank) + avatar(m) +
+          '<div class="who"><div class="name"><span class="nm">' + esc(m.name) + '</span>' + nameIcons(m.id) + (streak >= 2 ? flames(streak) : '') + '</div>' +
+          '<div class="subrow"><div class="sub">' + cnt + ' bøde' + (cnt === 1 ? '' : 'r') +
+          (paid > 0 ? ' · betalt ' + kr(paid) : '') + streakTxt + (m.active ? '' : ' · udgået') + '</div>' + sparkline(m.id) + '</div></div>' +
+          '<div class="count">' + cnt + '</div>' +
+          '<div class="sum">' + nf(bal) + '</div>' + payBar(m.id) + '</button>';
+      }
+    });
+    lastRanks = nextRanks;
+    var sm = suggestMeeting();
+    return statStrip() +
+      '<div id="mascot-inline"></div>' +
+      podiumBlock(podium) +
+      streakPanel(activeMembers()) +
+      (rows
+        ? '<div class="colhead"><div class="c-rank">#</div><div class="c-name">Spiller</div><div class="c-count">Bøder</div><div class="c-sum">Gæld kr.</div></div>' + rows
+        : '') +
+      (sm && !viewerMode
+        ? '<div class="actionbar"><button class="btn" data-action="open-meeting" data-id="' + esc(sm.meeting.id) + '">' +
+          sm.verb + ' ' + esc(sm.meeting.title) + ' · ' + esc(meetingYearLabel(sm.meeting)) + '</button></div>'
+        : '');
+  }
+
+  /* Podie: 2. plads til venstre, 1. plads hævet i midten, 3. til højre */
+  function podiumBlock(top) {
+    if (!top.length) return '';
+    var order = [{ m: top[1], r: 2 }, { m: top[0], r: 1 }, { m: top[2], r: 3 }];
+    var names = ['', 'Årets synder', '2. pladsen', '3. pladsen'];
+    var cols = order.map(function (x) {
+      var bal = memberBalance(x.m.id);
+      var streak = memberMeetingStreak(x.m.id);
+      // Medaljen sidder nede i selve podiet — den er både rangtal og ikon
+      return '<button class="pod pod-' + x.r + '" data-action="open-member" data-id="' + esc(x.m.id) + '">' +
+        '<div class="pod-top">' + avatar(x.m) +
+        '<div class="pod-name">' + esc(firstName(x.m.name)) + nameIcons(x.m.id) +
+        (streak >= 2 ? flames(streak) : '') + '</div>' +
+        '<div class="pod-sum">' + nf(bal) + '</div>' +
+        '<div class="pod-sub">' + memberFineCount(x.m.id) + ' bøder</div></div>' +
+        '<div class="pod-box"><span class="pod-medal">' + medal(x.r) + '</span>' +
+        '<span class="pod-title">' + names[x.r] + '</span></div></button>';
+    }).join('');
+    return '<div class="podium">' + cols + '</div>';
+  }
+
+  /* Gamified streak-oversigt på forsiden */
+  function streakPanel(members) {
+    var meetStreaks = members.map(function (m) { return { m: m, streak: memberMeetingStreak(m.id) }; })
+      .filter(function (x) { return x.streak >= 2; })
+      .sort(function (a, b) { return b.streak - a.streak; })
+      .slice(0, 3);
+    var typeStreaks = members.map(function (m) { return { m: m, top: memberTopType(m.id) }; })
+      .filter(function (x) { return x.top && x.top.count >= 2; })
+      .sort(function (a, b) { return b.top.count - a.top.count; })
+      .slice(0, 3);
+
+    var rows = '';
+    meetStreaks.forEach(function (x) {
+      rows += '<button class="streak-row" data-action="open-member" data-id="' + esc(x.m.id) + '">' +
+        flames(x.streak) +
+        '<div class="grow"><div class="t">' + esc(x.m.name) + '</div>' +
+        '<div class="s">Bøde i ' + x.streak + ' møder i træk</div></div>' +
+        '<div class="tag">' + streakTitle(x.streak) + '</div></button>';
+    });
+    typeStreaks.forEach(function (x) {
+      var t = findFineType(x.top.typeId);
+      rows += '<button class="streak-row" data-action="open-member" data-id="' + esc(x.m.id) + '">' +
+        '<span class="mult">' + x.top.count + '×</span>' +
+        '<div class="grow"><div class="t">' + esc(x.m.name) + '</div>' +
+        '<div class="s">' + x.top.count + ' gange »' + esc(t ? t.category : '?') + '«</div></div>' +
+        '<div class="tag">Stamkunde</div></button>';
+    });
+    var cleanStreaks = members.map(function (m) { return { m: m, streak: memberCleanStreak(m.id) }; })
+      .filter(function (x) { return x.streak >= 3; })
+      .sort(function (a, b) { return b.streak - a.streak; })
+      .slice(0, 2);
+    cleanStreaks.forEach(function (x) {
+      rows += '<button class="streak-row" data-action="open-member" data-id="' + esc(x.m.id) + '">' +
+        '<span class="shield-ic">' + IC.shield + '</span>' +
+        '<div class="grow"><div class="t">' + esc(x.m.name) + '</div>' +
+        '<div class="s">' + x.streak + ' møder uden bøde</div></div>' +
+        '<div class="tag green">Fredet</div></button>';
+    });
+    return '<div class="streak-panel">' +
+      '<div class="streak-head">' + IC.flame + '<span>Streaks</span></div>' +
+      (rows || '<div class="note" style="margin: 4px 0 2px">Ingen aktive streaks — klubben opfører sig pænt. Mistænkeligt pænt.</div>') +
+      '</div>';
+  }
+
+  function viewYears() {
+    var years = state.clubYears.slice().sort(function (a, b) { return b.startYear - a.startYear; });
+    var rows = years.map(function (y) {
+      var ms = yearMeetings(y.id);
+      var held = ms.filter(function (m) { return meetingFineCount(m.id) > 0 || m.closedAt; }).length;
+      return '<button class="row year-row" style="--yc: ' + yearColor(y) + '" data-action="open-year" data-id="' + esc(y.id) + '">' +
+        '<div class="grow"><div class="t">Klubår ' + esc(y.label) + '</div>' +
+        '<div class="s">' + ms.length + ' møder · ' + held + ' afholdt</div></div>' +
+        (y.closedAt ? '<span class="badge">Afsluttet</span>' : '') +
+        '<div class="amount">' + kr(yearTotal(y.id)) + '</div></button>';
+    }).join('');
+    var next = state.clubYears.reduce(function (a, y) { return Math.max(a, y.startYear); }, 2023) + 1;
+    return '<div class="section-title"><h2>Klubår</h2><div class="hint">' + years.length + ' år</div></div>' +
+      rows +
+      (viewerMode ? '' : '<div class="actionbar"><button class="btn" data-action="new-year">' + IC.plus + 'Opret klubår ' + yearLabel(next) + '</button></div>');
+  }
+
+  function viewYearDetail() {
+    var y = findYear(view.yearId);
+    if (!y) { view = { name: 'aar' }; return viewYears(); }
+    var today = todayISO();
+    var ms = yearMeetings(y.id);
+    var open = ms.filter(function (m) { return !m.closedAt; });
+    var nextUp = open.find(function (m) { return m.date >= today; });
+    var rows = ms.map(function (m) {
+      var cnt = meetingFineCount(m.id);
+      var badge = m.closedAt ? '<span class="badge">Afsluttet</span>'
+        : (cnt > 0 ? '<span class="badge live">I gang</span>'
+          : (nextUp && m.id === nextUp.id ? '<span class="badge next">Næste</span>' : ''));
+      return '<button class="row" data-action="open-meeting" data-id="' + esc(m.id) + '">' +
+        '<div class="grow"><div class="t">' + esc(m.title) + '</div>' +
+        '<div class="s">' + fmtDate(m.date) + (cnt ? ' · ' + cnt + ' bøde' + (cnt === 1 ? '' : 'r') : '') + '</div></div>' +
+        badge +
+        (cnt ? '<div class="amount">' + kr(meetingTotal(m.id)) + '</div>' : '<div class="amount" style="color: var(--faint)">–</div>') +
+        '</button>';
+    }).join('');
+    return '<div class="meet-head year-head" style="--yc: ' + yearColor(y) + '">' +
+      '<button class="iconbtn" data-action="goto" data-view="aar" aria-label="Tilbage">' + IC.left + '</button>' +
+      '<div class="grow"><div class="t">Klubår ' + esc(y.label) + '</div><div class="s">' + ms.length + ' møder' + (y.closedAt ? ' · sæson afsluttet' : '') + '</div></div>' +
+      '<div class="total">' + kr(yearTotal(y.id)) + '</div></div>' +
+      rows +
+      (viewerMode ? '' :
+        '<div class="actionbar">' +
+        (y.closedAt
+          ? '<button class="btn secondary" data-action="season-reopen" data-id="' + esc(y.id) + '">Genåbn sæson</button>'
+          : '<button class="btn secondary" data-action="add-meeting" data-id="' + esc(y.id) + '">' + IC.plus + 'Ekstra møde</button>' +
+            '<button class="btn" data-action="season-close" data-id="' + esc(y.id) + '">' + IC.trophy + 'Afslut sæson</button>') +
+        '</div>');
+  }
+
+  function renderLinks(links) {
+    var lines = String(links || '').split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+    if (!lines.length) return '';
+    return '<div class="link-list">' + lines.map(function (line) {
+      var i = line.indexOf('http');
+      if (i === -1) return '<div class="link-line">' + esc(line) + '</div>';
+      var label = line.slice(0, i).replace(/[:\-–—]\s*$/, '').trim();
+      var url = line.slice(i).trim();
+      return '<div class="link-line">' + IC.link + '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' + esc(label || url) + '</a></div>';
+    }).join('') + '</div>';
+  }
+
+  function viewMeeting() {
+    var meet = findMeeting(view.meetingId);
+    if (!meet) { view = { name: 'aar' }; return viewYears(); }
+    var members = meetingMembers(meet);
+    var meetFines = state.fines.filter(function (f) { return f.meetingId === meet.id; });
+    var perMember = {};
+    meetFines.forEach(function (f) { perMember[f.memberId] = (perMember[f.memberId] || 0) + f.amount; });
+
+    var grid = members.map(function (m) {
+      var sum = perMember[m.id] || 0;
+      var n = meetFines.filter(function (f) { return f.memberId === m.id; }).length;
+      return '<button class="member-cell' + (sum > 0 ? ' hit' : '') + (m.active ? '' : ' gone') + '" data-action="pick-fines" data-id="' + esc(m.id) + '"' + (meet.closedAt || viewerMode ? ' disabled style="opacity:0.55"' : '') + '>' +
+        '<div class="mc-top">' + avatar(m, 'sm') + '<div class="name">' + esc(m.name) +
+        (state.formandId === m.id ? '<span class="crown">' + IC.crown + '</span>' : '') +
+        (m.prospect ? sproutIcon(m) : '') + '</div></div>' +
+        '<div class="meta">' + (sum > 0 ? n + ' bøde' + (n === 1 ? '' : 'r') + ' · ' + kr(sum) : 'Ingen bøder') + '</div></button>';
+    }).join('');
+
+    var canEdit = !meet.closedAt && !viewerMode;
+    var log = meetFines.slice().reverse().map(function (f) {
+      var m = findMember(f.memberId);
+      return '<div class="log-wrap' + (canEdit ? ' swipeable' : '') + '"' + (canEdit ? ' data-fine="' + esc(f.id) + '"' : '') + '>' +
+        (canEdit ? '<div class="swipe-back">' + IC.bin + '<span>Fjern</span></div>' : '') +
+        '<div class="log-item">' +
+        fineIconFor(f) +
+        '<div class="grow"><div class="t">' + esc(m ? m.name : '?') + ' — ' + esc(fineLabel(f)) + '</div></div>' +
+        '<div class="amount' + amtClass(f.amount) + '">' + (f.amount >= HOT_FINE ? IC.zap : '') + kr(f.amount) + '</div>' +
+        (canEdit ? '<button class="x" data-action="remove-fine" data-id="' + esc(f.id) + '" aria-label="Fjern bøde">' + IC.x + '</button>' : '') +
+        '</div></div>';
+    }).join('');
+
+    var info = '';
+    if (meet.description || (meet.links && meet.links.trim())) {
+      info = '<div class="info-card">' +
+        (meet.description ? '<div class="desc">' + esc(meet.description) + '</div>' : '') +
+        renderLinks(meet.links) + '</div>';
+    }
+
+    return '<div class="meet-head">' +
+      '<button class="iconbtn" data-action="goto" data-view="aar-detalje" data-id="' + esc(meet.clubYearId) + '" aria-label="Tilbage">' + IC.left + '</button>' +
+      '<div class="grow"><div class="t">' + esc(meet.title) + '</div><div class="s">' + esc(meetingYearLabel(meet)) + ' · ' + fmtDate(meet.date) + (meet.closedAt ? ' · afsluttet' : '') + '</div></div>' +
+      (viewerMode ? '' : '<button class="iconbtn" data-action="edit-meeting" data-id="' + esc(meet.id) + '" aria-label="Rediger møde">' + IC.edit + '</button>') +
+      '<div class="total" data-cnt="meet-' + esc(meet.id) + '" data-roll="1" data-val="' + meetingTotal(meet.id) + '">' + kr(meetingTotal(meet.id)) + '</div></div>' +
+      info +
+      (members.length
+        ? '<div class="section-title"><h2>Klik en spiller</h2>' +
+          (meet.closedAt || viewerMode ? '<div class="hint">…og derefter bøderne</div>'
+            : '<button class="btn small secondary" data-action="bulk-open">' + IC.check + 'Bulk-bøde</button>') +
+          '</div><div class="member-grid">' + grid + '</div>'
+        : emptyState('dommer', 'Ingen medlemmer i ' + meetingYearLabel(meet), 'Sæt medlemmernes klubår under fanen Medlemmer.')) +
+      '<div class="section-title"><h2>Mødets bøder</h2><div class="hint">' + meetFines.length + ' stk.' +
+      (canEdit && meetFines.length ? ' · stryg for at fjerne' : '') + '</div></div>' +
+      (log ? '<div class="fine-log">' + log + '</div>' : emptyState('dommer', 'Ingen bøder endnu', meet.closedAt ? 'Mødet slap billigt.' : 'Dommeren døser. Klik en spiller.')) +
+      (viewerMode ? '' :
+        '<div class="btn-row">' +
+        (meet.closedAt
+          ? '<button class="btn secondary" data-action="reopen-meeting" data-id="' + esc(meet.id) + '">Genåbn møde</button>'
+          : '<button class="btn secondary" data-action="close-meeting" data-id="' + esc(meet.id) + '">Afslut møde</button>') +
+        '<button class="btn danger" data-action="delete-meeting" data-id="' + esc(meet.id) + '">Slet møde</button></div>');
+  }
+
+  /* Medlemsfiltre — udgangspunktet er kun de aktive */
+  var memberFilter = 'aktive';
+  var MEMBER_FILTERS = [
+    { key: 'aktive', label: 'Aktive', test: function (m) { return m.active && !m.prospect; } },
+    { key: 'prospects', label: 'Prospects', test: function (m) { return m.active && m.prospect; } },
+    { key: 'udgaaede', label: 'Udgåede', test: function (m) { return !m.active; } },
+    { key: 'skylder', label: 'Skylder', test: function (m) { return memberBalance(m.id) > 0; } },
+    { key: 'alle', label: 'Alle', test: function () { return true; } }
+  ];
+
+  function viewMembers() {
+    var f = MEMBER_FILTERS.find(function (x) { return x.key === memberFilter; }) || MEMBER_FILTERS[0];
+    var chips = '<div class="chips">' + MEMBER_FILTERS.map(function (x) {
+      var n = state.members.filter(x.test).length;
+      return '<button class="chip' + (x.key === f.key ? ' active' : '') + '" data-action="member-filter" data-key="' + x.key + '">' +
+        x.label + '<span class="chip-n">' + n + '</span></button>';
+    }).join('') + '</div>';
+
+    var list = state.members.filter(f.test).sort(byName);
+    var rows = list.map(function (m) {
+      var bal = memberBalance(m.id);
+      var years = memberYearLabels(m);
+      var sub = m.active
+        ? memberFineCount(m.id) + ' bøder · betalt ' + kr(memberPaidTotal(m.id))
+        : (years.length ? 'Med i ' + years.join(' · ') : 'Ingen klubår registreret');
+      return '<button class="row' + (m.active ? '' : ' inactive') + '" data-action="open-member" data-id="' + esc(m.id) + '">' +
+        avatar(m) +
+        '<div class="grow"><div class="t">' + esc(m.name) +
+        (state.formandId === m.id ? ' <span class="crown">' + IC.crown + '</span>' : '') +
+        (m.prospect ? ' ' + sproutIcon(m) : '') +
+        (m.active ? '' : ' <span class="tag-gone">Udgået</span>') + '</div>' +
+        '<div class="s">' + esc(sub) + '</div></div>' +
+        '<div class="amount' + (bal <= 0 ? ' zero' : '') + '">' + kr(Math.max(0, bal)) + '</div></button>';
+    }).join('');
+
+    var empties = {
+      aktive: ['Ingen aktive medlemmer', 'Klubben er teknisk set nedlagt.'],
+      prospects: ['Ingen prospects', 'Markér et medlem som prospect på profilen.'],
+      udgaaede: ['Ingen er udgået', 'Alle holder ved. Indtil videre.'],
+      skylder: ['Ingen skylder noget', 'Mistænkeligt pænt.'],
+      alle: ['Ingen medlemmer', 'Tilføj klubbens medlemmer her.']
+    };
+    return '<div class="section-title"><h2>Medlemmer</h2><div class="hint">' + list.length + ' vist</div></div>' +
+      chips +
+      (rows || emptyState(f.key === 'skylder' ? 'pokal' : 'kasse', empties[f.key][0], empties[f.key][1])) +
+      (viewerMode ? '' : '<div class="actionbar"><button class="btn" data-action="add-member">' + IC.plus + 'Tilføj medlem</button></div>');
+  }
+
+  function viewFineTypes() {
+    var rows = state.fineTypes.filter(function (t) { return t.active; }).map(function (t) {
+      return '<button class="row" data-action="edit-finetype" data-id="' + esc(t.id) + '">' +
+        fineIcon(t, 'big' + (t.amount >= HOT_FINE ? ' hot' : '')) +
+        '<div class="grow"><div class="t">' + esc(t.category) + '</div><div class="s">' + esc(t.description) + '</div></div>' +
+        '<div class="amount' + amtClass(t.amount) + '">' + kr(t.amount) + '</div></button>';
+    }).join('');
+    return '<div class="section-title"><h2>Takster</h2><div class="hint">' + (viewerMode ? 'Visning' : 'Klik for at redigere') + '</div></div>' + rows +
+      (viewerMode ? '' : '<div class="actionbar"><button class="btn" data-action="add-finetype">' + IC.plus + 'Ny takst</button></div>');
+  }
+
+  /* ---------- Hall of Fame: klubbens hukommelse ---------- */
+
+  function allTimeFines() { return state.fines.reduce(function (a, f) { return a + f.amount; }, 0); }
+
+  /* Kårede pr. afsluttet sæson: største synder og mest artige */
+  function seasonWinners() {
+    return state.clubYears.slice()
+      .filter(function (y) { return y.closedAt; })
+      .sort(function (a, b) { return b.startYear - a.startYear; })
+      .map(function (y) {
+        var totals = state.members
+          .filter(function (m) { return inYear(m, y.id) || yearFineTotalFor(m.id, y.id) > 0; })
+          .map(function (m) { return { m: m, sum: yearFineTotalFor(m.id, y.id) }; });
+        var worst = totals.reduce(function (a, t) { return !a || t.sum > a.sum ? t : a; }, null);
+        var nice = totals.reduce(function (a, t) { return !a || t.sum < a.sum ? t : a; }, null);
+        return { y: y, worst: worst && worst.sum > 0 ? worst : null, nice: nice, total: yearTotal(y.id) };
+      });
+  }
+
+  function viewHall() {
+    var seasons = seasonWinners();
+
+    var kpis = '<div class="stats kpi4">' +
+      '<div class="stat"><div class="k">Bøder i alt</div><div class="v amber">' + kr(allTimeFines()) + '</div></div>' +
+      '<div class="stat"><div class="k">Sæsoner</div><div class="v">' + state.clubYears.length + '</div></div>' +
+      '<div class="stat"><div class="k">Møder afholdt</div><div class="v">' + heldMeetings().length + '</div></div>' +
+      '<div class="stat"><div class="k">Medlemmer</div><div class="v">' + state.members.length + '</div></div>' +
+      '</div>';
+
+    var recs = seasonRecords();
+    var recHtml = recs.length ? recs.map(function (r) {
+      return '<div class="rec-row"><span class="rec-ic">' + IC[r.ic] + '</span>' +
+        '<div class="grow"><div class="t">' + r.label + '</div><div class="s">' + r.desc + '</div></div>' +
+        '<div class="rec-val">' + r.value + '</div></div>';
+    }).join('') : emptyState('pokal', 'Ingen rekorder endnu', 'Pokalen samler støv.');
+
+    var seasonHtml = seasons.length ? seasons.map(function (x) {
+      return '<div class="hof-season" style="--yc: ' + yearColor(x.y) + '">' +
+        '<div class="hof-year">' + esc(x.y.label) + '<span>' + kr(x.total) + '</span></div>' +
+        (x.worst
+          ? '<button class="hof-row" data-action="open-member" data-id="' + esc(x.worst.m.id) + '">' +
+            medal(1) + avatar(x.worst.m) +
+            '<div class="grow"><div class="t">' + esc(x.worst.m.name) + '</div><div class="s">Årets synder</div></div>' +
+            '<div class="amount">' + kr(x.worst.sum) + '</div></button>'
+          : '<div class="note">Ingen bøder i sæsonen.</div>') +
+        (x.nice && x.worst && x.nice.m.id !== x.worst.m.id
+          ? '<button class="hof-row" data-action="open-member" data-id="' + esc(x.nice.m.id) + '">' +
+            '<span class="rec-ic green">' + IC.shield + '</span>' + avatar(x.nice.m) +
+            '<div class="grow"><div class="t">' + esc(x.nice.m.name) + '</div><div class="s">Mest artige</div></div>' +
+            '<div class="amount zero">' + kr(x.nice.sum) + '</div></button>'
+          : '') +
+        '</div>';
+    }).join('') : emptyState('pokal', 'Ingen afsluttede sæsoner', 'Afslut en sæson under Klubår, så kåres der vindere.');
+
+    var hist = state.formandHistory.slice().reverse();
+    var formandHtml = hist.length ? hist.map(function (hh) {
+      var m = findMember(hh.memberId);
+      var period = (hh.from ? fmtDate(hh.from) : 'Fra klubbens start') + ' — ' + (hh.to ? fmtDate(hh.to) : 'i dag');
+      return '<div class="hof-row' + (hh.to ? '' : ' now') + '">' +
+        '<span class="rec-ic gold">' + IC.crown + '</span>' +
+        (m ? avatar(m) : '') +
+        '<div class="grow"><div class="t">' + esc(m ? m.name : 'Ukendt') + '</div>' +
+        '<div class="s">' + esc(period) + '</div></div>' +
+        (hh.to ? '' : '<span class="badge live">Sidder nu</span>') + '</div>';
+    }).join('') : '<div class="note">Ingen formænd registreret endnu. Kron én på en medlemsprofil.</div>';
+
+    // Alle uddelte hædersbevisninger, samlet pr. medlem
+    var awardHtml = state.members.slice().sort(byName).map(function (m) {
+      var bs = computeBadges(m.id);
+      if (!bs.length) return '';
+      return '<div class="hof-awards"><div class="t">' + esc(m.name) + '</div>' + awardRow(bs, 'tight') + '</div>';
+    }).filter(Boolean).join('');
+
+    return '<div class="section-title"><h2>Hall of Fame</h2><div class="hint">Klubbens hukommelse</div></div>' +
+      kpis +
+      '<div class="chart-card"><div class="chart-title">' + IC.trophy + ' Alle tiders rekorder</div>' + recHtml + '</div>' +
+      '<div class="chart-card"><div class="chart-title">' + IC.star + ' Kårede pr. sæson</div>' + seasonHtml + '</div>' +
+      '<div class="chart-card"><div class="chart-title">' + IC.crown + ' Formandsrækken</div>' + formandHtml + '</div>' +
+      '<div class="chart-card"><div class="chart-title">' + IC.shield + ' Uddelte hædersbevisninger</div>' +
+      (awardHtml || '<div class="note">Ingen hædersbevisninger uddelt endnu.</div>') + '</div>';
+  }
+
+  /* ---------- Statistik (#11, #12, #7) ---------- */
+
+  var statsYearId = null;
+
+  function fineLabelSum(yearId) {
+    var ids = {};
+    yearMeetings(yearId).forEach(function (m) { ids[m.id] = 1; });
+    var agg = {};
+    state.fines.forEach(function (f) {
+      if (!ids[f.meetingId]) return;
+      var key = fineLabel(f);
+      var a = agg[key] || { sum: 0, count: 0, iconKey: null };
+      a.sum += f.amount; a.count++;
+      if (!a.iconKey) {
+        var t = f.fineTypeId ? findFineType(f.fineTypeId) : null;
+        a.iconKey = t ? typeIconKey(t) : fineIconKey(f.label, '');
+      }
+      agg[key] = a;
+    });
+    return Object.keys(agg).map(function (k) { return { label: k, sum: agg[k].sum, count: agg[k].count, iconKey: agg[k].iconKey }; })
+      .sort(function (a, b) { return b.sum - a.sum; });
+  }
+
+  /* Søjlediagram: tynde søjler, afrundet datatop, dæmpet grid, tooltip pr. søjle */
+  function barChartSVG(points, color) {
+    var W = 640, H = 190, padL = 34, padR = 8, padT = 14, padB = 24;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var max = points.reduce(function (a, p) { return Math.max(a, p.v); }, 0) || 1;
+    var n = points.length || 1;
+    var step = plotW / n;
+    var bw = Math.max(3, Math.min(22, step - 2));
+    var maxIdx = points.reduce(function (a, p, i) { return p.v > points[a].v ? i : a; }, 0);
+    var out = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="chart" role="img">';
+    [0, 0.5, 1].forEach(function (g) {
+      var y = padT + plotH * (1 - g);
+      out += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="#232e3a" stroke-width="1"></line>';
+      out += '<text x="' + (padL - 6) + '" y="' + (y + 4) + '" text-anchor="end" class="ax">' + nf(Math.round(max * g)) + '</text>';
+    });
+    points.forEach(function (p, i) {
+      var x = padL + i * step + (step - bw) / 2;
+      var bh = Math.round(plotH * (p.v / max));
+      var y = padT + plotH - bh;
+      if (p.v > 0) {
+        var r = Math.min(4, bw / 2, bh);
+        out += '<path d="M' + x + ' ' + (padT + plotH) + ' V' + (y + r) + ' Q' + x + ' ' + y + ' ' + (x + r) + ' ' + y +
+          ' H' + (x + bw - r) + ' Q' + (x + bw) + ' ' + y + ' ' + (x + bw) + ' ' + (y + r) + ' V' + (padT + plotH) + ' Z" fill="' + color + '"></path>';
+      }
+      out += '<rect x="' + (padL + i * step) + '" y="' + padT + '" width="' + step + '" height="' + plotH + '" fill="transparent" data-tip="' + esc(p.tip) + '"></rect>';
+      if (p.v > 0 && i === maxIdx) {
+        out += '<text x="' + (x + bw / 2) + '" y="' + (y - 5) + '" text-anchor="middle" class="lbl">' + nf(p.v) + '</text>';
+      }
+      if (p.x && (n <= 12 || i % Math.ceil(n / 10) === 0)) {
+        out += '<text x="' + (padL + i * step + step / 2) + '" y="' + (H - 7) + '" text-anchor="middle" class="ax">' + esc(p.x) + '</text>';
+      }
+    });
+    return out + '</svg>';
+  }
+
+  /* Linjediagram: 2px linje, punkter med tooltip, svag flade */
+  function lineChartSVG(points, color) {
+    var W = 640, H = 190, padL = 40, padR = 12, padT = 14, padB = 24;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    if (points.length < 2) return '<div class="note">For få posteringer til en kurve endnu.</div>';
+    // Skalaen rummer også et minus i kassen, hvis udgifterne overstiger indbetalingerne
+    var max = points.reduce(function (a, p) { return Math.max(a, p.v); }, 0);
+    var min = points.reduce(function (a, p) { return Math.min(a, p.v); }, 0);
+    var span = (max - min) || 1;
+    function yOf(v) { return padT + plotH * (1 - (v - min) / span); }
+    var xy = points.map(function (p, i) {
+      return [padL + plotW * (points.length === 1 ? 0.5 : i / (points.length - 1)), yOf(p.v)];
+    });
+    var base = yOf(0);
+    var path = xy.map(function (c, i) { return (i ? 'L' : 'M') + c[0].toFixed(1) + ' ' + c[1].toFixed(1); }).join(' ');
+    var out = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="chart" role="img">';
+    [0, 0.5, 1].forEach(function (g) {
+      var v = min + span * g;
+      var y = yOf(v);
+      out += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="#232e3a" stroke-width="1"></line>';
+      out += '<text x="' + (padL - 6) + '" y="' + (y + 4) + '" text-anchor="end" class="ax">' + nf(Math.round(v)) + '</text>';
+    });
+    out += '<path d="' + path + ' L' + xy[xy.length - 1][0].toFixed(1) + ' ' + base.toFixed(1) + ' L' + xy[0][0].toFixed(1) + ' ' + base.toFixed(1) + ' Z" fill="' + color + '" opacity="0.12"></path>';
+    out += '<path d="' + path + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round"></path>';
+    points.forEach(function (p, i) {
+      out += '<circle cx="' + xy[i][0].toFixed(1) + '" cy="' + xy[i][1].toFixed(1) + '" r="4" fill="' + color + '" stroke="#10141a" stroke-width="2" data-tip="' + esc(p.tip) + '"></circle>';
+    });
+    out += '<text x="' + padL + '" y="' + (H - 7) + '" class="ax">' + esc(points[0].x) + '</text>';
+    out += '<text x="' + (W - padR) + '" y="' + (H - 7) + '" text-anchor="end" class="ax">' + esc(points[points.length - 1].x) + '</text>';
+    return out + '</svg>';
+  }
+
+  /* Vandrette søjler i bødegruppens farve — samme tone som ikonet */
+  function hBars(items) {
+    var max = items.reduce(function (a, x) { return Math.max(a, x.sum); }, 0) || 1;
+    return items.map(function (x) {
+      var key = x.iconKey || fineIconKey(x.label, '');
+      var g = groupOfKey(key), c = groupColor(g);
+      return '<div class="hbar-row" data-tip="' + esc(x.label + ' · ' + GROUP_INFO[g].n + ' · ' + x.count + ' stk. · ' + kr(x.sum)) + '">' +
+        '<span class="fine-ic" style="' + colorVars(c) + '">' + FI[key] + '</span>' +
+        '<div class="hbar-label">' + esc(x.label) + '</div>' +
+        '<div class="hbar-track"><div class="hbar-fill" style="width: ' + Math.max(2, Math.round(100 * x.sum / max)) + '%; background: ' + c + '"></div></div>' +
+        '<div class="hbar-val">' + nf(x.sum) + '</div></div>';
+    }).join('');
+  }
+
+  /* Farveforklaring under Top bødetyper */
+  function groupLegend() {
+    return '<div class="glegend">' + GROUP_ORDER.map(function (g) {
+      return '<span class="gl"><i style="background: ' + GROUP_INFO[g].c + '"></i>' + GROUP_INFO[g].n + '</span>';
+    }).join('') + '</div>';
+  }
+
+  function viewStats() {
+    var years = state.clubYears.slice().sort(function (a, b) { return b.startYear - a.startYear; });
+    if (!years.length) return emptyState('pokal', 'Ingen klubår endnu', 'Opret et klubår under fanen Klubår.');
+    var sel = findYear(statsYearId) || currentClubYear();
+    statsYearId = sel.id;
+
+    var chips = '<div class="chips">' + years.map(function (y) {
+      return '<button class="chip year-chip' + (y.id === sel.id ? ' active' : '') + '" style="--yc: ' + yearColor(y) + '" data-action="stats-year" data-id="' + esc(y.id) + '">' + esc(y.label) + '</button>';
+    }).join('') + '</div>';
+    var yc = yearColor(sel);
+
+    var ms = yearMeetings(sel.id);
+    var held = ms.filter(function (m) { return meetingFineCount(m.id) > 0 || m.closedAt; });
+    var total = yearTotal(sel.id);
+    var fineCount = ms.reduce(function (a, m) { return a + meetingFineCount(m.id); }, 0);
+    var w = yearWindow(sel);
+    var paidInYear = state.payments.reduce(function (a, p) { return p.date >= w.from && p.date <= w.to ? a + p.amount : a; }, 0);
+
+    var kpis = '<div class="stats kpi4">' +
+      '<div class="stat" style="--yc: ' + yc + '"><div class="k">Bøder i alt</div><div class="v yc">' + kr(total) + '</div></div>' +
+      '<div class="stat"><div class="k">Antal bøder</div><div class="v">' + fineCount + '</div></div>' +
+      '<div class="stat"><div class="k">Gns. pr. møde</div><div class="v">' + kr(held.length ? total / held.length : 0) + '</div></div>' +
+      '<div class="stat"><div class="k">Indbetalt</div><div class="v green">' + kr(paidInYear) + '</div></div>' +
+      '</div>';
+
+    var barPoints = ms.map(function (m) {
+      return { x: String(m.number), v: meetingTotal(m.id), tip: m.title + ' · ' + fmtDate(m.date) + ' · ' + kr(meetingTotal(m.id)) };
+    });
+
+    // Kassebeholdningen er indbetalinger minus udgifter, i datorækkefølge
+    var cash = state.payments.map(function (p) {
+      var m = findMember(p.memberId);
+      return { date: p.date, ts: p.ts, v: p.amount, who: (m ? m.name : 'Indbetaling') };
+    }).concat(state.expenses.map(function (x) {
+      return { date: x.date, ts: x.ts, v: -x.amount, who: x.note || 'Udgift' };
+    })).sort(function (a, b) { return (a.date || '').localeCompare(b.date || '') || a.ts - b.ts; });
+    var cum = 0;
+    var linePoints = cash.map(function (c) {
+      cum += c.v;
+      return { x: fmtDate(c.date), v: cum,
+        tip: c.who + ' · ' + fmtDate(c.date) + ' · ' + (c.v < 0 ? '−' : '+') + kr(Math.abs(c.v)) + ' → ' + kr(cum) };
+    });
+
+    var topTypes = fineLabelSum(sel.id).slice(0, 6);
+
+    var recs = seasonRecords();
+    var recHtml = recs.length ? recs.map(function (r) {
+      return '<div class="rec-row"><span class="rec-ic">' + IC[r.ic] + '</span>' +
+        '<div class="grow"><div class="t">' + r.label + '</div><div class="s">' + r.desc + '</div></div>' +
+        '<div class="rec-val">' + r.value + '</div></div>';
+    }).join('') : emptyState('pokal', 'Ingen rekorder endnu', 'Pokalen samler støv. Kom i gang med at synde.');
+
+    var cmpRows = years.map(function (y) {
+      var yms = yearMeetings(y.id);
+      var yheld = yms.filter(function (m) { return meetingFineCount(m.id) > 0 || m.closedAt; }).length;
+      var yt = yearTotal(y.id);
+      var worst = null;
+      state.members.forEach(function (m) {
+        var s = yearFineTotalFor(m.id, y.id);
+        if (s > 0 && (!worst || s > worst.s)) worst = { m: m, s: s };
+      });
+      return '<tr><td data-l="Klubår"><span class="ydot" style="background: ' + yearColor(y) + '"></span>' + esc(y.label) + '</td>' +
+        '<td data-l="Møder">' + yheld + '</td>' +
+        '<td data-l="Bøder kr.">' + nf(yt) + '</td>' +
+        '<td data-l="Gns./møde">' + nf(yheld ? Math.round(yt / yheld) : 0) + '</td>' +
+        '<td data-l="Værste synder">' + (worst ? esc(worst.m.name) : '–') + '</td></tr>';
+    }).join('');
+
+    return '<div class="section-title"><h2>Statistik</h2><div class="hint">Klubår ' + esc(sel.label) + '</div></div>' +
+      chips + kpis +
+      '<div class="chart-card"><div class="chart-title">Bøder pr. møde <span class="chart-sub">' + esc(sel.label) + ' · kr.</span></div>' + barChartSVG(barPoints, yc) + '</div>' +
+      cashCard() +
+      '<div class="chart-card"><div class="chart-title">Kassebeholdning over tid <span class="chart-sub">alle år · kr.</span></div>' + lineChartSVG(linePoints, '#3f9e63') + '</div>' +
+      disciplineCard() +
+      '<div class="chart-card"><div class="chart-title">Top bødetyper <span class="chart-sub">' + esc(sel.label) + ' · kr.</span></div>' +
+      (topTypes.length ? hBars(topTypes) + groupLegend() : emptyState('kasse', 'Ingen bøder i dette klubår', 'Nogen må da have gjort noget.')) + '</div>' +
+      '<div class="chart-card"><div class="chart-title">Sæsonrekorder <span class="chart-sub">alle år</span></div>' + recHtml + '</div>' +
+      '<div class="chart-card"><div class="chart-title">Sammenlign klubår</div>' +
+      '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>År</th><th>Møder</th><th>Bøder kr.</th><th>Gns./møde</th><th>Værste synder</th></tr></thead><tbody>' + cmpRows + '</tbody></table></div></div>' +
+      '<div class="actionbar"><button class="btn secondary" data-action="report-open" data-id="' + esc(sel.id) + '">' + IC.print + 'Kassererrapport ' + esc(sel.label) + '</button></div>';
+  }
+
+  /* Kassen: ind, ud og beholdning — med udgiftsposterne under */
+  function cashCard() {
+    var rows = state.expenses.slice()
+      .sort(function (a, b) { return (b.date || '').localeCompare(a.date || '') || b.ts - a.ts; })
+      .map(function (x) {
+        return '<div class="log-item"><span class="rec-ic">' + IC.coins + '</span>' +
+          '<div class="grow"><div class="t">' + esc(x.note || 'Udgift') + '</div>' +
+          '<div class="s">' + fmtDate(x.date) + '</div></div>' +
+          '<div class="amount out">−' + kr(x.amount) + '</div>' +
+          (viewerMode ? '' : '<button class="x" data-action="remove-expense" data-id="' + esc(x.id) + '" aria-label="Slet udgift">' + IC.x + '</button>') +
+          '</div>';
+      }).join('');
+    return '<div class="chart-card">' +
+      '<div class="chart-title">Kassen <span class="chart-sub">alle år</span></div>' +
+      '<div class="cash-row"><span>Indbetalt</span><b class="green">' + kr(paymentsInTotal()) + '</b></div>' +
+      '<div class="cash-row"><span>Udgifter</span><b class="out">−' + kr(expenseTotal()) + '</b></div>' +
+      '<div class="cash-row total"><span>Beholdning</span><b' + (potTotal() < 0 ? ' class="out"' : '') + '>' + kr(potTotal()) + '</b></div>' +
+      (rows || '<div class="note">Ingen udgifter registreret. Kassen er kun vokset indtil videre.</div>') +
+      (viewerMode ? '' : '<div class="btn-row"><button class="btn secondary" data-action="expense-form">' + IC.plus + 'Registrer udgift</button></div>') +
+      '</div>';
+  }
+
+  /* Betalingsdisciplin: hvor hurtigt bøder bliver betalt */
+  function disciplineCard() {
+    var rows = state.members.map(function (m) { return { m: m, sp: paymentSpeed(m.id) }; })
+      .filter(function (x) { return x.sp; })
+      .sort(function (a, b) { return a.sp.days - b.sp.days; });
+    if (!rows.length) {
+      return '<div class="chart-card"><div class="chart-title">Betalingsdisciplin</div>' +
+        '<div class="note">Ingen indbetalinger endnu — så er der heller ingen at rose.</div></div>';
+    }
+    var worst = rows[rows.length - 1].sp.days || 1;
+    var html = rows.map(function (x, i) {
+      var d = Math.round(x.sp.days);
+      return '<div class="hbar-row" data-tip="' + esc(x.m.name + ' · ' + kr(x.sp.settled) + ' betalt · gns. ' + d + ' dage') + '">' +
+        (i === 0 ? '<span class="rec-ic">' + IC.star + '</span>' : '<span class="rank-mini">' + (i + 1) + '</span>') +
+        '<div class="hbar-label">' + esc(x.m.name) + '</div>' +
+        '<div class="hbar-track"><div class="hbar-fill" style="width: ' + Math.max(2, Math.round(100 * x.sp.days / worst)) + '%; background: ' + (i === 0 ? '#3f9e63' : '#5eead4') + '"></div></div>' +
+        '<div class="hbar-val">' + d + ' d.</div></div>';
+    }).join('');
+    return '<div class="chart-card"><div class="chart-title">Betalingsdisciplin <span class="chart-sub">gns. dage fra bøde til betaling</span></div>' +
+      html + '</div>';
+  }
+
+  /* ---------- Kassererrapport (#13) ---------- */
+
+  function openReport(yearId) {
+    var y = findYear(yearId);
+    if (!y) return;
+    closeReport();
+    var ms = yearMeetings(y.id);
+    var held = ms.filter(function (m) { return meetingFineCount(m.id) > 0 || m.closedAt; });
+    var w = yearWindow(y);
+    var paidInYear = state.payments.reduce(function (a, p) { return p.date >= w.from && p.date <= w.to ? a + p.amount : a; }, 0);
+
+    var spentInYear = state.expenses.reduce(function (a, x) { return x.date >= w.from && x.date <= w.to ? a + x.amount : a; }, 0);
+
+    // Kun medlemmer der hørte til klubåret — eller som fik bøde i det
+    var yearIds = {};
+    ms.forEach(function (x) { yearIds[x.id] = 1; });
+    var memRows = state.members.slice().sort(byName).filter(function (m) {
+      return inYear(m, y.id) || yearFineTotalFor(m.id, y.id) > 0;
+    }).map(function (m) {
+      var cnt = state.fines.filter(function (f) { return yearIds[f.meetingId] && f.memberId === m.id; }).length;
+      var sum = yearFineTotalFor(m.id, y.id);
+      return '<tr><td>' + esc(m.name) + (m.active ? (m.prospect ? ' (prospect)' : '') : ' (udgået)') + '</td><td>' + cnt + '</td><td>' + nf(sum) + '</td><td>' + nf(Math.max(0, memberBalance(m.id))) + '</td></tr>';
+    }).join('');
+
+    var meetRows = held.map(function (m) {
+      return '<tr><td>' + esc(m.title) + '</td><td>' + fmtDate(m.date) + '</td><td>' + meetingFineCount(m.id) + '</td><td>' + nf(meetingTotal(m.id)) + '</td></tr>';
+    }).join('');
+
+    var expRows = state.expenses.slice()
+      .filter(function (x) { return x.date >= w.from && x.date <= w.to; })
+      .sort(function (a, b) { return (a.date || '').localeCompare(b.date || ''); })
+      .map(function (x) { return '<tr><td>' + esc(x.note || 'Udgift') + '</td><td>' + fmtDate(x.date) + '</td><td>' + nf(x.amount) + '</td></tr>'; }).join('');
+
+    var woRows = state.writeoffs.slice()
+      .filter(function (x) { return x.clubYearId === y.id; })
+      .map(function (x) {
+        var wm = findMember(x.memberId);
+        return '<tr><td>' + esc(wm ? wm.name : '?') + '</td><td>' + fmtDate(x.date) + '</td><td>' + nf(x.amount) + '</td></tr>';
+      }).join('');
+
+    var html =
+      '<div class="report-toolbar">' +
+      '<button class="btn small" data-action="report-print">' + IC.print + 'Print / Gem som PDF</button>' +
+      '<button class="btn small secondary" data-action="report-file">Gem som fil</button>' +
+      '<button class="btn small secondary" data-action="report-close">Luk</button></div>' +
+      '<div class="report-paper" id="report-paper">' +
+      '<h1>' + esc(state.clubName) + ' — Kassererrapport</h1>' +
+      '<div class="rp-sub">Klubår ' + esc(y.label) + ' · udarbejdet ' + fmtDate(todayISO()) + (y.closedAt ? ' · sæson afsluttet' : '') + '</div>' +
+      '<div class="rp-kpis"><div><b>' + kr(yearTotal(y.id)) + '</b><span>Bøder i året</span></div>' +
+      '<div><b>' + kr(paidInYear) + '</b><span>Indbetalt i året</span></div>' +
+      '<div><b>' + kr(spentInYear) + '</b><span>Udgifter i året</span></div>' +
+      '<div><b>' + kr(outstandingTotal()) + '</b><span>Udestående nu</span></div>' +
+      '<div><b>' + kr(potTotal()) + '</b><span>Kassebeholdning</span></div></div>' +
+      '<h2>Medlemmer</h2>' +
+      '<table><thead><tr><th>Navn</th><th>Bøder (stk.)</th><th>Bøder (kr.)</th><th>Saldo nu (kr.)</th></tr></thead><tbody>' + memRows + '</tbody></table>' +
+      '<h2>Afholdte møder</h2>' +
+      (meetRows ? '<table><thead><tr><th>Møde</th><th>Dato</th><th>Bøder (stk.)</th><th>Kr.</th></tr></thead><tbody>' + meetRows + '</tbody></table>' : '<p>Ingen afholdte møder endnu.</p>') +
+      '<h2>Udgifter afholdt af kassen</h2>' +
+      (expRows ? '<table><thead><tr><th>Formål</th><th>Dato</th><th>Kr.</th></tr></thead><tbody>' + expRows + '</tbody></table>' : '<p>Ingen udgifter i klubåret.</p>') +
+      (woRows ? '<h2>Afskrevet gæld ved årsopgørelsen</h2><table><thead><tr><th>Medlem</th><th>Dato</th><th>Kr.</th></tr></thead><tbody>' + woRows + '</tbody></table>' : '') +
+      '<div class="rp-sign"><div><div class="rp-line"></div>Kasserer</div><div><div class="rp-line"></div>Formand</div></div>' +
+      '</div>';
+
+    var root = h('<div class="report-overlay" data-year="' + esc(y.id) + '">' + html + '</div>').firstChild;
+    document.body.appendChild(root);
+  }
+  function closeReport() {
+    var r = document.querySelector('.report-overlay');
+    if (r) r.parentNode.removeChild(r);
+  }
+
+  /* ---------- Modals ---------- */
+
+  /* Et ark kan have to udgange: pilen fører ét skridt tilbage (fx til
+     medlemmets profil), krydset lukker helt ud til siden bagved. */
+  function openModal(title, bodyHtml, subtitle, back) {
+    closeModal();
+    var backBtn = back
+      ? '<button class="sheet-back" data-action="sheet-back" data-kind="' + esc(back.kind) + '" data-id="' + esc(back.id || '') +
+        '" aria-label="' + esc(back.label) + '" title="' + esc(back.label) + '">' + IC.left + '</button>'
+      : '';
+    var root = h('<div class="modal-root">' +
+      '<div class="scrim" data-action="close-modal"></div>' +
+      '<div class="sheet"><div class="sheet-head">' + backBtn + '<div class="t">' + title + (subtitle ? '<div class="s" style="font-family:var(--body); font-weight:400; text-transform:none; letter-spacing:0">' + subtitle + '</div>' : '') + '</div>' +
+      '<button class="sheet-close" data-action="close-modal" aria-label="Luk helt" title="Luk">' + IC.x + '</button></div>' +
+      '<div class="sheet-body">' + bodyHtml + '</div></div></div>').firstChild;
+    document.body.appendChild(root);
+    var f = root.querySelector('input, textarea');
+    if (f && window.matchMedia('(min-width: 900px)').matches) f.focus();
+  }
+  function closeModal() {
+    var m = document.querySelector('.modal-root');
+    if (m) m.parentNode.removeChild(m);
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var old = document.querySelector('.toast');
+    if (old) old.parentNode.removeChild(old);
+    var t = h('<div class="toast">' + esc(msg) + '</div>').firstChild;
+    document.body.appendChild(t);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 1600);
+  }
+
+  /* Bødevælger: klik bøder af for et medlem i et møde */
+  function openFinePicker(memberId) {
+    pickerMemberId = memberId;
+    var meet = findMeeting(view.meetingId);
+    var m = findMember(memberId);
+    if (!meet || !m) return;
+    var members = meetingMembers(meet);
+    var idx = members.findIndex(function (x) { return x.id === memberId; });
+
+    var mineFines = state.fines.filter(function (f) { return f.meetingId === meet.id && f.memberId === memberId; });
+    var counts = {};
+    mineFines.forEach(function (f) { if (f.fineTypeId) counts[f.fineTypeId] = (counts[f.fineTypeId] || 0) + 1; });
+    var mySum = mineFines.reduce(function (a, f) { return a + f.amount; }, 0);
+
+    var suggestion = suggestedFineTypeFor(meet);
+    var grid = state.fineTypes.filter(function (t) { return t.active; }).map(function (t) {
+      var isSug = suggestion && suggestion.type.id === t.id;
+      return '<button class="fine-btn' + (t.amount >= HOT_FINE ? ' hot' : '') + (isSug ? ' suggested' : '') + '" data-action="give-fine" data-id="' + esc(t.id) + '">' +
+        (counts[t.id] ? '<span class="n">' + counts[t.id] + '</span>' : '') +
+        (isSug ? '<span class="sug-tag">Foreslået</span>' : '') +
+        fineIcon(t) +
+        '<div class="cat">' + esc(t.category) + '</div>' +
+        '<div class="amt' + amtClass(t.amount) + '">' + (t.amount >= HOT_FINE ? IC.zap : '') + kr(t.amount) + '</div></button>';
+    }).join('') +
+      '<button class="fine-btn special" data-action="special-fine">' +
+      '<div class="cat">Særbøde</div><div class="desc">Frit beløb og egen beskrivelse</div></button>';
+
+    var body =
+      '<div class="picker-nav">' +
+      '<button class="navbtn" data-action="picker-nav" data-dir="-1" aria-label="Forrige medlem">' + IC.left + '</button>' +
+      '<div class="cur"><div class="name">' + esc(m.name) + '</div>' +
+      '<div class="meta">' + (mineFines.length ? mineFines.length + ' bøder i dette møde · ' + kr(mySum) : 'Ingen bøder i dette møde endnu') + '</div></div>' +
+      '<button class="navbtn" data-action="picker-nav" data-dir="1" aria-label="Næste medlem">' + IC.right + '</button>' +
+      '</div>' +
+      (suggestion
+        ? '<div class="sug-strip">' + IC.clock + '<span>Afbud nu? ' + esc(suggestion.reason) + ' — »' + esc(suggestion.type.category) + '« (' + kr(suggestion.type.amount) + ') er markeret.</span></div>'
+        : '') +
+      '<div class="fine-grid">' + grid + '</div>' +
+      '<div class="note">Tryk på en takst for at give bøden — tryk flere gange for flere. Fortryd i mødets bødeliste.</div>';
+
+    openModal('Giv bøder', body, esc(meet.title) + ' · spiller ' + (idx + 1) + ' af ' + members.length);
+  }
+
+  /* ---------- Bulk-bøde: én takst til flere medlemmer ---------- */
+
+  var bulkTypeId = null;      // valgt takst ('' = særbøde er ikke understøttet i bulk)
+  var bulkPicked = {};        // memberId → 1
+
+  function openBulk() {
+    var meet = findMeeting(view.meetingId);
+    if (!meet || meet.closedAt) return;
+    var members = meetingMembers(meet).filter(function (m) { return m.active; });
+    var t = findFineType(bulkTypeId);
+
+    var typeGrid = state.fineTypes.filter(function (x) { return x.active; }).map(function (x) {
+      return '<button class="fine-btn' + (x.amount >= HOT_FINE ? ' hot' : '') + (t && t.id === x.id ? ' picked' : '') +
+        '" data-action="bulk-type" data-id="' + esc(x.id) + '">' +
+        fineIcon(x) + '<div class="cat">' + esc(x.category) + '</div>' +
+        '<div class="amt' + amtClass(x.amount) + '">' + kr(x.amount) + '</div></button>';
+    }).join('');
+
+    var picked = members.filter(function (m) { return bulkPicked[m.id]; });
+    var memberGrid = members.map(function (m) {
+      var on = !!bulkPicked[m.id];
+      return '<button class="bulk-cell' + (on ? ' on' : '') + '" data-action="bulk-toggle" data-id="' + esc(m.id) + '" title="' + esc(m.name) + '">' +
+        '<span class="box">' + (on ? IC.check : '') + '</span>' + avatar(m, 'sm') +
+        '<span class="nm">' + esc(firstName(m.name)) + '</span></button>';
+    }).join('');
+
+    // Trin 1 fylder hele arket, indtil taksten er valgt — så folder den sig sammen
+    var body = t
+      ? '<div class="bulk-picked">' + fineIcon(t, 'big' + (t.amount >= HOT_FINE ? ' hot' : '')) +
+        '<div class="grow"><div class="t">' + esc(t.category) + '</div>' +
+        '<div class="s">' + kr(t.amount) + ' pr. mand</div></div>' +
+        '<button class="btn small secondary" data-action="bulk-type" data-id="">Skift takst</button></div>' +
+        '<div class="bulk-step"><span class="n">2</span>Vælg medlemmer' +
+        '<button class="btn small secondary" data-action="bulk-all">' + (picked.length === members.length ? 'Fravælg alle' : 'Vælg alle') + '</button></div>' +
+        '<div class="bulk-grid">' + memberGrid + '</div>' +
+        '<div class="btn-row"><button class="btn" data-action="bulk-save"' + (picked.length ? '' : ' disabled') + '>' +
+        (picked.length
+          ? 'Giv bøden til ' + picked.length + ' medlem' + mer(picked.length) + ' · ' + kr(t.amount * picked.length)
+          : 'Vælg mindst ét medlem') + '</button></div>' +
+        '<div class="note">Alle får bøden på én gang. Fortryd med fortryd-knappen i toppen, hvis det gik for stærkt.</div>'
+      : '<div class="bulk-step"><span class="n">1</span>Vælg takst</div>' +
+        '<div class="fine-grid compact">' + typeGrid + '</div>';
+
+    openModal('Bulk-bøde', body, esc(meet.title) + (t ? ' · ' + esc(t.category) : ' · vælg takst'));
+  }
+
+  /* ---------- Søg og spring til ---------- */
+
+  function searchResults(q) {
+    q = q.trim().toLowerCase();
+    if (!q) return '<div class="note">Skriv et navn, en mødetitel eller en takst.</div>';
+    var hits = [];
+    state.members.filter(function (m) { return m.name.toLowerCase().indexOf(q) !== -1; })
+      .sort(byName).slice(0, 6).forEach(function (m) {
+        hits.push('<button class="row" data-action="search-go" data-kind="member" data-id="' + esc(m.id) + '">' +
+          avatar(m, 'sm') + '<div class="grow"><div class="t">' + esc(m.name) + '</div>' +
+          '<div class="s">Medlem · ' + (m.active ? (m.prospect ? 'prospect' : 'aktiv') : 'udgået') + ' · gæld ' + kr(Math.max(0, memberBalance(m.id))) + '</div></div></button>');
+      });
+    state.meetings.filter(function (m) {
+      return m.title.toLowerCase().indexOf(q) !== -1 || (m.description || '').toLowerCase().indexOf(q) !== -1;
+    }).sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); }).slice(0, 6).forEach(function (m) {
+      hits.push('<button class="row" data-action="search-go" data-kind="meeting" data-id="' + esc(m.id) + '">' +
+        '<span class="rec-ic">' + IC.clock + '</span>' +
+        '<div class="grow"><div class="t">' + esc(m.title) + '</div>' +
+        '<div class="s">' + esc(meetingYearLabel(m)) + ' · ' + fmtDate(m.date) + '</div></div>' +
+        '<div class="amount">' + kr(meetingTotal(m.id)) + '</div></button>');
+    });
+    state.fineTypes.filter(function (t) {
+      return t.active && (t.category.toLowerCase().indexOf(q) !== -1 || (t.description || '').toLowerCase().indexOf(q) !== -1);
+    }).slice(0, 6).forEach(function (t) {
+      hits.push('<button class="row" data-action="search-go" data-kind="finetype" data-id="' + esc(t.id) + '">' +
+        fineIcon(t, 'big') + '<div class="grow"><div class="t">' + esc(t.category) + '</div>' +
+        '<div class="s">Takst</div></div><div class="amount">' + kr(t.amount) + '</div></button>');
+    });
+    return hits.length ? hits.join('') : '<div class="note">Ingen træf på »' + esc(q) + '«.</div>';
+  }
+
+  function openSearch() {
+    openModal('Søg', '<input id="search-q" type="text" placeholder="Medlem, møde eller takst" autocomplete="off">' +
+      '<div id="search-results" class="search-results">' + searchResults('') + '</div>');
+    var input = document.getElementById('search-q');
+    if (!input) return;
+    input.addEventListener('input', function () {
+      var box = document.getElementById('search-results');
+      if (box) box.innerHTML = searchResults(input.value);
+    });
+    input.focus();
+  }
+
+  /* ---------- Udgifter fra kassen ---------- */
+
+  function openExpenseForm() {
+    var body =
+      '<label for="exp-note">Hvad gik pengene til?</label>' +
+      '<input id="exp-note" type="text" placeholder="fx Klubtur, øl til mødet">' +
+      '<label for="exp-amount">Beløb (kr.)</label>' +
+      '<input id="exp-amount" type="number" inputmode="numeric" min="1" step="1" value="0">' +
+      '<label for="exp-date">Dato</label>' +
+      '<input id="exp-date" type="date" value="' + todayISO() + '">' +
+      '<div class="btn-row"><button class="btn" data-action="expense-save">Registrer udgift</button></div>' +
+      '<div class="note">Udgiften trækkes fra kassebeholdningen — den påvirker ikke medlemmernes gæld.</div>';
+    openModal('Udgift fra kassen', body, 'Beholdning nu ' + kr(potTotal()));
+  }
+
+  /* ---------- Årsopgørelse ved sæsonskifte ---------- */
+
+  function openSettlement(yearId) {
+    var y = findYear(yearId);
+    if (!y) return;
+    var rows = state.members.slice().sort(byName)
+      .map(function (m) { return { m: m, year: yearFineTotalFor(m.id, y.id), bal: memberBalance(m.id) }; })
+      .filter(function (x) { return x.year > 0 || x.bal > 0; });
+    var owing = rows.filter(function (x) { return x.bal > 0; });
+
+    var html = rows.map(function (x) {
+      return '<div class="log-item"><div class="grow"><div class="t">' + esc(x.m.name) + (x.m.active ? '' : ' (udgået)') + '</div>' +
+        '<div class="s">Bøder i ' + esc(y.label) + ': ' + kr(x.year) + ' · saldo nu ' + kr(Math.max(0, x.bal)) + '</div></div>' +
+        (x.bal > 0 && !viewerMode
+          ? '<button class="btn small secondary" data-action="settle-writeoff" data-id="' + esc(x.m.id) + '" data-year="' + esc(y.id) + '">Afskriv</button>'
+          : '<span class="tag-ok">' + (x.bal > 0 ? kr(x.bal) : 'Betalt') + '</span>') +
+        '</div>';
+    }).join('');
+
+    openModal('Årsopgørelse ' + esc(y.label),
+      (html || '<div class="note">Ingen bøder i sæsonen — der er ikke noget at gøre op.</div>') +
+      (owing.length
+        ? '<div class="note">' + owing.length + ' medlem' + mer(owing.length) + ' skylder tilsammen ' +
+          kr(owing.reduce(function (a, x) { return a + x.bal; }, 0)) + ' Gælden følger med ind i næste klubår, medmindre den afskrives her.</div>' +
+          (viewerMode ? '' : '<div class="btn-row"><button class="btn secondary" data-action="settle-carry">Overfør al gæld til næste år</button></div>')
+        : '<div class="note">Alle er ajour — sæsonen kan lukkes med rank ryg.</div>'),
+      'Gælden overføres som udgangspunkt', { kind: 'season', id: y.id, label: 'Tilbage til sæsonresultatet' });
+  }
+  function mer(n) { return n === 1 ? '' : 'mer'; }
+
+  function openMemberSheet(memberId, filterYearId) {
+    var m = findMember(memberId);
+    if (!m) return;
+    var bal = memberBalance(m.id);
+    var streak = memberMeetingStreak(m.id);
+    var cleanStreak = memberCleanStreak(m.id);
+    var topType = memberTopType(m.id);
+    var badges = computeBadges(m.id);
+
+    var fy = filterYearId ? findYear(filterYearId) : null;
+    var fw = fy ? yearWindow(fy) : null;
+    var events = [];
+    state.fines.forEach(function (f) {
+      if (f.memberId !== m.id) return;
+      var meet = findMeeting(f.meetingId);
+      if (fy && (!meet || meet.clubYearId !== fy.id)) return;
+      events.push({ ts: f.ts, html: '<div class="log-item">' + fineIconFor(f) + '<div class="grow"><div class="t">' + esc(fineLabel(f)) + '</div>' +
+        '<div class="s">' + (meet ? esc(meet.title) + ' · ' + esc(meetingYearLabel(meet)) + ' · ' + fmtDate(meet.date) : '') + '</div></div>' +
+        '<div class="amount' + amtClass(f.amount) + '">+' + kr(f.amount) + '</div></div>' });
+    });
+    state.payments.forEach(function (p) {
+      if (p.memberId !== m.id) return;
+      if (fw && !(p.date >= fw.from && p.date <= fw.to)) return;
+      events.push({ ts: p.ts, html: '<div class="log-item"><div class="grow"><div class="t">Indbetaling' + (p.note ? ' — ' + esc(p.note) : '') + '</div>' +
+        '<div class="s">' + fmtDate(p.date) + '</div></div>' +
+        '<div class="amount pay">−' + kr(p.amount) + '</div>' +
+        (viewerMode ? '' : '<button class="x" data-action="remove-payment" data-id="' + esc(p.id) + '" aria-label="Slet indbetaling">' + IC.x + '</button>') + '</div>' });
+    });
+    events.sort(function (a, b) { return b.ts - a.ts; });
+
+    var histYears = state.clubYears.slice().sort(function (a, b) { return b.startYear - a.startYear; })
+      .filter(function (y) {
+        var ids = {};
+        yearMeetings(y.id).forEach(function (x) { ids[x.id] = 1; });
+        return state.fines.some(function (f) { return f.memberId === m.id && ids[f.meetingId]; });
+      });
+    var histChips = histYears.length
+      ? '<div class="chips small hist-chips">' +
+        '<button class="chip' + (fy ? '' : ' active') + '" data-action="member-hist" data-id="' + esc(m.id) + '" data-year="">Alle</button>' +
+        histYears.map(function (y) {
+          return '<button class="chip' + (fy && fy.id === y.id ? ' active' : '') + '" data-action="member-hist" data-id="' + esc(m.id) + '" data-year="' + esc(y.id) + '">' + esc(y.label) + '</button>';
+        }).join('') + '</div>'
+      : '';
+
+    var badgeHtml = badges.length ? awardRow(badges) : '';
+
+    var body =
+      '<div class="stats" style="grid-template-columns: repeat(3, minmax(0,1fr))">' +
+      '<div class="stat"><div class="k">Gæld</div><div class="v amber">' + kr(Math.max(0, bal)) + '</div></div>' +
+      '<div class="stat"><div class="k">Bøder i alt</div><div class="v">' + kr(memberFineTotal(m.id)) + '</div></div>' +
+      '<div class="stat"><div class="k">Betalt</div><div class="v green">' + kr(memberPaidTotal(m.id)) + '</div></div>' +
+      '</div>' +
+      (bal < 0 ? '<div class="note">Har ' + kr(-bal) + ' til gode i kassen.</div>' : '') +
+      badgeHtml +
+      (streak >= 2
+        ? '<div class="streak-strip">' + flames(streak) + '<span>' + streakTitle(streak) + '! Bøde i ' + streak + ' møder i træk.</span></div>'
+        : '') +
+      (cleanStreak >= 3
+        ? '<div class="streak-strip clean">' + IC.shield + '<span>Fredet — ' + cleanStreak + ' møder uden bøde.</span></div>'
+        : '') +
+      (function () {
+        var pp = prospectProgress(m);
+        if (!pp) return '';
+        var pct = Math.round(100 * pp.done / pp.goal);
+        return '<div class="prospect-strip' + (pp.klar ? ' klar' : '') + '">' + sproutIcon(m) +
+          '<div class="grow"><div class="t">Prospect — ' + pp.done + ' af ' + pp.goal + ' møder' +
+          (pp.klar ? ' · klar til optagelse' : '') + '</div>' +
+          '<div class="pp-track"><i style="width: ' + pct + '%"></i></div>' +
+          '<div class="pp-meta">' + (pp.manual ? 'Sat manuelt' : 'Fra ' + fmtDate(pp.from)) + '</div></div>' +
+          (viewerMode ? '<div class="pp-pct">' + pct + '%</div>'
+            : '<button class="btn small secondary" data-action="prospect-edit" data-id="' + esc(m.id) + '">Ret</button>') +
+          '</div>';
+      })() +
+      (topType && topType.count >= 2
+        ? '<div class="note">Favoritsynd: ' + topType.count + '× »' + esc((findFineType(topType.typeId) || {}).category || '?') + '«</div>'
+        : '') +
+      '<div class="btn-row"><button class="btn secondary" data-action="member-card" data-id="' + esc(m.id) + '">' + IC.star + 'Vis medlemskort</button></div>' +
+      (viewerMode ? '' :
+        '<div class="btn-row">' +
+        '<button class="btn" data-action="pay-form" data-id="' + esc(m.id) + '">Registrer indbetaling</button>' +
+        '<button class="btn secondary" data-action="rename-member" data-id="' + esc(m.id) + '">Omdøb</button>' +
+        (m.active
+          ? '<button class="btn danger" data-action="retire-member" data-id="' + esc(m.id) + '">Udmeld</button>'
+          : '<button class="btn secondary" data-action="revive-member" data-id="' + esc(m.id) + '">Genindmeld</button>') +
+        '</div>' +
+        '<div class="btn-row"><button class="btn secondary" data-action="toggle-formand" data-id="' + esc(m.id) + '">' +
+        (state.formandId === m.id ? 'Fjern som formand' : IC.crown + ' Gør til formand') + '</button>' +
+        '<button class="btn secondary" data-action="toggle-prospect" data-id="' + esc(m.id) + '">' +
+        (m.prospect ? 'Gør til fuldgyldigt medlem' : IC.sprout + ' Markér som prospect') + '</button>' +
+        '<button class="btn danger" data-action="delete-member" data-id="' + esc(m.id) + '">' + IC.bin + 'Slet</button></div>') +
+      yearMembershipBlock(m) +
+      '<div class="section-title"><h2>Historik</h2><div class="hint">' + events.length + ' posteringer</div></div>' +
+      histChips +
+      '<div class="hist">' + (events.map(function (e) { return e.html; }).join('') || '<div class="note">Ingen posteringer' + (fy ? ' i ' + esc(fy.label) : '') + '.</div>') + '</div>';
+
+    openModal(avatar(m, 'sm') + esc(m.name) + (state.formandId === m.id ? ' <span class="crown">' + IC.crown + '</span>' : ''), body,
+      (state.formandId === m.id ? 'Formand' : '') + (m.active ? '' : (state.formandId === m.id ? ' · udmeldt' : 'Udmeldt')));
+  }
+
+  /* Hvilke klubår medlemmet er med i — et år kan slås fra uden at årets
+     bøder forsvinder, så gamle regnskaber står urørt. */
+  function yearMembershipBlock(m) {
+    var years = state.clubYears.slice().sort(function (a, b) { return b.startYear - a.startYear; });
+    if (!years.length) return '';
+    var chips = years.map(function (y) {
+      var on = inYear(m, y.id);
+      var sum = yearFineTotalFor(m.id, y.id);
+      return '<button class="chip year-chip' + (on ? ' active' : '') + '" style="--yc: ' + yearColor(y) + '"' +
+        (viewerMode ? ' disabled' : ' data-action="toggle-member-year" data-id="' + esc(m.id) + '" data-year="' + esc(y.id) + '"') + '>' +
+        esc(y.label) + (sum > 0 ? '<span class="chip-n">' + nf(sum) + '</span>' : '') + '</button>';
+    }).join('');
+    return '<div class="section-title"><h2>Klubår</h2><div class="hint">' + memberYearLabels(m).length + ' år</div></div>' +
+      '<div class="chips small year-chips">' + chips + '</div>' +
+      '<div class="note">' + (viewerMode ? 'Årene viser, hvornår medlemmet var med.' :
+        'Slå år til og fra for at markere, hvornår medlemmet var med. Bøder fra fravalgte år bliver stående i regnskabet.') + '</div>';
+  }
+
+  /* ---------- Medlemskort: profilen som samlekort ---------- */
+
+  function cardFacts(m) {
+    var top = memberTopType(m.id);
+    var t = top ? findFineType(top.typeId) : null;
+    return {
+      gaeld: kr(Math.max(0, memberBalance(m.id))),
+      boeder: String(memberFineCount(m.id)),
+      total: kr(memberFineTotal(m.id)),
+      streak: String(memberLongestStreak(m.id)),
+      synd: t ? t.category : (top ? '?' : '—'),
+      syndN: top ? top.count : 0,
+      aar: memberYearLabels(m).join(' · ') || 'Ingen klubår',
+      rolle: state.formandId === m.id ? 'Formand' : (m.prospect ? 'Prospect' : (m.active ? 'Medlem' : 'Udgået'))
+    };
+  }
+
+  function openMemberCard(memberId) {
+    var m = findMember(memberId);
+    if (!m) return;
+    var f = cardFacts(m);
+    var badges = computeBadges(m.id);
+    var hue = avatarHue(m.id);
+
+    var body =
+      '<div class="mcard" style="--av: ' + hue + '">' +
+      '<div class="mcard-shine"></div>' +
+      '<div class="mcard-head">' +
+      '<div class="mcard-role">' + esc(f.rolle) + '</div>' +
+      '<div class="mcard-club">' + esc(state.clubName) + '</div></div>' +
+      '<div class="mcard-av">' + avatar(m) + '</div>' +
+      '<div class="mcard-name">' + esc(m.name) + '</div>' +
+      '<div class="mcard-years">' + esc(f.aar) + '</div>' +
+      '<div class="mcard-grid">' +
+      '<div><b>' + esc(f.boeder) + '</b><span>Bøder</span></div>' +
+      '<div><b>' + esc(f.total) + '</b><span>I alt</span></div>' +
+      '<div><b>' + esc(f.streak) + '</b><span>Streak</span></div>' +
+      '<div><b>' + esc(f.gaeld) + '</b><span>Gæld</span></div>' +
+      '</div>' +
+      '<div class="mcard-sin">Favoritsynd<b>' + esc(f.synd) + (f.syndN > 1 ? ' ×' + f.syndN : '') + '</b></div>' +
+      (badges.length ? awardRow(badges, 'tight') : '<div class="mcard-none">Ingen hædersbevisninger endnu</div>') +
+      '</div>' +
+      (viewerMode ? '' : '<div class="btn-row"><button class="btn secondary" data-action="card-save" data-id="' + esc(m.id) + '">' + IC.save + 'Gem kortet som billede</button></div>') +
+      '<div class="note">Kortet gemmes som SVG — det kan deles direkte i klubbens gruppechat.</div>';
+
+    openModal('Medlemskort', body, esc(m.name), { kind: 'member', id: m.id, label: 'Tilbage til ' + m.name });
+  }
+
+  /* Samme kort som selvstændig SVG-fil, så det kan deles som billede */
+  function memberCardSVG(m) {
+    var f = cardFacts(m);
+    var hue = avatarHue(m.id);
+    var W = 420, H = 620;
+    function tx(s) { return esc(String(s)); }
+    var badges = computeBadges(m.id).slice(0, 3).map(function (b) { return b.label; });
+
+    var out = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
+      '<defs>' +
+      '<linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">' +
+      '<stop offset="0" stop-color="#1c2530"></stop><stop offset="1" stop-color="#10141a"></stop></linearGradient>' +
+      '<linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0" stop-color="#ffe08a"></stop><stop offset="0.5" stop-color="#fbbf24"></stop>' +
+      '<stop offset="1" stop-color="#a9760a"></stop></linearGradient>' +
+      '<linearGradient id="av" x1="0" y1="0" x2="0.3" y2="1">' +
+      '<stop offset="0" stop-color="hsl(' + hue + ' 48% 32%)"></stop>' +
+      '<stop offset="1" stop-color="hsl(' + hue + ' 45% 18%)"></stop></linearGradient>' +
+      '</defs>' +
+      '<rect width="' + W + '" height="' + H + '" rx="22" fill="url(#bg)"></rect>' +
+      '<rect x="5" y="5" width="' + (W - 10) + '" height="' + (H - 10) + '" rx="18" fill="none" stroke="url(#edge)" stroke-width="3"></rect>' +
+      '<text x="30" y="48" font-family="Arial Narrow, Arial, sans-serif" font-size="15" letter-spacing="3" fill="#fbbf24">' + tx(f.rolle.toUpperCase()) + '</text>' +
+      '<text x="' + (W - 30) + '" y="48" text-anchor="end" font-family="Arial Narrow, Arial, sans-serif" font-size="15" letter-spacing="3" fill="#6b7a89">' + tx(state.clubName.toUpperCase()) + '</text>' +
+      '<circle cx="' + (W / 2) + '" cy="150" r="62" fill="url(#av)" stroke="hsl(' + hue + ' 45% 40%)" stroke-width="2"></circle>' +
+      '<text x="' + (W / 2) + '" y="168" text-anchor="middle" font-family="Arial, sans-serif" font-size="46" font-weight="700" fill="hsl(' + hue + ' 70% 88%)">' + tx(initials(m.name)) + '</text>' +
+      '<text x="' + (W / 2) + '" y="255" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="1" fill="#f4f6f8">' + tx(m.name.toUpperCase()) + '</text>' +
+      '<text x="' + (W / 2) + '" y="281" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9fb0c0">' + tx(f.aar) + '</text>' +
+      '<line x1="40" y1="302" x2="' + (W - 40) + '" y2="302" stroke="#232e3a" stroke-width="2"></line>';
+
+    var cells = [['Bøder', f.boeder], ['I alt', f.total], ['Streak', f.streak], ['Gæld', f.gaeld]];
+    cells.forEach(function (c, i) {
+      var cx = i % 2 === 0 ? W / 4 + 10 : W * 3 / 4 - 10;
+      var cy = 350 + Math.floor(i / 2) * 82;
+      out += '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="30" font-weight="700" fill="#fbbf24">' + tx(c[1]) + '</text>' +
+        '<text x="' + cx + '" y="' + (cy + 22) + '" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" letter-spacing="2" fill="#6b7a89">' + tx(c[0].toUpperCase()) + '</text>';
+    });
+
+    out += '<line x1="40" y1="500" x2="' + (W - 40) + '" y2="500" stroke="#232e3a" stroke-width="2"></line>' +
+      '<text x="40" y="530" font-family="Arial, sans-serif" font-size="13" letter-spacing="2" fill="#6b7a89">FAVORITSYND</text>' +
+      '<text x="' + (W - 40) + '" y="530" text-anchor="end" font-family="Arial Narrow, Arial, sans-serif" font-size="20" font-weight="700" fill="#f4f6f8">' +
+      tx(f.synd + (f.syndN > 1 ? ' ×' + f.syndN : '')) + '</text>';
+
+    badges.forEach(function (b, i) {
+      out += '<text x="40" y="' + (566 + i * 20) + '" font-family="Arial, sans-serif" font-size="14" fill="#fbbf24">★ ' + tx(b) + '</text>';
+    });
+    if (!badges.length) {
+      out += '<text x="40" y="566" font-family="Arial, sans-serif" font-size="14" fill="#6b7a89">Ingen hædersbevisninger endnu</text>';
+    }
+    return out + '</svg>';
+  }
+
+  /* Prospect-forløb: startdato, længde og en manuel tælling der slår automatikken fra */
+  function openProspectForm(memberId) {
+    var m = findMember(memberId);
+    if (!m) return;
+    var p = prospectProgress(m) || { goal: PROSPECT_MEETINGS, from: prospectStart(m), manual: false, raw: 0 };
+    var body =
+      '<label for="pr-from">Startdato — møder herfra tæller med</label>' +
+      '<input id="pr-from" type="date" value="' + esc(p.from) + '">' +
+      '<label for="pr-goal">Forløbets længde (antal møder)</label>' +
+      '<input id="pr-goal" type="number" inputmode="numeric" min="1" max="40" step="1" value="' + p.goal + '">' +
+      '<label for="pr-done">Gennemførte møder</label>' +
+      '<input id="pr-done" type="number" inputmode="numeric" min="0" max="40" step="1" placeholder="Tælles automatisk" value="' +
+      (p.manual ? p.raw : '') + '">' +
+      '<div class="btn-row"><button class="btn" data-action="prospect-save" data-id="' + esc(m.id) + '">Gem forløb</button>' +
+      (p.manual ? '<button class="btn secondary" data-action="prospect-auto" data-id="' + esc(m.id) + '">Beregn automatisk igen</button>' : '') +
+      '</div>' +
+      '<div class="note">Lad feltet »Gennemførte møder« stå tomt, så tælles de afholdte møder selv fra startdatoen. Udfylder du det, overstyrer tallet optællingen.</div>';
+    openModal('Prospect-forløb', body, esc(m.name), { kind: 'member', id: m.id, label: 'Tilbage til ' + m.name });
+  }
+
+  function openPayForm(memberId) {
+    var m = findMember(memberId);
+    if (!m) return;
+    var bal = memberBalance(m.id);
+    var body =
+      '<label for="pay-amount">Beløb (kr.)</label>' +
+      '<input id="pay-amount" type="number" inputmode="numeric" min="1" step="1" value="' + Math.max(0, bal) + '">' +
+      '<label for="pay-date">Dato</label>' +
+      '<input id="pay-date" type="date" value="' + todayISO() + '">' +
+      '<label for="pay-note">Note (valgfri)</label>' +
+      '<input id="pay-note" type="text" placeholder="fx MobilePay">' +
+      '<div class="btn-row"><button class="btn" data-action="pay-save" data-id="' + esc(m.id) + '">Registrer indbetaling</button></div>' +
+      (bal > 0 ? '<div class="note">Udfyldt med hele gælden (' + kr(bal) + ') — ret beløbet ved delvis indbetaling.</div>' : '');
+    openModal('Indbetaling', body, esc(m.name) + ' · gæld ' + kr(Math.max(0, bal)),
+      { kind: 'member', id: m.id, label: 'Tilbage til ' + m.name });
+  }
+
+  function openSpecialFineForm() {
+    var body =
+      '<label for="sp-label">Hvad er synden?</label>' +
+      '<input id="sp-label" type="text" placeholder="fx Tabt væddemål">' +
+      '<label for="sp-amount">Beløb (kr.)</label>' +
+      '<input id="sp-amount" type="number" inputmode="numeric" min="1" step="1" value="50">' +
+      '<div class="btn-row"><button class="btn" data-action="special-save">Giv særbøden</button></div>';
+    var m = findMember(pickerMemberId);
+    openModal('Særbøde', body, m ? 'Til ' + esc(m.name) : '',
+      m ? { kind: 'picker', id: m.id, label: 'Tilbage til bøderne for ' + m.name } : null);
+  }
+
+  function openMemberForm() {
+    var cy = currentClubYear();
+    var body =
+      '<label for="mem-name">Navn</label>' +
+      '<input id="mem-name" type="text" placeholder="fx Frederik" autocomplete="off">' +
+      '<label class="check"><input id="mem-prospect" type="checkbox"><span>' + IC.sprout + ' Prospect — endnu ikke fuldgyldigt medlem</span></label>' +
+      '<div class="btn-row"><button class="btn" data-action="member-save">Tilføj</button>' +
+      '<button class="btn secondary" data-action="member-save-more">Tilføj og fortsæt</button></div>' +
+      '<div class="note">Tilføjes til klubåret ' + (cy ? esc(cy.label) : 'som oprettes') +
+      '. Tidligere år slås til på profilen. Brug &raquo;Tilføj og fortsæt&laquo; til at taste hele klubben ind.</div>';
+    openModal('Nyt medlem', body);
+  }
+
+  function openMeetingEditForm(meetingId) {
+    var m = findMeeting(meetingId);
+    if (!m) return;
+    var body =
+      '<label for="meet-title">Titel</label>' +
+      '<input id="meet-title" type="text" value="' + esc(m.title) + '">' +
+      '<label for="meet-date">Dato</label>' +
+      '<input id="meet-date" type="date" value="' + esc(m.date || '') + '">' +
+      '<label for="meet-desc">Beskrivelse</label>' +
+      '<textarea id="meet-desc" rows="3" placeholder="Dagsorden, indlægsholder, sted …">' + esc(m.description) + '</textarea>' +
+      '<label for="meet-links">Links (ét pr. linje)</label>' +
+      '<textarea id="meet-links" rows="3" placeholder="Referat: https://…&#10;Slides: https://…">' + esc(m.links) + '</textarea>' +
+      '<div class="btn-row"><button class="btn" data-action="meeting-save" data-id="' + esc(m.id) + '">Gem møde</button></div>' +
+      '<div class="note">Skriv evt. en etiket før linket, fx &raquo;Referat: https://…&laquo;</div>';
+    openModal('Rediger møde', body, esc(meetingYearLabel(m)));
+  }
+
+  /* Ikonvælger: 'Auto' følger navnet, ellers vælges et fast ikon */
+  var pickedIcon = null;
+  function iconPicker(t) {
+    var auto = fineIconKey(t ? t.category : '', t ? t.description : '');
+    var cur = pickedIcon !== null ? pickedIcon : ((t && t.icon) || '');
+    var out = '<div class="icon-picker" id="icon-picker">' +
+      '<button class="icon-opt' + (cur === '' ? ' active' : '') + '" data-action="pick-icon" data-icon="" title="Automatisk">' +
+      '<span class="fine-ic">' + FI[auto] + '</span><span class="io-lbl">Auto</span></button>';
+    Object.keys(FI).forEach(function (k) {
+      out += '<button class="icon-opt' + (cur === k ? ' active' : '') + '" data-action="pick-icon" data-icon="' + k + '" title="' + k + '">' +
+        '<span class="fine-ic">' + FI[k] + '</span></button>';
+    });
+    return out + '</div>';
+  }
+
+  function openFineTypeForm(typeId) {
+    pickedIcon = typeId ? null : '';
+    var t = typeId ? findFineType(typeId) : null;
+    var body =
+      '<label for="ft-cat">Bødekategori</label>' +
+      '<input id="ft-cat" type="text" value="' + (t ? esc(t.category) : '') + '" placeholder="fx Mobil">' +
+      '<label for="ft-desc">Beskrivelse</label>' +
+      '<textarea id="ft-desc" rows="2" placeholder="Hvornår gives bøden?">' + (t ? esc(t.description) : '') + '</textarea>' +
+      '<label for="ft-amount">Beløb (kr.)</label>' +
+      '<input id="ft-amount" type="number" inputmode="numeric" min="1" step="1" value="' + (t ? t.amount : 50) + '">' +
+      '<label>Ikon <span class="lbl-hint">(vælges automatisk ud fra navnet — klik for at ændre)</span></label>' +
+      iconPicker(t) +
+      '<div class="btn-row"><button class="btn" data-action="finetype-save" data-id="' + (t ? esc(t.id) : '') + '">Gem takst</button>' +
+      (t ? '<button class="btn danger" data-action="finetype-remove" data-id="' + esc(t.id) + '">Fjern</button>' : '') +
+      '</div>' +
+      (t ? '<div class="note">At fjerne taksten sletter ikke allerede givne bøder.</div>' : '');
+    openModal(t ? 'Rediger takst' : 'Ny takst', body);
+  }
+
+  function openSettings() {
+    var body =
+      (viewerMode
+        ? '<div class="btn-row"><button class="btn" data-action="viewer-toggle">' + IC.eye + 'Slå visningstilstand fra</button></div>' +
+          '<div class="note">Visningstilstand skjuler al registrering på denne enhed — praktisk når linket deles med medlemmerne.</div>'
+        : '<label for="set-club">Klubnavn</label>' +
+          '<input id="set-club" type="text" value="' + esc(state.clubName) + '">' +
+          '<div class="btn-row"><button class="btn" data-action="settings-save">Gem</button></div>' +
+          '<hr class="divider">' +
+          shareHelp() +
+          '<hr class="divider">' +
+          '<div class="btn-row"><button class="btn secondary" data-action="viewer-toggle">' + IC.eye + 'Visningstilstand</button>' +
+          '<button class="btn secondary" data-action="audit-open">' + IC.clock + 'Revisionslog</button>' +
+          '<button class="btn secondary" data-action="trash-open">' + IC.bin + 'Papirkurv (' + state.trash.length + ')</button></div>' +
+          '<hr class="divider">' +
+          '<div class="btn-row"><button class="btn secondary" data-action="export-json">Eksportér data (JSON)</button>' +
+          '<button class="btn secondary" data-action="import-json">Importér data</button></div>' +
+          '<input id="import-file" type="file" accept="application/json" hidden>' +
+          backupNote() +
+          '<hr class="divider">' +
+          '<div class="btn-row"><button class="btn danger" data-action="reset-all">Nulstil alt</button></div>' +
+          '<div class="note">Data gemmes automatisk i denne browser.' + (artifactNS ? ' Brug &raquo;Gem ændringer&laquo; i toppen for at gemme til den delte side.' : '') + '</div>');
+    openModal('Indstillinger', body);
+  }
+
+  /* Hvornår tog denne enhed sidst en backup — og en blid opfordring når det trænger */
+  function backupNote() {
+    var last = lastExport();
+    var over = backupOverdue();
+    var txt = last
+      ? 'Seneste backup på denne enhed: ' + fmtDateTime(last) + '.'
+      : 'Der er aldrig taget en backup på denne enhed.';
+    if (over) txt += ' Tag en eksport — så har I en kopi, der hverken afhænger af browseren eller det delte link.';
+    return '<div class="note' + (over ? ' warn' : '') + '">' + (over ? IC.warn : '') + '<span>' + esc(txt) + '</span></div>';
+  }
+
+  /* Sådan deles ligaen med medlemmerne — kun læseadgang */
+  function shareHelp() {
+    return '<div class="share-help">' +
+      '<div class="sh-head">' + IC.eye + '<span>Del med medlemmerne</span></div>' +
+      '<ol class="rules-list">' +
+      '<li>Åbn delemenuen på siden og del linket med <b>læseadgang</b> til medlemmerne.</li>' +
+      '<li>Linket virker ens på telefon og computer — de åbner det bare i browseren.</li>' +
+      '<li>Appen opdager selv, at de ikke har skriveadgang, og slår <b>visningstilstand</b> til: de kan se ligaen, men ikke registrere.</li>' +
+      '<li>Du gemmer nye bøder med &raquo;Gem ændringer&laquo; i toppen — først derefter kan medlemmerne se dem.</li>' +
+      '</ol>' +
+      '<div class="note">Vil du selv se appen, som medlemmerne gør, så slå visningstilstand til herunder. Det gælder kun denne enhed.</div>' +
+      '</div>';
+  }
+
+  /* Sæsonafslutning: kåring af årets syndere (#5) */
+  function openSeasonResult(y, quiet) {
+    var totals = state.members.map(function (m) { return { m: m, sum: yearFineTotalFor(m.id, y.id) }; })
+      .sort(function (a, b) { return b.sum - a.sum; });
+    var top = totals.filter(function (t) { return t.sum > 0; }).slice(0, 3);
+    var nice = totals.filter(function (t) { return t.m.active; }).slice().sort(function (a, b) { return a.sum - b.sum; })[0];
+    var medals = ['guld', 'soelv', 'bronze'];
+    var titles = ['Årets synder', '2. pladsen', '3. pladsen'];
+    var rows = top.map(function (t, i) {
+      return '<div class="podium-row ' + medals[i] + '" style="animation-delay: ' + ((top.length - 1 - i) * 0.22) + 's">' +
+        '<div class="podium-rank">' + (i + 1) + '</div>' +
+        '<div class="grow"><div class="t">' + esc(t.m.name) + '</div><div class="s">' + titles[i] + '</div></div>' +
+        '<div class="podium-sum">' + kr(t.sum) + '</div></div>';
+    }).join('');
+    if (!quiet) spawnConfetti();
+    openModal(IC.trophy + ' Sæsonen ' + esc(y.label) + ' er slut',
+      (rows || '<div class="note">Ingen bøder blev givet i denne sæson. Imponerende. Eller bekymrende.</div>') +
+      (nice ? '<div class="streak-strip clean" style="margin-top: 16px">' + IC.shield + '<span>Mest artige: ' + esc(nice.m.name) + ' — kun ' + kr(nice.sum) + ' i bøder.</span></div>' : '') +
+      '<div class="note">Samlet for sæsonen: ' + kr(yearTotal(y.id)) + ' i bøder. Alle møder er nu låst — de kan genåbnes enkeltvis.</div>' +
+      (viewerMode ? '' : '<div class="btn-row"><button class="btn" data-action="settle-open" data-id="' + esc(y.id) + '">' + IC.coins + 'Årsopgørelse</button></div>'));
+  }
+
+  function openTrash() {
+    var rows = state.trash.slice().sort(function (a, b) { return b.deletedAt - a.deletedAt; }).map(function (t) {
+      var label = t.kind === 'meeting'
+        ? (t.meeting.title + ' · ' + yearLabel((findYear(t.meeting.clubYearId) || { startYear: '?' }).startYear || 0))
+        : t.member.name;
+      var sub = (t.kind === 'meeting' ? (t.fines.length + ' bøder') : (t.fines.length + ' bøder · ' + t.payments.length + ' indbetalinger')) +
+        ' · slettet ' + fmtDateTime(t.deletedAt);
+      return '<div class="log-item"><span class="rec-ic">' + (t.kind === 'meeting' ? IC.clock : IC.bin) + '</span>' +
+        '<div class="grow"><div class="t">' + esc(label) + '</div><div class="s">' + esc(sub) + '</div></div>' +
+        '<button class="btn small secondary" data-action="trash-restore" data-id="' + esc(t.id) + '">Gendan</button></div>';
+    }).join('');
+    openModal('Papirkurv', (rows || emptyState('kasse', 'Papirkurven er tom', 'Intet fortrudt. Endnu.')) +
+      '<div class="note">Slettede møder og medlemmer gendannes med alt indhold. Ryddes automatisk efter ' + TRASH_DAYS + ' dage.</div>',
+      '', { kind: 'settings', label: 'Tilbage til indstillinger' });
+  }
+
+  function openAudit() {
+    var rows = state.audit.slice(0, 200).map(function (e) {
+      return '<div class="log-item"><div class="grow"><div class="t">' + esc(e.text) + '</div>' +
+        '<div class="s">' + fmtDateTime(e.ts) + '</div></div></div>';
+    }).join('');
+    openModal('Revisionslog', (rows || emptyState('dommer', 'Ingen registreringer endnu', 'Loggen sover trygt.')) +
+      '<div class="note">Viser de seneste 200 hændelser.</div>',
+      '', { kind: 'settings', label: 'Tilbage til indstillinger' });
+  }
+
+  /* ---------- Handlinger ---------- */
+
+  function val(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+  function num(id) { var n = parseInt(val(id), 10); return isNaN(n) ? 0 : n; }
+
+  var actions = {
+    'goto': function (el) {
+      var v = el.getAttribute('data-view');
+      view = { name: v };
+      if (v === 'aar-detalje') view.yearId = el.getAttribute('data-id');
+      render();
+    },
+    'close-modal': function () { closeModal(); pickerMemberId = null; render(); },
+    'publish': function () { publishShared(); },
+    'settings': function () { openSettings(); },
+    'undo': function () { undo(); },
+    'redo': function () { redo(); },
+
+    /* Pilen i arkets hoved: ét skridt tilbage i stedet for helt ud */
+    'sheet-back': function (el) {
+      var kind = el.getAttribute('data-kind'), id = el.getAttribute('data-id');
+      if (kind === 'member') { openMemberSheet(id); return; }
+      if (kind === 'picker' && !viewerMode) { openFinePicker(id); return; }
+      if (kind === 'settings') { openSettings(); return; }
+      if (kind === 'season') { var y = findYear(id); if (y) { openSeasonResult(y, true); return; } }
+      closeModal(); pickerMemberId = null; render();
+    },
+
+    'search': function () { openSearch(); },
+    'search-go': function (el) {
+      var kind = el.getAttribute('data-kind'), id = el.getAttribute('data-id');
+      closeModal();
+      if (kind === 'member') { render(); openMemberSheet(id); return; }
+      if (kind === 'meeting') { view = { name: 'mode', meetingId: id }; render(); return; }
+      view = { name: 'takster' };
+      render();
+      if (!viewerMode) openFineTypeForm(id);
+    },
+
+    'member-filter': function (el) { memberFilter = el.getAttribute('data-key') || 'aktive'; render(); },
+
+    'bulk-open': function () { bulkTypeId = null; bulkPicked = {}; openBulk(); },
+    'bulk-type': function (el) { bulkTypeId = el.getAttribute('data-id'); openBulk(); },
+    'bulk-toggle': function (el) {
+      var id = el.getAttribute('data-id');
+      if (bulkPicked[id]) delete bulkPicked[id]; else bulkPicked[id] = 1;
+      openBulk();
+    },
+    'bulk-all': function () {
+      var meet = findMeeting(view.meetingId);
+      if (!meet) return;
+      var members = meetingMembers(meet).filter(function (m) { return m.active; });
+      var all = members.every(function (m) { return bulkPicked[m.id]; });
+      bulkPicked = {};
+      if (!all) members.forEach(function (m) { bulkPicked[m.id] = 1; });
+      openBulk();
+    },
+    'bulk-save': function () {
+      var t = findFineType(bulkTypeId);
+      var meet = findMeeting(view.meetingId);
+      if (!t || !meet || meet.closedAt) return;
+      var ids = Object.keys(bulkPicked);
+      if (!ids.length) return;
+      var names = [];
+      ids.forEach(function (id) {
+        var m = findMember(id);
+        if (!m) return;
+        state.fines.push({ id: uid(), meetingId: meet.id, memberId: m.id, fineTypeId: t.id, label: null, amount: t.amount, ts: Date.now() });
+        names.push(m.name);
+      });
+      if (!names.length) return;
+      log('Bulk-bøde »' + t.category + '« (' + kr(t.amount) + ') til ' + names.length + ': ' + names.join(', '));
+      bulkTypeId = null;
+      bulkPicked = {};
+      closeModal();
+      commit();
+      toast(names.length + ' × ' + t.category + ' · ' + kr(t.amount * names.length));
+      if (t.amount >= HOT_FINE) spawnConfetti();
+      if (state.formandId && ids.indexOf(state.formandId) !== -1) reactToFine(state.formandId, null);
+    },
+
+    'expense-form': function () { openExpenseForm(); },
+    'expense-save': function () {
+      var amount = num('exp-amount');
+      var note = val('exp-note').trim();
+      if (amount <= 0) { toast('Skriv et beløb'); return; }
+      state.expenses.push({ id: uid(), amount: amount, date: val('exp-date') || todayISO(), note: note, ts: Date.now() });
+      log('Registrerede udgift på ' + kr(amount) + (note ? ' (' + note + ')' : ''));
+      closeModal();
+      commit();
+      toast('Udgift på ' + kr(amount) + ' registreret');
+    },
+    'remove-expense': function (el) {
+      var id = el.getAttribute('data-id');
+      var x = state.expenses.find(function (e) { return e.id === id; });
+      if (!x || !window.confirm('Slet udgiften på ' + kr(x.amount) + '?')) return;
+      state.expenses = state.expenses.filter(function (e) { return e.id !== id; });
+      log('Slettede udgiften på ' + kr(x.amount) + (x.note ? ' (' + x.note + ')' : ''));
+      commit();
+    },
+
+    'settle-open': function (el) { openSettlement(el.getAttribute('data-id')); },
+    'settle-carry': function () {
+      closeModal();
+      render();
+      toast('Gælden følger med ind i næste klubår');
+    },
+    'settle-writeoff': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      var y = findYear(el.getAttribute('data-year'));
+      if (!m || !y) return;
+      var bal = memberBalance(m.id);
+      if (bal <= 0) return;
+      if (!window.confirm('Afskriv ' + kr(bal) + ' for ' + m.name + '? Gælden nulstilles uden at der kommer penge i kassen.')) return;
+      state.writeoffs.push({ id: uid(), memberId: m.id, clubYearId: y.id, amount: bal, date: todayISO(), ts: Date.now() });
+      log('Afskrev ' + kr(bal) + ' for ' + m.name + ' ved årsopgørelsen ' + y.label);
+      commitQuiet();
+      toast(kr(bal) + ' afskrevet for ' + m.name);
+      openSettlement(y.id);
+    },
+
+    'prospect-edit': function (el) { openProspectForm(el.getAttribute('data-id')); },
+    'prospect-save': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (!m) return;
+      var goal = num('pr-goal');
+      var doneRaw = val('pr-done').trim();
+      m.prospectGoal = goal > 0 ? goal : PROSPECT_MEETINGS;
+      m.prospectFrom = val('pr-from') || null;
+      m.prospectDone = doneRaw === '' ? null : Math.max(0, num('pr-done'));
+      log('Rettede prospect-forløbet for ' + m.name + ' (' + m.prospectGoal + ' møder' +
+        (m.prospectDone === null ? '' : ', ' + m.prospectDone + ' gennemført') + ')');
+      commitQuiet();
+      toast('Forløbet er opdateret');
+      openMemberSheet(m.id);
+    },
+    'prospect-auto': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (!m) return;
+      m.prospectDone = null;
+      log('Prospect-forløbet for ' + m.name + ' beregnes igen automatisk');
+      commitQuiet();
+      openProspectForm(m.id);
+    },
+
+    'toggle-prospect': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (!m) return;
+      m.prospect = !m.prospect;
+      if (m.prospect && !m.prospectFrom) m.prospectFrom = todayISO();
+      log(m.prospect ? m.name + ' blev markeret som prospect' : m.name + ' blev fuldgyldigt medlem');
+      commitQuiet();
+      toast(m.prospect ? m.name + ' er nu prospect' : 'Velkommen i klubben, ' + m.name + '!');
+      openMemberSheet(m.id);
+    },
+    'toggle-member-year': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      var y = findYear(el.getAttribute('data-year'));
+      if (!m || !y) return;
+      if (!Array.isArray(m.years)) m.years = [];
+      var i = m.years.indexOf(y.id);
+      if (i === -1) m.years.push(y.id); else m.years.splice(i, 1);
+      log(m.name + (i === -1 ? ' blev sat på klubåret ' : ' blev taget af klubåret ') + y.label);
+      commitQuiet();
+      openMemberSheet(m.id);
+    },
+
+    'new-year': function () {
+      var next = state.clubYears.reduce(function (a, y) { return Math.max(a, y.startYear); }, 2023) + 1;
+      var cy = ensureYear(state, next);
+      topUpMeetings(state, cy);
+      // Aktive medlemmer følger automatisk med ind i det nye klubår
+      var carried = 0;
+      state.members.forEach(function (m) {
+        if (!m.active) return;
+        if (!Array.isArray(m.years)) m.years = [];
+        if (m.years.indexOf(cy.id) === -1) { m.years.push(cy.id); carried++; }
+      });
+      log('Oprettede klubåret ' + cy.label + ' med ' + MEETINGS_PER_YEAR + ' møder og ' + carried + ' medlemmer');
+      view = { name: 'aar-detalje', yearId: cy.id };
+      commit();
+      toast('Klubår ' + cy.label + ' oprettet med ' + MEETINGS_PER_YEAR + ' møder');
+    },
+    'open-year': function (el) { view = { name: 'aar-detalje', yearId: el.getAttribute('data-id') }; render(); },
+    'add-meeting': function (el) {
+      var cy = findYear(el.getAttribute('data-id'));
+      if (!cy || cy.closedAt) return;
+      var mine = yearMeetings(cy.id);
+      var no = mine.reduce(function (a, m) { return Math.max(a, m.number); }, 0) + 1;
+      state.meetings.push({
+        id: uid(), clubYearId: cy.id, number: no, title: 'Møde ' + no,
+        date: scheduledDate(cy.startYear, no), description: '', links: '', closedAt: null
+      });
+      commit();
+      toast('Møde ' + no + ' tilføjet');
+    },
+
+    'open-meeting': function (el) { view = { name: 'mode', meetingId: el.getAttribute('data-id') }; render(); },
+    'edit-meeting': function (el) { openMeetingEditForm(el.getAttribute('data-id')); },
+    'meeting-save': function (el) {
+      var m = findMeeting(el.getAttribute('data-id'));
+      if (!m) return;
+      var title = val('meet-title').trim();
+      if (title) m.title = title;
+      m.date = val('meet-date');
+      m.description = val('meet-desc').trim();
+      m.links = val('meet-links').trim();
+      log('Redigerede ' + m.title + ' (' + (fmtDate(m.date)) + ')');
+      closeModal();
+      commit();
+    },
+    'close-meeting': function (el) {
+      var m = findMeeting(el.getAttribute('data-id'));
+      if (m) { m.closedAt = Date.now(); log('Afsluttede ' + m.title + ' — ' + kr(meetingTotal(m.id)) + ' i bøder'); commit(); toast(m.title + ' afsluttet — ' + kr(meetingTotal(m.id)) + ' i bøder'); }
+    },
+    'reopen-meeting': function (el) {
+      var m = findMeeting(el.getAttribute('data-id'));
+      if (m) { m.closedAt = null; commit(); }
+    },
+    'delete-meeting': function (el) {
+      var m = findMeeting(el.getAttribute('data-id'));
+      if (!m) return;
+      var cnt = meetingFineCount(m.id);
+      if (!window.confirm('Slet ' + m.title + (cnt ? ' og dets ' + cnt + ' bøder' : '') + '? (Kan gendannes fra papirkurven i ' + TRASH_DAYS + ' dage)')) return;
+      state.trash.push({
+        id: uid(), kind: 'meeting', deletedAt: Date.now(), meeting: m,
+        fines: state.fines.filter(function (f) { return f.meetingId === m.id; })
+      });
+      state.fines = state.fines.filter(function (f) { return f.meetingId !== m.id; });
+      state.meetings = state.meetings.filter(function (x) { return x.id !== m.id; });
+      log('Slettede ' + m.title + ' (' + cnt + ' bøder) — lagt i papirkurven');
+      view = { name: 'aar-detalje', yearId: m.clubYearId };
+      commit();
+    },
+    'delete-member': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (!m) return;
+      var fines = state.fines.filter(function (f) { return f.memberId === m.id; });
+      var pays = state.payments.filter(function (p) { return p.memberId === m.id; });
+      if (!window.confirm('Slet ' + m.name + ' helt, inkl. ' + fines.length + ' bøder og ' + pays.length + ' indbetalinger? (Kan gendannes fra papirkurven i ' + TRASH_DAYS + ' dage)')) return;
+      state.trash.push({ id: uid(), kind: 'member', deletedAt: Date.now(), member: m, fines: fines, payments: pays, wasFormand: state.formandId === m.id });
+      state.members = state.members.filter(function (x) { return x.id !== m.id; });
+      state.fines = state.fines.filter(function (f) { return f.memberId !== m.id; });
+      state.payments = state.payments.filter(function (p) { return p.memberId !== m.id; });
+      if (state.formandId === m.id) { closeFormandPeriod(); state.formandId = null; }
+      log('Slettede medlemmet ' + m.name + ' — lagt i papirkurven');
+      closeModal();
+      commit();
+    },
+    'trash-open': function () { openTrash(); },
+    'trash-restore': function (el) {
+      var id = el.getAttribute('data-id');
+      var t = state.trash.find(function (x) { return x.id === id; });
+      if (!t) return;
+      if (t.kind === 'meeting') {
+        state.meetings.push(t.meeting);
+        state.fines = state.fines.concat(t.fines || []);
+        log('Gendannede ' + t.meeting.title + ' fra papirkurven');
+      } else {
+        state.members.push(t.member);
+        state.fines = state.fines.concat(t.fines || []);
+        state.payments = state.payments.concat(t.payments || []);
+        if (t.wasFormand && !state.formandId) state.formandId = t.member.id;
+        log('Gendannede medlemmet ' + t.member.name + ' fra papirkurven');
+      }
+      state.trash = state.trash.filter(function (x) { return x.id !== id; });
+      commitQuiet();
+      toast('Gendannet');
+      openTrash();
+    },
+    'audit-open': function () { openAudit(); },
+    'viewer-toggle': function () {
+      setViewerMode(!viewerMode);
+      closeModal();
+      toast(viewerMode ? 'Visningstilstand slået til' : 'Visningstilstand slået fra');
+      render();
+    },
+    'stats-year': function (el) { statsYearId = el.getAttribute('data-id'); render(); },
+    'report-open': function (el) { openReport(el.getAttribute('data-id')); },
+    'report-close': function () { closeReport(); },
+    'report-print': function () { window.print(); },
+    'report-file': function () {
+      var paper = document.getElementById('report-paper');
+      if (!paper) return;
+      var html = '<!doctype html><html lang="da"><head><meta charset="utf-8"><title>' + esc(state.clubName) + ' Kassererrapport</title>' +
+        '<style>body{font-family:Georgia,serif;max-width:720px;margin:32px auto;color:#1a1a1a}h1{font-size:26px}h2{font-size:18px;margin-top:28px}table{width:100%;border-collapse:collapse;font-size:14px}th,td{border-bottom:1px solid #ccc;text-align:left;padding:6px 8px}th{border-bottom:2px solid #333}.rp-sub{color:#666}.rp-kpis{display:flex;gap:24px;margin:18px 0}.rp-kpis b{display:block;font-size:20px}.rp-kpis span{color:#666;font-size:12px}.rp-sign{display:flex;gap:60px;margin-top:60px}.rp-line{border-top:1px solid #333;width:200px;margin-bottom:6px}</style>' +
+        '</head><body>' + paper.innerHTML + '</body></html>';
+      var fname = state.clubName.toLowerCase().replace(/[^a-z0-9æøå-]+/g, '-') + '-rapport-' + todayISO() + '.html';
+      if (downloadsNS) {
+        downloadsNS.save({ filename: fname, data: html }).then(function () { toast('Rapport gemt'); })
+          .catch(function () { /* afvist */ });
+        return;
+      }
+      var blob = new Blob([html], { type: 'text/html' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    },
+    'season-close': function (el) {
+      var y = findYear(el.getAttribute('data-id'));
+      if (!y || y.closedAt) return;
+      if (!window.confirm('Afslut sæsonen ' + y.label + '? Alle årets møder låses.')) return;
+      y.closedAt = Date.now();
+      yearMeetings(y.id).forEach(function (m) { if (!m.closedAt) m.closedAt = y.closedAt; });
+      log('Afsluttede sæsonen ' + y.label + ' — ' + kr(yearTotal(y.id)) + ' i bøder');
+      commit();
+      openSeasonResult(y);
+    },
+    'season-reopen': function (el) {
+      var y = findYear(el.getAttribute('data-id'));
+      if (!y || !y.closedAt) return;
+      y.closedAt = null;
+      log('Genåbnede sæsonen ' + y.label);
+      commit();
+    },
+    'member-hist': function (el) {
+      openMemberSheet(el.getAttribute('data-id'), el.getAttribute('data-year') || null);
+    },
+
+    'pick-fines': function (el) { openFinePicker(el.getAttribute('data-id')); },
+    'picker-nav': function (el) {
+      var meet = findMeeting(view.meetingId);
+      if (!meet) return;
+      var members = meetingMembers(meet);
+      var idx = members.findIndex(function (x) { return x.id === pickerMemberId; });
+      if (idx === -1) return;
+      var next = (idx + parseInt(el.getAttribute('data-dir'), 10) + members.length) % members.length;
+      openFinePicker(members[next].id);
+    },
+    'give-fine': function (el) {
+      var t = findFineType(el.getAttribute('data-id'));
+      var m = findMember(pickerMemberId);
+      var meet = findMeeting(view.meetingId);
+      if (!t || !m || !meet || meet.closedAt) return;
+      state.fines.push({ id: uid(), meetingId: meet.id, memberId: m.id, fineTypeId: t.id, label: null, amount: t.amount, ts: Date.now() });
+      log(m.name + ' fik »' + t.category + '« (' + kr(t.amount) + ') i ' + meet.title);
+      commitQuiet();
+      toast(m.name + ': ' + t.category + ' · ' + kr(t.amount));
+      if (t.amount >= HOT_FINE) spawnConfetti();
+      if (t.amount >= BIG_FINE) bigFineOverlay(t.amount, m.name, t.category);
+      openFinePicker(m.id); // genopfrisk vælgeren med nye tællere
+      reactToFine(m.id, t.id);
+    },
+    'special-fine': function () { openSpecialFineForm(); },
+    'special-save': function () {
+      var label = val('sp-label').trim() || 'Særbøde';
+      var amount = num('sp-amount');
+      var m = findMember(pickerMemberId);
+      var meet = findMeeting(view.meetingId);
+      if (!m || !meet || meet.closedAt || amount <= 0) return;
+      state.fines.push({ id: uid(), meetingId: meet.id, memberId: m.id, fineTypeId: null, label: label, amount: amount, ts: Date.now() });
+      log(m.name + ' fik særbøden »' + label + '« (' + kr(amount) + ') i ' + meet.title);
+      commitQuiet();
+      toast(m.name + ': ' + label + ' · ' + kr(amount));
+      if (amount >= HOT_FINE) spawnConfetti();
+      if (amount >= BIG_FINE) bigFineOverlay(amount, m.name, label);
+      openFinePicker(m.id);
+      reactToFine(m.id, null);
+    },
+    'remove-fine': function (el) { removeFineCore(el.getAttribute('data-id')); },
+
+    'open-member': function (el) { openMemberSheet(el.getAttribute('data-id')); },
+    'add-member': function () { openMemberForm(); },
+    'member-save': function () { saveMember(false); },
+    'member-save-more': function () { saveMember(true); },
+    'rename-member': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (!m) return;
+      var name = window.prompt('Nyt navn:', m.name);
+      if (name && name.trim()) { m.name = name.trim(); closeModal(); commit(); }
+    },
+    'retire-member': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (!m) return;
+      m.active = false;
+      if (state.formandId === m.id) { closeFormandPeriod(); state.formandId = null; toast(m.name + ' udmeldt — klubben mangler en formand'); }
+      closeModal();
+      commit();
+    },
+    'revive-member': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (m) { m.active = true; closeModal(); commit(); }
+    },
+    'toggle-formand': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (!m) return;
+      var was = state.formandId === m.id;
+      // Luk den siddende formands periode og åbn en ny, så rækken kan vises i Hall of Fame
+      closeFormandPeriod();
+      state.formandId = was ? null : m.id;
+      if (!was) state.formandHistory.push({ memberId: m.id, from: todayISO(), to: null });
+      log(was ? m.name + ' er ikke længere formand' : m.name + ' blev kronet som formand');
+      commitQuiet();
+      toast(was ? m.name + ' er ikke længere formand' : 'Længe leve formand ' + m.name + '!');
+      openMemberSheet(m.id);
+    },
+
+    'member-card': function (el) { openMemberCard(el.getAttribute('data-id')); },
+    'card-save': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      if (!m) return;
+      var svg = memberCardSVG(m);
+      var fname = m.name.toLowerCase().replace(/[^a-z0-9æøå-]+/g, '-') + '-medlemskort.svg';
+      if (downloadsNS) {
+        downloadsNS.save({ filename: fname, data: svg }).then(function () { toast('Kortet er gemt'); })
+          .catch(function () { /* afvist af brugeren */ });
+        return;
+      }
+      var blob = new Blob([svg], { type: 'image/svg+xml' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    },
+    'pay-form': function (el) { openPayForm(el.getAttribute('data-id')); },
+    'pay-save': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      var amount = num('pay-amount');
+      if (!m || amount <= 0) return;
+      state.payments.push({ id: uid(), memberId: m.id, amount: amount, date: val('pay-date') || todayISO(), note: val('pay-note').trim(), ts: Date.now() });
+      log(m.name + ' indbetalte ' + kr(amount) + (val('pay-note').trim() ? ' (' + val('pay-note').trim() + ')' : ''));
+      closeModal();
+      commit();
+      toast(m.name + ' indbetalte ' + kr(amount));
+    },
+    'remove-payment': function (el) {
+      if (!window.confirm('Slet denne indbetaling?')) return;
+      var id = el.getAttribute('data-id');
+      var p = state.payments.find(function (x) { return x.id === id; });
+      state.payments = state.payments.filter(function (x) { return x.id !== id; });
+      if (p) {
+        var pm = findMember(p.memberId);
+        log('Slettede indbetaling på ' + kr(p.amount) + ' fra ' + (pm ? pm.name : '?'));
+      }
+      commit();
+      if (p) openMemberSheet(p.memberId);
+    },
+
+    'pick-icon': function (el) {
+      pickedIcon = el.getAttribute('data-icon');
+      var opts = document.querySelectorAll('#icon-picker .icon-opt');
+      for (var i = 0; i < opts.length; i++) {
+        opts[i].className = 'icon-opt' + (opts[i].getAttribute('data-icon') === pickedIcon ? ' active' : '');
+      }
+    },
+    'add-finetype': function () { openFineTypeForm(null); },
+    'edit-finetype': function (el) { openFineTypeForm(el.getAttribute('data-id')); },
+    'finetype-save': function (el) {
+      var cat = val('ft-cat').trim();
+      var amount = num('ft-amount');
+      if (!cat || amount <= 0) { toast('Udfyld kategori og beløb'); return; }
+      var id = el.getAttribute('data-id');
+      var t = id ? findFineType(id) : null;
+      var icon = pickedIcon !== null ? pickedIcon : (t && t.icon) || '';
+      if (t) {
+        t.category = cat; t.description = val('ft-desc').trim(); t.amount = amount; t.icon = icon;
+        log('Redigerede taksten »' + cat + '« (' + kr(amount) + ')');
+      } else {
+        state.fineTypes.push({ id: uid(), category: cat, description: val('ft-desc').trim(), amount: amount, active: true, icon: icon });
+        log('Oprettede taksten »' + cat + '« (' + kr(amount) + ')');
+      }
+      pickedIcon = null;
+      closeModal();
+      commit();
+    },
+    'finetype-remove': function (el) {
+      var t = findFineType(el.getAttribute('data-id'));
+      if (t && window.confirm('Fjern taksten »' + t.category + '«?')) { t.active = false; closeModal(); commit(); }
+    },
+
+    'settings-save': function () {
+      var name = val('set-club').trim();
+      if (name) state.clubName = name;
+      closeModal();
+      commit();
+    },
+    'export-json': function () {
+      var json = JSON.stringify(state, null, 2);
+      var fname = state.clubName.toLowerCase().replace(/[^a-z0-9æøå-]+/g, '-') + '-boedeliga-' + todayISO() + '.json';
+      if (downloadsNS) {
+        downloadsNS.save({ filename: fname, data: json }).then(function () {
+          markExport();
+          renderToolbar();
+          toast('Fil gemt');
+        }).catch(function () { /* afvist af brugeren — ingen fejl */ });
+        return;
+      }
+      markExport();
+      renderToolbar();
+      var blob = new Blob([json], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    },
+    'conflict-restore': function () {
+      if (!stashed) return;
+      var saved = stashed.state;
+      clearConflict();
+      state = migrate(saved);
+      log('Hentede ugemte ændringer frem efter konflikt med delt gem');
+      commit();
+      toast('Dine ændringer er hentet frem — husk at gemme');
+    },
+    'conflict-dismiss': function () {
+      clearConflict();
+      render();
+      toast('De henlagte ændringer er kasseret');
+    },
+    'import-json': function () {
+      var input = document.getElementById('import-file');
+      if (!input) return;
+      input.onchange = function () {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var s = JSON.parse(String(reader.result));
+            if (!s || typeof s.version !== 'number' || s.version < 1 || s.version > 7 || !Array.isArray(s.members)) throw new Error('bad');
+            if (!window.confirm('Erstat alle nuværende data med det importerede?')) return;
+            pushUndo(JSON.stringify(state), 'import af data');
+            state = migrate(s);
+            view = { name: 'liga' };
+            closeModal();
+            commit();
+            toast('Data importeret');
+          } catch (e) { toast('Kunne ikke læse filen'); }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    },
+    'reset-all': function () {
+      if (!window.confirm('Slet ALLE medlemmer, møder, bøder og indbetalinger?')) return;
+      if (!window.confirm('Helt sikker? Dette kan ikke fortrydes.')) return;
+      state = freshState();
+      log('Nulstillede alle data');
+      view = { name: 'liga' };
+      statsYearId = null;
+      closeModal();
+      commit();
+    }
+  };
+
+  /* Fjerner en bøde — bruges både af krydset og af stryg-til-venstre */
+  function removeFineCore(id) {
+    var f = state.fines.find(function (x) { return x.id === id; });
+    state.fines = state.fines.filter(function (x) { return x.id !== id; });
+    if (f) {
+      var fm = findMember(f.memberId);
+      log('Fortrød bøden »' + fineLabel(f) + '« (' + kr(f.amount) + ') til ' + (fm ? fm.name : '?'));
+    }
+    commit();
+  }
+
+  /* Strygningen sker uden for klik-håndteringen og skal selv lægge et fortryd-punkt */
+  function swipeRemoveFine(id) {
+    if (viewerMode || !id) { render(); return; }
+    var before = JSON.stringify(state), keyBefore = auditKey();
+    removeFineCore(id);
+    if (JSON.stringify(state) !== before) {
+      pushUndo(before, changeLabel(keyBefore));
+      toast('Bøde fjernet — fortryd i toppen');
+    }
+  }
+
+  function saveMember(keepOpen) {
+    var name = val('mem-name').trim();
+    if (!name) return;
+    var box = document.getElementById('mem-prospect');
+    var prospect = !!(box && box.checked);
+    var cy = currentClubYear();
+    state.members.push({
+      id: uid(), name: name, active: true, prospect: prospect,
+      years: cy ? [cy.id] : [], createdAt: Date.now(),
+      prospectGoal: PROSPECT_MEETINGS, prospectFrom: todayISO(), prospectDone: null
+    });
+    log('Tilføjede ' + (prospect ? 'prospectet ' : 'medlemmet ') + name + (cy ? ' i ' + cy.label : ''));
+    if (keepOpen) {
+      commitQuiet();
+      toast(name + ' tilføjet');
+      var f = document.getElementById('mem-name');
+      if (f) { f.value = ''; f.focus(); }
+    } else {
+      closeModal();
+      commit();
+      toast(name + ' tilføjet');
+    }
+  }
+
+  /* ---------- Events ---------- */
+
+  document.addEventListener('click', function (e) {
+    var el = e.target;
+    while (el && el !== document) {
+      if (el.tagName === 'A') return; // links i mødebeskrivelser skal bare virke
+      var action = el.getAttribute && el.getAttribute('data-action');
+      if (action && actions[action]) {
+        if (viewerMode && MUTATING[action]) { toast('Visningstilstand — registrering er slået fra'); return; }
+        if (!el.hasAttribute('disabled')) runAction(action, el);
+        return;
+      }
+      var tab = el.getAttribute && el.getAttribute('data-tab');
+      if (tab) { view = { name: tab }; render(); return; }
+      el = el.parentNode;
+    }
+  });
+
+  /* Stryg en bøde til venstre for at fjerne den — samme greb som i en indbakke */
+  (function () {
+    var node = null, startX = 0, startY = 0, dx = 0, decided = false;
+    var THRESHOLD = 96;
+
+    function release(animate) {
+      if (!node) return;
+      var n = node;
+      node = null; decided = false; dx = 0;
+      n.classList.remove('swiping', 'armed');
+      if (animate) {
+        n.style.transition = 'transform 0.18s ease-out';
+        n.style.transform = '';
+        setTimeout(function () { n.style.transition = ''; }, 220);
+      } else {
+        n.style.transform = '';
+      }
+    }
+
+    document.addEventListener('touchstart', function (e) {
+      if (e.touches.length !== 1) return;
+      var t = e.target && e.target.closest ? e.target.closest('.log-wrap.swipeable') : null;
+      if (!t) return;
+      node = t;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      dx = 0; decided = false;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function (e) {
+      if (!node) return;
+      var x = e.touches[0].clientX - startX, y = e.touches[0].clientY - startY;
+      if (!decided) {
+        if (Math.abs(x) < 8 && Math.abs(y) < 8) return;
+        decided = true;
+        if (Math.abs(y) >= Math.abs(x)) { release(false); return; }  // lodret scroll vinder
+        node.classList.add('swiping');
+      }
+      if (!node) return;
+      dx = Math.min(0, x);
+      node.style.transform = 'translateX(' + Math.max(-170, dx) + 'px)';
+      if (dx <= -THRESHOLD) node.classList.add('armed'); else node.classList.remove('armed');
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchend', function () {
+      if (!node) return;
+      if (dx <= -THRESHOLD) {
+        var n = node, id = n.getAttribute('data-fine');
+        node = null; decided = false; dx = 0;
+        n.style.transition = 'transform 0.16s ease-in, opacity 0.16s ease-in';
+        n.style.transform = 'translateX(-110%)';
+        n.style.opacity = '0';
+        setTimeout(function () { swipeRemoveFine(id); }, 160);
+        return;
+      }
+      release(true);
+    });
+    document.addEventListener('touchcancel', function () { release(true); });
+  })();
+
+  /* Tooltip for [data-tip]-elementer (grafer, badges) */
+  var tipEl = null;
+  document.addEventListener('mouseover', function (e) {
+    var el = e.target;
+    while (el && el.getAttribute) {
+      var tip = el.getAttribute('data-tip');
+      if (tip) {
+        if (!tipEl) {
+          tipEl = document.createElement('div');
+          tipEl.className = 'tip';
+          document.body.appendChild(tipEl);
+        }
+        tipEl.textContent = tip;
+        var r = el.getBoundingClientRect();
+        tipEl.style.left = Math.max(8, Math.min(window.innerWidth - 8 - 260, r.left + r.width / 2 - 130)) + 'px';
+        tipEl.style.top = Math.max(8, r.top - 40) + 'px';
+        tipEl.style.opacity = '1';
+        return;
+      }
+      el = el.parentNode;
+    }
+    if (tipEl) tipEl.style.opacity = '0';
+  });
+
+  document.addEventListener('keydown', function (e) {
+    // Ctrl/Cmd+Z fortryder — men lad browserens egen fortryd stå i tekstfelter
+    var tag = (e.target && e.target.tagName || '').toLowerCase();
+    var typing = tag === 'input' || tag === 'textarea';
+    if ((e.ctrlKey || e.metaKey) && !typing && (e.key === 'z' || e.key === 'Z' || e.key === 'y' || e.key === 'Y')) {
+      e.preventDefault();
+      if (e.key === 'y' || e.key === 'Y' || e.shiftKey) redo(); else undo();
+      return;
+    }
+    if (e.key === 'Escape') {
+      if (document.querySelector('.report-overlay')) { closeReport(); return; }
+      closeModal(); pickerMemberId = null; render();
+    }
+    if (e.key === 'Enter' && document.querySelector('.modal-root')) {
+      if (tag === 'input') {
+        // I "Nyt medlem" er Enter = "Tilføj og fortsæt", så hele klubben kan tastes ind i ét stræk
+        var target = e.target.id === 'mem-name'
+          ? document.querySelector('.modal-root [data-action="member-save-more"]')
+          : document.querySelector('.modal-root .btn-row .btn:not(.secondary):not(.danger)');
+        if (target) { e.preventDefault(); target.click(); }
+      }
+    }
+  });
+
+  /* ---------- Start ---------- */
+
+  loadState();
+  render();
+  startMascot();
+  initArtifact();
+})();

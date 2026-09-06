@@ -1,0 +1,1326 @@
+/* RTD Bødeligaen — scoreboard design system */
+
+:root {
+  --bg: #10141a;
+  --panel: #182028;
+  --card: #1c2530;
+  --card-raised: #232e3a;
+  --line: #232e3a;
+  --line-soft: #1b242e;
+  --text: #f4f6f8;
+  --muted: #9fb0c0;
+  --faint: #6b7a89;
+  --amber: #fbbf24;
+  --amber-deep: #d9a010;
+  --silver: #c0c7ce;
+  --bronze: #b07b45;
+  --green: #3f9e63;
+  --red: #e05c6e;
+  --display: 'Anton', 'Arial Narrow', sans-serif;
+  --body: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: inherit;
+}
+
+input, select, textarea {
+  font-family: var(--body);
+  font-size: 17px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--card-raised);
+  border-radius: 6px;
+  padding: 12px;
+  width: 100%;
+  min-height: 48px;
+}
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--amber);
+  outline-offset: 0;
+  border-color: transparent;
+}
+label { display: block; font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
+
+.layout { display: flex; flex-direction: column; min-height: 100dvh; }
+
+/* Header */
+.appbar {
+  background: var(--panel);
+  border-bottom: 4px solid var(--amber);
+  padding: 18px 20px 12px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.appbar .brand { font-family: var(--display); font-size: 26px; letter-spacing: 0.02em; line-height: 1; }
+.appbar .brand small { display: block; font-family: var(--body); font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); margin-top: 4px; }
+.appbar .tools { display: flex; gap: 6px; }
+.iconbtn {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; color: var(--muted);
+}
+.iconbtn:hover { background: var(--card); color: var(--text); }
+
+/* Main content */
+.content {
+  flex-grow: 1; width: 100%; max-width: 720px; margin: 0 auto;
+  padding: 16px 16px 24px;
+}
+
+/* Stat strip */
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 18px; }
+.stat { background: var(--card); border-radius: 6px; padding: 12px 12px 10px; }
+.stat .k { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+.stat .v { font-family: var(--display); font-size: 24px; margin-top: 2px; }
+.stat .v.amber { color: var(--amber); }
+.stat .v.green { color: var(--green); }
+
+/* Section headings */
+.section-title { display: flex; align-items: baseline; justify-content: space-between; margin: 22px 0 10px; }
+.section-title h2 { font-family: var(--display); font-size: 20px; letter-spacing: 0.04em; margin: 0; text-transform: uppercase; }
+.section-title .hint { font-size: 14px; color: var(--faint); letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* Leaderboard */
+.colhead { display: flex; padding: 0 14px 8px; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.colhead .c-rank { width: 40px; }
+.colhead .c-name { flex-grow: 1; padding-left: 6px; }
+.colhead .c-count { width: 52px; text-align: center; }
+.colhead .c-sum { width: 76px; text-align: right; }
+
+.lb-row {
+  display: flex; align-items: center; width: 100%;
+  background: var(--card); border-radius: 4px; border-left: 6px solid transparent;
+  padding: 12px 14px 12px 8px; margin-bottom: 8px; min-height: 64px;
+}
+.lb-row:hover { background: var(--card-raised); }
+.lb-row.rank-1 { border-left-color: var(--amber); }
+.lb-row.rank-2 { border-left-color: var(--silver); }
+.lb-row.rank-3 { border-left-color: var(--bronze); }
+.lb-row.clean { background: none; border-left-color: transparent; min-height: 54px; }
+.lb-row .rank { width: 34px; font-family: var(--display); font-size: 24px; text-align: center; color: var(--faint); flex-shrink: 0; }
+.lb-row.rank-1 .rank { color: var(--amber); }
+.lb-row.rank-2 .rank { color: var(--silver); }
+.lb-row.rank-3 .rank { color: var(--bronze); }
+.lb-row .who { flex-grow: 1; padding-left: 6px; min-width: 0; }
+.lb-row .who .name { font-family: var(--display); font-size: 19px; letter-spacing: 0.04em; text-transform: uppercase; display: flex; align-items: center; min-width: 0; }
+.lb-row .who .name .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-row .who .name .crown, .lb-row .who .name .zaps, .lb-row .who .name .flames { flex-shrink: 0; }
+.lb-row .who .sub { font-size: 13px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px; }
+.lb-row .count { width: 52px; text-align: center; font-size: 17px; color: var(--muted); flex-shrink: 0; }
+.lb-row .sum { width: 76px; text-align: right; font-family: var(--display); font-size: 21px; flex-shrink: 0; }
+.lb-row.rank-1 .sum { color: var(--amber); }
+.lb-row.clean .who .name, .lb-row.clean .sum, .lb-row.clean .rank { color: var(--green); }
+
+/* Generic list rows (meetings, members, fine types) */
+.row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  background: var(--card); border-radius: 4px;
+  padding: 12px 14px; margin-bottom: 8px; min-height: 60px;
+}
+.row:hover { background: var(--card-raised); }
+.row .grow { flex-grow: 1; min-width: 0; }
+.row .t { font-size: 18px; font-weight: 600; letter-spacing: 0.02em; }
+.row .s { font-size: 14px; color: var(--muted); margin-top: 1px; }
+.row .amount { font-family: var(--display); font-size: 19px; color: var(--amber); white-space: nowrap; }
+.row .amount.zero { color: var(--green); }
+.row.inactive { opacity: 0.45; }
+
+.badge {
+  display: inline-block; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+  border: 1px solid var(--card-raised); border-radius: 999px; padding: 3px 9px; color: var(--muted);
+}
+.badge.live { border-color: var(--green); color: var(--green); }
+
+/* Buttons */
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 52px; padding: 0 20px; border-radius: 4px;
+  font-family: var(--display); font-size: 17px; letter-spacing: 0.06em; text-transform: uppercase;
+  background: var(--amber); color: var(--bg); width: 100%;
+}
+.btn:hover { background: var(--amber-deep); }
+.btn.secondary { background: none; border: 2px solid #3b4856; color: var(--text); font-family: var(--body); font-weight: 600; }
+.btn.secondary:hover { background: var(--card); }
+.btn.danger { background: none; border: 2px solid var(--red); color: var(--red); font-family: var(--body); font-weight: 600; }
+.btn.small { min-height: 44px; font-size: 15px; padding: 0 14px; width: auto; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.btn-row .btn { flex-grow: 1; flex-basis: 140px; width: auto; min-width: 0; }
+
+/* Fixed action bar above tabs */
+/* Bundbjælke: CTA-knap + faner. Sticky og i normalt flow, så den ALDRIG
+   lægger sig oven på indholdet — heller ikke i indlejrede visninger hvor
+   position: fixed opfører sig anderledes end i en almindelig browser. */
+.bottombar {
+  position: sticky; bottom: 0; z-index: 20; margin-top: auto;
+  background: var(--bg);
+}
+.actionbar {
+  padding: 10px 16px 0; display: flex; gap: 10px; justify-content: center;
+}
+.actionbar .btn { max-width: 688px; box-shadow: 0 6px 24px rgba(0,0,0,0.5); }
+#cta-slot:empty { display: none; }
+
+/* Bottom tabs (mobile) */
+.tabs {
+  background: var(--panel); border-top: 1px solid var(--line);
+  display: flex; padding: 8px 6px 4px;
+  margin-top: 10px;
+}
+.tab {
+  flex-grow: 1; flex-basis: 0; min-height: 54px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  color: var(--faint); border-radius: 6px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
+}
+.tab.active { color: var(--amber); }
+.tab svg { flex-shrink: 0; }
+
+/* Meeting view */
+.meet-head { background: var(--card); border-radius: 6px; padding: 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+.meet-head .grow { flex-grow: 1; }
+.meet-head .t { font-family: var(--display); font-size: 21px; letter-spacing: 0.04em; }
+.meet-head .s { font-size: 14px; color: var(--muted); margin-top: 2px; }
+.meet-head .total { font-family: var(--display); font-size: 24px; color: var(--amber); }
+
+.member-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.member-cell {
+  background: var(--card); border-radius: 4px; border: 1px solid transparent;
+  padding: 12px; min-height: 68px; display: flex; flex-direction: column; justify-content: center; gap: 2px;
+}
+.member-cell:hover { background: var(--card-raised); }
+.member-cell .name { font-family: var(--display); font-size: 17px; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.member-cell .meta { font-size: 13px; color: var(--muted); }
+.member-cell.hit { border-color: var(--amber); }
+.member-cell.hit .meta { color: var(--amber); }
+
+.log-item { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--line-soft); }
+.log-item .grow { flex-grow: 1; min-width: 0; }
+.log-item .t { font-size: 16px; font-weight: 600; }
+.log-item .s { font-size: 13px; color: var(--muted); }
+.log-item .amount { font-family: var(--display); font-size: 17px; color: var(--amber); }
+.log-item .x { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--faint); border-radius: 6px; flex-shrink: 0; }
+.log-item .x:hover { color: var(--red); background: var(--card); }
+
+/* Modal / bottom sheet */
+.modal-root { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+.modal-root .scrim { position: absolute; inset: 0; background: rgba(5,8,12,0.72); }
+.sheet {
+  position: relative; width: 100%; max-width: 720px; max-height: 88dvh;
+  background: var(--panel); border-top: 4px solid var(--amber);
+  border-radius: 10px 10px 0 0; display: flex; flex-direction: column;
+}
+.sheet-head { display: flex; align-items: center; gap: 10px; padding: 16px 18px 10px; }
+.sheet-head .t { font-family: var(--display); font-size: 20px; letter-spacing: 0.04em; text-transform: uppercase; flex-grow: 1; }
+.sheet-head .s { font-size: 14px; color: var(--muted); }
+.sheet-body { overflow-y: auto; padding: 4px 18px 18px; }
+.sheet-close { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--muted); border-radius: 6px; flex-shrink: 0; }
+.sheet-close:hover { background: var(--card); color: var(--text); }
+
+/* Fine picker */
+.fine-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.fine-btn {
+  background: var(--card); border: 1px solid var(--card-raised); border-radius: 6px;
+  padding: 10px 12px; min-height: 64px; position: relative;
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+}
+.fine-btn:hover { background: var(--card-raised); }
+.fine-btn:active { border-color: var(--amber); }
+.fine-btn .cat { font-size: 15px; font-weight: 600; line-height: 1.2; }
+.fine-btn .amt { font-family: var(--display); font-size: 16px; color: var(--amber); }
+.fine-btn .n {
+  position: absolute; top: -7px; right: -7px; min-width: 24px; height: 24px; border-radius: 999px;
+  background: var(--amber); color: var(--bg); font-weight: 700; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; padding: 0 6px;
+}
+.fine-btn.special { border-style: dashed; border-color: #3b4856; }
+.fine-btn .desc { font-size: 12px; color: var(--faint); line-height: 1.25; }
+
+/* Member switcher inside picker */
+.picker-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.picker-nav .navbtn { width: 48px; height: 48px; background: var(--card); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--muted); flex-shrink: 0; }
+.picker-nav .navbtn:hover { color: var(--text); background: var(--card-raised); }
+.picker-nav .cur { flex-grow: 1; text-align: center; }
+.picker-nav .cur .name { font-family: var(--display); font-size: 20px; text-transform: uppercase; letter-spacing: 0.04em; }
+.picker-nav .cur .meta { font-size: 13px; color: var(--amber); }
+
+/* History */
+.hist { margin-top: 6px; }
+.hist .log-item .amount.pay { color: var(--green); }
+
+/* Empty states */
+.empty { text-align: center; padding: 44px 20px; color: var(--muted); }
+.empty .big { font-family: var(--display); font-size: 22px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text); margin-bottom: 8px; }
+
+/* Toast */
+.toast {
+  position: fixed; left: 50%; bottom: 140px; transform: translateX(-50%);
+  background: var(--amber); color: var(--bg); font-weight: 700; font-size: 16px;
+  border-radius: 999px; padding: 10px 20px; z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  animation: toast-in 0.15s ease-out;
+  pointer-events: none; max-width: calc(100vw - 32px); text-align: center;
+}
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* Krone, streaks og dyre bøder */
+.crown { display: inline-flex; vertical-align: -2px; margin-left: 4px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+.zaps { display: inline-flex; gap: 1px; margin-left: 6px; color: #ff5d5d; vertical-align: -1px; }
+.flames { display: inline-flex; gap: 1px; margin-left: 6px; color: #ff8a3d; vertical-align: -1px; }
+@media (max-width: 480px) {
+  .colhead .c-count, .lb-row .count { display: none; }
+  /* Giv navnet mest mulig plads på smalle skærme */
+  .lb-row .who .name { font-size: 16px; letter-spacing: 0.015em; }
+  .lb-row .rank { width: 30px; }
+  .lb-row .sum, .colhead .c-sum { width: 64px; }
+  .lb-row .sum { font-size: 19px; }
+  .lb-row .avatar { width: 30px; height: 30px; font-size: 12px; margin-right: 8px; }
+  .rank.medal svg { width: 26px; height: 32px; }
+}
+.amount.amt-mid, .amt.amt-mid { color: #ff9f43; }
+.amount.amt-hot, .amt.amt-hot { color: #ff5d5d; }
+.amount.amt-hot svg, .amt.amt-hot svg { vertical-align: -1px; margin-right: 3px; }
+.fine-btn.hot { border-color: rgba(255,93,93,0.45); background: linear-gradient(160deg, #241a20 0%, var(--card) 60%); }
+.fine-btn.hot:hover { border-color: rgba(255,93,93,0.8); }
+
+.streak-panel { background: var(--card); border-left: 6px solid #ff8a3d; border-radius: 4px; padding: 12px 14px; margin: 0 0 18px; }
+.streak-head { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-size: 17px; letter-spacing: 0.06em; text-transform: uppercase; color: #ff8a3d; margin-bottom: 4px; }
+.streak-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; border-top: 1px solid var(--line-soft); padding: 8px 0; }
+.streak-row:first-of-type { border-top: none; }
+.streak-row .flames { margin-left: 0; }
+.streak-row .mult { font-family: var(--display); font-size: 19px; color: #ff8a3d; min-width: 34px; }
+.streak-row .grow { flex-grow: 1; min-width: 0; text-align: left; }
+.streak-row .t { font-size: 16px; font-weight: 600; }
+.streak-row .s { font-size: 13px; color: var(--muted); }
+.streak-row .tag { font-family: var(--display); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bg); background: #ff8a3d; border-radius: 3px; padding: 4px 8px; }
+.streak-row:hover .t { color: #ff8a3d; }
+.streak-strip { display: flex; align-items: center; gap: 8px; background: linear-gradient(90deg, rgba(255,138,61,0.16), transparent); border-left: 4px solid #ff8a3d; border-radius: 4px; padding: 10px 12px; margin-top: 12px; font-weight: 600; }
+.streak-strip .flames { margin-left: 0; }
+
+/* Mødeinfo (beskrivelse + links) */
+.info-card { background: var(--card); border-radius: 6px; padding: 14px; margin-bottom: 16px; }
+.info-card .desc { font-size: 16px; color: var(--text); white-space: pre-line; line-height: 1.45; }
+.link-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.link-line { display: flex; align-items: center; gap: 8px; min-height: 40px; color: var(--muted); }
+.link-line a { color: var(--amber); font-weight: 600; text-decoration: none; border-bottom: 1px solid rgba(251,191,36,0.35); }
+.link-line a:hover { border-bottom-color: var(--amber); }
+.badge.next { border-color: var(--amber); color: var(--amber); }
+
+.note { font-size: 14px; color: var(--faint); margin-top: 10px; line-height: 1.4; }
+.divider { border: none; border-top: 1px solid var(--line); margin: 20px 0; }
+
+/* ============ Pakke B: atmosfære ============ */
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(251,191,36,0.07) 0%, rgba(16,20,26,0) 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+.layout { position: relative; z-index: 1; }
+.appbar { position: sticky; overflow: hidden; }
+.appbar::after {
+  content: '';
+  position: absolute; right: -30px; top: -20px; width: 90px; height: 200%;
+  background: linear-gradient(90deg, rgba(251,191,36,0.07), rgba(251,191,36,0.02));
+  transform: skewX(-22deg);
+  pointer-events: none;
+}
+.modal-root .scrim { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.sheet { animation: sheet-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.08); }
+@keyframes sheet-in { from { transform: translateY(28px); opacity: 0.6; } to { transform: translateY(0); opacity: 1; } }
+
+.lb-row { position: relative; border-left: none; padding-left: 14px; }
+.lb-row::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; border-radius: 4px 0 0 4px; }
+.lb-row.rank-1::before { background: linear-gradient(180deg, #ffe08a, #fbbf24 45%, #c98f10); }
+.lb-row.rank-2::before { background: linear-gradient(180deg, #e8edf2, #c0c7ce 45%, #8f99a3); }
+.lb-row.rank-3::before { background: linear-gradient(180deg, #d9a877, #b07b45 45%, #7d5530); }
+.lb-row.clean .who .name { text-shadow: 0 0 14px rgba(63,158,99,0.35); }
+
+/* ============ Pakke A: mikrointeraktioner ============ */
+
+.lb-row, .row, .streak-row, .member-cell, .fine-btn, .stat, .chart-card {
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, background 0.12s ease-out, border-color 0.12s ease-out;
+}
+.lb-row:hover, .row:hover, .member-cell:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.35); }
+.lb-row:active, .row:active, .member-cell:active, .fine-btn:active, .btn:active { transform: scale(0.985); }
+.btn { transition: transform 0.1s ease-out, background 0.12s ease-out, box-shadow 0.12s ease-out; }
+.btn:hover { box-shadow: 0 4px 14px rgba(251,191,36,0.25); }
+.btn.secondary:hover, .btn.danger:hover { box-shadow: none; }
+
+.lb-row.rank-1 { animation: gold-pulse 3.2s ease-in-out infinite; position: relative; overflow: hidden; }
+@keyframes gold-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(251,191,36,0); }
+  50% { box-shadow: 0 0 18px rgba(251,191,36,0.22); }
+}
+.lb-row.rank-1::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 46px;
+  background: linear-gradient(105deg, transparent, rgba(255,240,200,0.10), transparent);
+  animation: shimmer 6s linear infinite;
+}
+@keyframes shimmer { 0%, 78% { left: -60px; } 96%, 100% { left: 110%; } }
+
+.flames svg { animation: flicker 0.9s ease-in-out infinite alternate; transform-origin: 50% 90%; }
+.flames svg:nth-child(2) { animation-delay: 0.25s; }
+.flames svg:nth-child(3) { animation-delay: 0.5s; }
+@keyframes flicker { from { transform: scale(1) rotate(-2deg); opacity: 0.85; } to { transform: scale(1.12) rotate(2deg); opacity: 1; } }
+
+.crown svg { animation: crown-glint 8s ease-in-out infinite; }
+@keyframes crown-glint { 0%, 92%, 100% { filter: brightness(1); } 95% { filter: brightness(1.7) drop-shadow(0 0 4px rgba(251,191,36,0.8)); } 98% { filter: brightness(1); } }
+
+.toast { animation: toast-stamp 0.28s cubic-bezier(0.2, 1.2, 0.4, 1); }
+@keyframes toast-stamp { 0% { opacity: 0; transform: translate(-50%, 10px) scale(0.7); } 60% { transform: translate(-50%, 0) scale(1.12); } 100% { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+
+.confetti { position: fixed; inset: 0; z-index: 70; pointer-events: none; overflow: hidden; }
+.confetti i {
+  position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 2px; display: block;
+  animation: confetti-fall 1.15s ease-in forwards;
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(105vh) rotate(560deg); opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ============ Visningstilstand ============ */
+.viewer-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(94,234,212,0.08); border: 1px solid rgba(94,234,212,0.25); color: #5eead4;
+  border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; font-weight: 600;
+}
+
+/* ============ Chips (år-vælger, historikfilter) ============ */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.chips.small { margin: 10px 0 4px; }
+.chip {
+  min-height: 44px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid var(--card-raised); color: var(--muted); font-size: 15px; font-weight: 600;
+  display: flex; align-items: center;
+}
+.chips.small .chip { min-height: 38px; padding: 0 13px; font-size: 14px; }
+.chip:hover { color: var(--text); background: var(--card); }
+.chip.active { background: var(--amber); border-color: var(--amber); color: var(--bg); }
+
+/* ============ Statistik ============ */
+.stats.kpi4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.chart-card { background: var(--card); border-radius: 6px; padding: 14px; margin-bottom: 14px; }
+.chart-title { font-family: var(--display); font-size: 16px; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 10px; }
+.chart-sub { font-family: var(--body); font-size: 12px; color: var(--faint); letter-spacing: 0.08em; margin-left: 6px; }
+.chart { width: 100%; height: auto; display: block; }
+.chart .ax { fill: var(--faint); font-size: 11px; font-family: var(--body); }
+.chart .lbl { fill: var(--text); font-size: 12px; font-weight: 600; font-family: var(--body); }
+
+.hbar-row { display: flex; align-items: center; gap: 10px; min-height: 34px; }
+.hbar-label { width: 148px; font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbar-track { flex-grow: 1; height: 10px; background: var(--line-soft); border-radius: 999px; overflow: hidden; }
+.hbar-fill { height: 100%; border-radius: 999px; min-width: 4px; }
+.hbar-val { width: 56px; text-align: right; font-family: var(--display); font-size: 15px; color: var(--amber); }
+
+.rec-row { display: flex; align-items: center; gap: 12px; min-height: 56px; border-top: 1px solid var(--line-soft); }
+.rec-row:first-of-type { border-top: none; }
+.rec-row .grow { flex-grow: 1; min-width: 0; }
+.rec-row .t { font-size: 16px; font-weight: 600; }
+.rec-row .s { font-size: 13px; color: var(--muted); }
+.rec-ic { width: 34px; height: 34px; border-radius: 8px; background: var(--card-raised); display: flex; align-items: center; justify-content: center; color: var(--amber); flex-shrink: 0; }
+.rec-val { font-family: var(--display); font-size: 18px; color: var(--amber); white-space: nowrap; }
+
+.tbl-wrap { overflow-x: auto; }
+table.cmp { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.cmp th { text-align: left; color: var(--faint); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 10px 8px 0; border-bottom: 1px solid var(--line); }
+table.cmp td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line-soft); }
+table.cmp td:nth-child(3), table.cmp td:nth-child(4) { font-family: var(--display); color: var(--amber); }
+
+/* ============ Badges / hædersbevisninger ============ */
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.award {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(160deg, #2a2415, var(--card));
+  border: 1px solid rgba(251,191,36,0.4); color: var(--amber);
+  border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 700;
+}
+
+/* ============ Streaks ekstra ============ */
+.streak-strip.clean { border-left-color: var(--green); background: linear-gradient(90deg, rgba(63,158,99,0.14), transparent); color: var(--text); }
+.streak-strip.clean svg { color: var(--green); }
+.shield-ic { color: var(--green); display: inline-flex; }
+.streak-row .tag.green { background: var(--green); }
+
+/* ============ Afbudsforslag i bødevælgeren ============ */
+.sug-strip {
+  display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted);
+  background: rgba(251,191,36,0.08); border: 1px dashed rgba(251,191,36,0.4);
+  border-radius: 6px; padding: 9px 12px; margin-bottom: 10px;
+}
+.sug-strip svg { color: var(--amber); flex-shrink: 0; }
+.fine-btn.suggested { border: 1px dashed var(--amber); }
+.sug-tag {
+  position: absolute; top: -8px; left: 10px; background: var(--amber); color: var(--bg);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  border-radius: 3px; padding: 2px 6px;
+}
+
+/* ============ Podium (sæsonafslutning) ============ */
+.podium-row { display: flex; align-items: center; gap: 12px; border-radius: 6px; padding: 12px 14px; margin-bottom: 8px; background: var(--card); }
+.podium-row .grow { flex-grow: 1; }
+.podium-row .t { font-family: var(--display); font-size: 19px; letter-spacing: 0.04em; text-transform: uppercase; }
+.podium-row .s { font-size: 13px; color: var(--muted); }
+.podium-rank { font-family: var(--display); font-size: 26px; width: 38px; text-align: center; }
+.podium-sum { font-family: var(--display); font-size: 20px; }
+.podium-row.guld { background: linear-gradient(160deg, #33290f, var(--card)); border: 1px solid rgba(251,191,36,0.5); }
+.podium-row.guld .podium-rank, .podium-row.guld .podium-sum { color: var(--amber); }
+.podium-row.soelv { border: 1px solid rgba(192,199,206,0.4); }
+.podium-row.soelv .podium-rank, .podium-row.soelv .podium-sum { color: var(--silver); }
+.podium-row.bronze { border: 1px solid rgba(176,123,69,0.5); }
+.podium-row.bronze .podium-rank, .podium-row.bronze .podium-sum { color: var(--bronze); }
+
+/* ============ Tooltip ============ */
+.tip {
+  position: fixed; z-index: 80; max-width: 260px; pointer-events: none;
+  background: #060a0f; color: var(--text); border: 1px solid var(--card-raised);
+  border-radius: 6px; padding: 7px 11px; font-size: 13px; line-height: 1.35;
+  opacity: 0; transition: opacity 0.12s; box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+
+/* ============ Kassererrapport ============ */
+.report-overlay {
+  position: fixed; inset: 0; z-index: 90; overflow-y: auto;
+  background: #2a2f36; padding: 16px;
+}
+.report-toolbar { display: flex; gap: 8px; justify-content: center; max-width: 760px; margin: 0 auto 14px; }
+.report-toolbar .btn { flex-grow: 0; }
+.report-paper {
+  background: #fff; color: #1a1a1a; max-width: 760px; margin: 0 auto 40px;
+  padding: 40px 44px; border-radius: 4px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+.report-paper h1 { font-size: 26px; margin: 0 0 4px; }
+.report-paper h2 { font-size: 17px; margin: 26px 0 8px; border-bottom: 2px solid #1a1a1a; padding-bottom: 4px; }
+.report-paper .rp-sub { color: #666; font-style: italic; }
+.report-paper .rp-kpis { display: flex; flex-wrap: wrap; gap: 22px; margin: 20px 0 6px; }
+.report-paper .rp-kpis b { display: block; font-size: 20px; }
+.report-paper .rp-kpis span { color: #666; font-size: 12px; }
+.report-paper table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.report-paper th, .report-paper td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #ccc; }
+.report-paper th { border-bottom: 2px solid #333; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.report-paper .rp-sign { display: flex; gap: 60px; margin-top: 60px; font-size: 13px; }
+.report-paper .rp-line { border-top: 1px solid #333; width: 190px; margin-bottom: 6px; }
+
+@media print {
+  body::before, .layout, .tabs, .toast, .modal-root, .tip, .confetti, .report-toolbar { display: none !important; }
+  .report-overlay { position: static; background: #fff; padding: 0; overflow: visible; }
+  .report-paper { box-shadow: none; border-radius: 0; max-width: none; margin: 0; padding: 0; }
+  html, body { background: #fff; }
+}
+
+/* Desktop */
+@media (min-width: 900px) {
+  .layout { flex-direction: row; }
+  .appbar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 220px;
+    flex-direction: column; align-items: flex-start; justify-content: flex-start;
+    border-bottom: none; border-right: 1px solid var(--line); padding: 28px 20px;
+  }
+  /* Klubnavn og »Bødeligaen« på hver sin linje, med luft ned til menuen */
+  .appbar .brand { font-size: 27px; line-height: 1.06; }
+  .appbar .brand .bn-suffix { display: block; }
+  .appbar .brand small { margin-top: 10px; }
+  /* Menuen begynder under navnet — højden måles, så lange klubnavne også går an */
+  .tabs {
+    position: fixed; left: 0; right: auto; top: var(--tabs-top, 150px); bottom: auto; width: 220px;
+    flex-direction: column; background: none; border: none; padding: 0 12px; gap: 2px; margin-top: 0;
+  }
+  .tab { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 0 12px; min-height: 48px; font-size: 15px; flex-grow: 0; flex-basis: auto; }
+  .tab.active { background: var(--card); }
+  /* Værktøjerne stables nederst i sidebaren: ikonrække + gem-knap under */
+  .appbar .tools {
+    position: fixed; left: 12px; bottom: 58px; width: 196px;
+    flex-wrap: wrap; gap: 2px; align-items: center;
+  }
+  .appbar .tools #save-wrap { flex-basis: 100%; padding-left: 8px; }
+  .content { margin-left: 220px; width: calc(100% - 220px); max-width: none; padding: 32px 40px 130px; }
+  .bottombar {
+    position: fixed; left: 220px; right: 0; bottom: 0; margin-top: 0;
+    background: linear-gradient(0deg, var(--bg) 62%, rgba(16,20,26,0)); padding-bottom: 18px;
+  }
+  /* Flydende kort, så de aldrig bliver bredere end pladsen ved siden af sidebaren */
+  .stats { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+  .stats.kpi4 { grid-template-columns: repeat(auto-fit, minmax(140px, 200px)); }
+  .member-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .fine-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .modal-root { align-items: center; padding: 24px; }
+  .sheet { border-radius: 10px; max-height: 82dvh; box-shadow: 0 24px 64px rgba(0,0,0,0.55); }
+}
+
+/* ============ Bøde-ikoner ============ */
+.fine-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; flex-shrink: 0;
+  border-radius: 8px; background: var(--card-raised); color: var(--amber);
+}
+.fine-ic svg { width: 18px; height: 18px; }
+.fine-ic.big { width: 42px; height: 42px; border-radius: 10px; }
+.fine-ic.big svg { width: 24px; height: 24px; }
+.fine-ic.hot { color: #ff5d5d; background: rgba(255,93,93,0.12); }
+.row:hover .fine-ic { background: var(--line); }
+
+.fine-btn .fine-ic { position: absolute; top: 9px; right: 9px; width: 26px; height: 26px; background: none; opacity: 0.5; }
+.fine-btn .fine-ic svg { width: 20px; height: 20px; }
+.fine-btn:hover .fine-ic { opacity: 1; }
+.fine-btn.hot .fine-ic { color: #ff5d5d; }
+.fine-btn .cat { padding-right: 26px; }
+.fine-btn .n { z-index: 2; }
+
+.log-item .fine-ic { width: 26px; height: 26px; background: none; }
+.log-item .fine-ic svg { width: 19px; height: 19px; }
+.hbar-row .fine-ic { width: 24px; height: 24px; background: none; }
+.hbar-row .fine-ic svg { width: 18px; height: 18px; }
+.hbar-label { width: 124px; }
+
+/* Ikonvælger i takst-formularen */
+.lbl-hint { text-transform: none; letter-spacing: 0; color: var(--faint); font-weight: 400; }
+.icon-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.icon-opt {
+  min-width: 46px; height: 46px; padding: 0 6px; border-radius: 8px;
+  border: 1px solid var(--card-raised); background: var(--card);
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.icon-opt:hover { border-color: var(--muted); }
+.icon-opt.active { border-color: var(--amber); background: rgba(251,191,36,0.12); }
+.icon-opt .fine-ic { background: none; width: 26px; height: 26px; }
+.icon-opt .io-lbl { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.icon-opt.active .io-lbl { color: var(--amber); }
+
+/* ============ #10 Dybde på kort og flader ============ */
+.stat, .row, .lb-row, .chart-card, .member-cell, .fine-btn, .meet-head, .streak-panel, .info-card, .sheet {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.055), 0 2px 5px rgba(0,0,0,0.32);
+}
+.lb-row:hover, .row:hover, .member-cell:hover {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 18px rgba(0,0,0,0.42);
+}
+
+/* ============ #2 Avatarer ============ */
+.avatar {
+  flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--body); font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
+  color: hsl(var(--av) 70% 88%);
+  background: linear-gradient(150deg, hsl(var(--av) 48% 30%), hsl(var(--av) 45% 20%));
+  border: 1px solid hsl(var(--av) 45% 38%);
+  text-transform: none;
+}
+.avatar.sm { width: 26px; height: 26px; font-size: 11px; }
+.lb-row .avatar { margin-right: 9px; }
+.row .avatar { margin-right: 2px; }
+.sheet-head .t .avatar { margin-right: 8px; vertical-align: -6px; }
+.mc-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mc-top .name { min-width: 0; }
+
+/* ============ #3 Medaljer ============ */
+.rank.medal { display: flex; align-items: center; justify-content: center; padding: 0; }
+.rank.medal svg { width: 28px; height: 35px; }
+.medal-no { font-family: var(--display); font-size: 15px; fill: #10141a; }
+
+/* ============ #4 Sparkline ============ */
+.subrow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.subrow .sub { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spark { height: 16px; flex-shrink: 0; color: var(--faint); opacity: 0.9; }
+.lb-row.rank-1 .spark { color: var(--amber); opacity: 1; }
+.lb-row.rank-2 .spark { color: var(--silver); }
+.lb-row.rank-3 .spark { color: var(--bronze); }
+
+/* ============ #5 Fremskridtsbjælke ============ */
+.paybar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+  background: rgba(255,255,255,0.05);
+}
+.paybar i { display: block; height: 100%; background: var(--green); border-radius: 0 2px 2px 0; transition: width 0.35s ease-out; }
+
+/* ============ #8 Sæsonfarver ============ */
+.year-row { border-left: 4px solid var(--yc); }
+.year-row .amount { color: var(--yc); }
+.year-head { border-left: 4px solid var(--yc); }
+.year-head .total { color: var(--yc); }
+.year-chip.active { background: var(--yc); border-color: var(--yc); color: #10141a; }
+.stat .v.yc { color: var(--yc); }
+.ydot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+
+/* ============ #12 BØDE!-overlay ============ */
+.bigfine {
+  position: fixed; inset: 0; z-index: 75; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(60% 50% at 50% 50%, rgba(255,93,93,0.22), rgba(6,9,13,0.82));
+  animation: bf-fade 1.25s ease-out forwards;
+}
+.bf-inner { text-align: center; animation: bf-stamp 0.45s cubic-bezier(0.2, 1.6, 0.35, 1); }
+.bf-word {
+  font-family: var(--display); font-size: 68px; line-height: 1; letter-spacing: 0.04em;
+  color: #ff5d5d; text-shadow: 0 0 30px rgba(255,93,93,0.6), 0 6px 0 rgba(0,0,0,0.4);
+}
+.bf-amt { font-family: var(--display); font-size: 42px; color: var(--amber); margin-top: 6px; }
+.bf-who { font-size: 17px; font-weight: 600; color: var(--text); margin-top: 8px; opacity: 0.9; }
+@keyframes bf-stamp {
+  0% { transform: scale(2.6) rotate(-7deg); opacity: 0; }
+  55% { transform: scale(0.94) rotate(1.5deg); opacity: 1; }
+  75% { transform: scale(1.04) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes bf-fade { 0%, 72% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ============ #13 Podiet rejser sig ============ */
+.podium-row { animation: podium-rise 0.5s cubic-bezier(0.2, 1.1, 0.35, 1) both; }
+@keyframes podium-rise {
+  from { transform: translateY(26px) scale(0.96); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ============ #14 Rangskifte ============ */
+.lb-row.rank-up { animation: rank-up 1.5s ease-out; }
+@keyframes rank-up {
+  0% { transform: translateY(10px); background: rgba(251,191,36,0.22); }
+  35% { transform: translateY(0); background: rgba(251,191,36,0.18); }
+  100% { background: var(--card); }
+}
+
+/* ============ #15 Live-tæller ============ */
+.cnt-pulse { animation: cnt-pulse 0.55s cubic-bezier(0.2, 1.4, 0.4, 1); }
+@keyframes cnt-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.16); text-shadow: 0 0 18px currentColor; }
+  100% { transform: scale(1); }
+}
+.meet-head .total, .stat .v { display: inline-block; transform-origin: right center; }
+
+@media (max-width: 480px) {
+  .avatar { width: 32px; height: 32px; font-size: 13px; }
+  .bf-word { font-size: 52px; }
+  .bf-amt { font-size: 32px; }
+}
+
+/* ============ Responsivt: aldrig vandret scroll ============ */
+html { overflow-x: clip; }
+body { overflow-x: clip; max-width: 100%; }
+.content { max-width: 100%; }
+.chart-card { overflow: hidden; }
+
+/* Sammenlign klubår: tabel på brede skærme, kort på smalle */
+@media (max-width: 620px) {
+  .tbl-wrap { overflow-x: visible; }
+  table.cmp thead { display: none; }
+  table.cmp, table.cmp tbody, table.cmp tr, table.cmp td { display: block; width: 100%; }
+  table.cmp tr {
+    background: var(--card-raised); border-radius: 6px;
+    padding: 10px 12px; margin-bottom: 8px;
+  }
+  table.cmp td {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    padding: 3px 0; border-bottom: none; text-align: right;
+  }
+  table.cmp td::before {
+    content: attr(data-l); color: var(--faint); font-size: 12px;
+    letter-spacing: 0.08em; text-transform: uppercase; text-align: left; flex-shrink: 0;
+  }
+  table.cmp td:first-child {
+    font-family: var(--display); font-size: 18px; letter-spacing: 0.04em;
+    padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line);
+  }
+  table.cmp td:first-child::before { display: none; }
+  table.cmp td:first-child { justify-content: flex-start; text-align: left; }
+}
+
+/* Fanebjælken skal kunne være der helt ned til 320 px */
+.tab { min-width: 0; padding: 0 2px; }
+@media (max-width: 400px) {
+  .tab { font-size: 11px; letter-spacing: 0.01em; }
+}
+@media (max-width: 344px) {
+  .tab { font-size: 9.5px; letter-spacing: 0; gap: 2px; }
+  .tab svg { width: 18px; height: 18px; }
+}
+
+/* Lange ord må aldrig sprænge en flade */
+.row .t, .row .s, .rec-row .t, .rec-row .s, .log-item .t, .log-item .s,
+.info-card .desc, .streak-row .t, .streak-row .s, .award { overflow-wrap: anywhere; }
+
+/* Kassererrapporten skal også kunne læses på en telefon */
+@media (max-width: 620px) {
+  .report-overlay { padding: 10px; }
+  .report-paper { padding: 24px 16px; }
+  .report-paper h1 { font-size: 21px; }
+  .report-paper table { font-size: 12px; }
+  .report-paper th, .report-paper td { padding: 4px 5px; overflow-wrap: anywhere; }
+  .report-paper .rp-kpis { gap: 14px; }
+  .report-toolbar { flex-wrap: wrap; }
+}
+.report-paper .rp-sign { flex-wrap: wrap; gap: 28px 60px; }
+.report-paper .rp-line { width: min(190px, 60vw); }
+
+/* ============ Kreditering nederst i menubjælken ============ */
+.credit {
+  background: var(--panel);
+  color: var(--faint);
+  font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0 16px calc(8px + env(safe-area-inset-bottom));
+  text-align: left;
+}
+@media (min-width: 900px) {
+  /* På desktop bor menuen i sidebaren — krediteringen sidder nederst til venstre der */
+  .credit {
+    position: fixed; left: 20px; bottom: 20px; z-index: 21;
+    background: none; padding: 0; max-width: 180px; line-height: 1.35;
+  }
+}
+
+/* ============ Prospects, udgåede medlemmer og filtre ============ */
+.sprout { display: inline-flex; vertical-align: -2px; margin-left: 4px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+.lb-row .who .name .sprout { flex-shrink: 0; }
+.tag-gone {
+  display: inline-block; vertical-align: 1px; margin-left: 6px;
+  background: var(--card-raised); color: var(--faint);
+  border-radius: 4px; padding: 2px 7px; font-size: 11px;
+  font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.tag-ok { font-family: var(--display); font-size: 16px; color: var(--faint); white-space: nowrap; }
+.row.inactive .t { color: var(--muted); }
+.member-cell.gone { border-style: dashed; }
+.chip-n {
+  margin-left: 7px; background: rgba(255,255,255,0.09); color: inherit;
+  border-radius: 999px; padding: 1px 7px; font-size: 12px; font-weight: 700;
+}
+.chip.active .chip-n { background: rgba(0,0,0,0.18); }
+.chip.year-chip.active { background: var(--yc); border-color: var(--yc); }
+.chip[disabled] { opacity: 0.6; }
+
+/* ============ Kassen: ind, ud og beholdning ============ */
+.cash-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 7px 0; font-size: 15px; color: var(--muted);
+}
+.cash-row b { font-family: var(--display); font-size: 19px; color: var(--text); }
+.cash-row b.green { color: var(--green); }
+.cash-row .out, .amount.out { color: var(--red); }
+.cash-row.total { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 10px; color: var(--text); }
+.cash-row.total b { font-size: 23px; color: var(--amber); }
+.cash-row.total b.out { color: var(--red); }
+.rank-mini {
+  width: 34px; height: 34px; border-radius: 8px; background: var(--card-raised);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-family: var(--display); font-size: 15px; color: var(--faint);
+}
+
+/* ============ Korttitler med knap ============ */
+.chart-title { display: flex; align-items: center; gap: 8px; }
+.chart-title .chart-sub { margin-left: auto; }
+.chart-title .btn.small { margin-left: auto; }
+.chart-title svg { color: var(--amber); flex-shrink: 0; }
+.rules-list { margin: 4px 0 0; padding-left: 22px; color: var(--muted); font-size: 15px; }
+.rules-list li { margin-bottom: 7px; line-height: 1.4; }
+.rules-list li::marker { color: var(--amber); font-family: var(--display); }
+
+/* ============ Bulk-bøde ============ */
+.bulk-step {
+  display: flex; align-items: center; gap: 9px; margin: 18px 0 9px;
+  font-family: var(--display); font-size: 16px; letter-spacing: 0.05em; text-transform: uppercase;
+}
+.bulk-step:first-child { margin-top: 4px; }
+.bulk-step .n {
+  width: 24px; height: 24px; border-radius: 999px; background: var(--amber); color: var(--bg);
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.bulk-step .btn.small { margin-left: auto; }
+.fine-grid.compact .fine-btn { min-height: 84px; padding: 9px; }
+.bulk-picked {
+  display: flex; align-items: center; gap: 11px; margin: 4px 0 2px;
+  background: linear-gradient(160deg, #2a2415, var(--card));
+  border: 1px solid rgba(251,191,36,0.4); border-radius: 8px; padding: 11px 12px;
+}
+.bulk-picked .grow { flex-grow: 1; min-width: 0; }
+.bulk-picked .t { font-family: var(--display); font-size: 18px; letter-spacing: 0.03em; text-transform: uppercase; }
+.bulk-picked .s { font-size: 14px; color: var(--amber); }
+.fine-btn.picked { border-color: var(--amber); background: linear-gradient(160deg, #2a2415, var(--card)); }
+.bulk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.bulk-cell {
+  display: flex; align-items: center; gap: 9px; min-height: 52px; padding: 0 11px;
+  background: var(--card); border: 1px solid var(--card-raised); border-radius: 6px;
+}
+.bulk-cell .nm { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bulk-cell .box {
+  width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0;
+  border: 2px solid var(--card-raised); display: flex; align-items: center; justify-content: center;
+}
+.bulk-cell.on { border-color: var(--amber); background: linear-gradient(160deg, #2a2415, var(--card)); }
+.bulk-cell.on .box { background: var(--amber); border-color: var(--amber); color: var(--bg); }
+
+/* ============ Søgning ============ */
+.search-results { margin-top: 14px; max-height: 52vh; overflow-y: auto; }
+.search-results .row { width: 100%; }
+
+/* ============ Deling med medlemmerne ============ */
+.share-help { background: var(--card); border-radius: 6px; padding: 13px 15px; }
+.sh-head {
+  display: flex; align-items: center; gap: 8px; color: var(--amber);
+  font-family: var(--display); font-size: 16px; letter-spacing: 0.05em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.share-help .rules-list { font-size: 14px; }
+.share-help b { color: var(--text); }
+
+/* ============ Afkrydsning i formularer ============ */
+label.check {
+  display: flex; align-items: center; gap: 10px; min-height: 48px;
+  text-transform: none; letter-spacing: 0; font-size: 16px; color: var(--text); margin: 14px 0 0;
+}
+label.check input { width: 22px; height: 22px; min-height: 22px; flex-shrink: 0; accent-color: var(--amber); padding: 0; }
+label.check span { display: flex; align-items: center; gap: 6px; }
+
+/* ============ Værktøjer i toppen ============ */
+.tools .iconbtn[disabled] { opacity: 0.32; cursor: default; }
+#undo-wrap { display: flex; }
+
+/* Gem-knappen har både en lang og en kort etiket — CSS vælger den der er plads til */
+.lbl-short { display: none; }
+
+@media (max-width: 480px) {
+  /* Plads i toppen: gendan-knappen er sjælden nok til at vige på telefon */
+  .appbar { padding: 16px 10px 10px; gap: 6px; }
+  .appbar .tools { gap: 0; }
+  .appbar .tools [data-action="redo"] { display: none; }
+  .lbl-long { display: none; }
+  .lbl-short { display: inline; }
+  #save-btn { padding: 0 10px; }
+}
+@media (max-width: 380px) {
+  /* På de smalleste skærme står klubnavnet alene i toppen */
+  .bn-suffix { display: none; }
+  .hbar-label { width: 104px; }
+}
+
+/* ============ Farvetema pr. bødekategori ============ */
+/* --fc = gruppens farve, --fcb = samme farve som svag baggrund */
+.fine-ic { color: var(--fc, var(--amber)); background: var(--fcb, var(--card-raised)); }
+.fine-ic.hot { color: #ff5d5d; background: rgba(255,93,93,0.12); }
+.row:hover .fine-ic { background: var(--fcb, var(--line)); filter: brightness(1.25); }
+.glegend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.gl { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+.gl i { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+/* ============ Podie på forsiden ============ */
+.podium {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  align-items: end; margin: 0 0 18px;
+}
+.pod { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.pod-top { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; min-width: 0; }
+/* Medaljen bor i podiet — en mørk plade bag den, så metallet ikke drukner i metal */
+.pod-medal {
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(8,11,16,0.30); border-radius: 9px;
+  padding: 3px 8px 1px; margin-top: -2px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.35);
+}
+.pod-medal .rank.medal { width: auto; }
+.pod-medal .rank.medal svg { width: 30px; height: 37px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+.pod-1 .pod-medal .rank.medal svg { width: 34px; height: 42px; }
+.pod-name {
+  font-family: var(--display); font-size: 15px; letter-spacing: 0.03em; text-transform: uppercase;
+  display: flex; align-items: center; justify-content: center; gap: 2px;
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pod-sum { font-family: var(--display); font-size: 21px; color: var(--amber); line-height: 1.1; }
+.pod-sub { font-size: 12px; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+.pod-box {
+  width: 100%; border-radius: 6px 6px 0 0; position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  padding: 8px 4px 10px; gap: 2px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+}
+/* Rangtallet står nu inde i medaljen */
+.pod-title {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: rgba(0,0,0,0.55); text-align: center; line-height: 1.15;
+}
+.pod-box { padding: 7px 4px 9px; gap: 4px; }
+.pod-1 .pod-box { height: 88px; background: linear-gradient(180deg, #ffe08a, #fbbf24 55%, #c98f10); }
+.pod-2 .pod-box { height: 74px; background: linear-gradient(180deg, #e8edf2, #c0c7ce 55%, #8f99a3); }
+.pod-3 .pod-box { height: 66px; background: linear-gradient(180deg, #d9a877, #b07b45 55%, #7d5530); }
+.pod-1 .pod-sum { font-size: 25px; }
+.pod-1 .avatar { width: 42px; height: 42px; font-size: 16px; }
+.pod:hover .pod-top { transform: translateY(-2px); }
+.pod-top { transition: transform 0.14s ease-out; }
+.pod-1 .pod-box { animation: pod-shimmer 5s ease-in-out infinite; }
+@keyframes pod-shimmer { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.12); } }
+
+/* ============ Tegnede tomme tilstande ============ */
+.art-empty { padding: 26px 16px 30px; color: var(--faint); }
+.art { width: 148px; height: auto; margin: 0 auto 10px; display: block; color: var(--muted); opacity: 0.75; }
+.art-empty .big { margin-bottom: 4px; }
+.art-sub { font-size: 15px; color: var(--faint); }
+.chart-card .art-empty { padding: 12px 8px 6px; }
+.chart-card .art { width: 116px; }
+.sheet-body .art { width: 120px; }
+
+/* ============ Metalliske hædersbevisninger ============ */
+.award {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 7px;
+  border-radius: 999px; padding: 7px 14px 7px 9px;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.02em;
+  border: 1px solid rgba(255,255,255,0.28);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -2px 6px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.4);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.25);
+}
+.award::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay; opacity: 0.5;
+}
+.award .aw-ic { display: inline-flex; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4)); }
+.award .aw-lbl { position: relative; z-index: 1; }
+.award.guld { background: linear-gradient(155deg, #ffeaa8 0%, #e0a91c 42%, #8a6108 100%); color: #2a1f04; }
+.award.soelv { background: linear-gradient(155deg, #f6f9fc 0%, #b6bec7 42%, #6f7880 100%); color: #1c2126; }
+.award.ild { background: linear-gradient(155deg, #ffc59a 0%, #f0722e 45%, #8d3510 100%); color: #2a1105; }
+.award.groen { background: linear-gradient(155deg, #b8f2cd 0%, #35a35f 45%, #14562f 100%); color: #06210f; }
+.badge-row.tight { gap: 6px; margin-top: 8px; }
+.badge-row.tight .award { font-size: 12px; padding: 5px 11px 5px 8px; }
+
+/* ============ Stryg for at fortryde ============ */
+.fine-log { position: relative; }
+.log-wrap { position: relative; overflow: hidden; }
+.log-wrap .log-item { position: relative; z-index: 1; background: var(--bg); }
+.log-wrap.swiping { touch-action: pan-y; }
+.swipe-back {
+  position: absolute; inset: 0; z-index: 0;
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  padding-right: 20px; background: linear-gradient(90deg, transparent, rgba(224,92,110,0.28));
+  color: var(--red); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; font-size: 13px;
+}
+.log-wrap.armed .swipe-back { background: var(--red); color: #fff; }
+.log-wrap.armed .swipe-back svg { color: #fff; }
+
+/* ============ Kasseapparat-rulning ============ */
+.dgt { display: inline-block; height: 1em; overflow: hidden; vertical-align: bottom; }
+.dgt i { display: block; font-style: normal; animation: dgt-roll 0.75s cubic-bezier(0.2, 0.85, 0.25, 1) forwards; }
+.dgt i b { display: block; height: 1em; line-height: 1em; font-weight: inherit; }
+.dgt-s { display: inline-block; }
+@keyframes dgt-roll { from { transform: translateY(0); } to { transform: translateY(var(--to)); } }
+
+/* ============ Ikoner der reagerer ============ */
+.fine-ic.pop { animation: ic-pop 0.5s cubic-bezier(0.2, 1.3, 0.35, 1); }
+@keyframes ic-pop {
+  0% { transform: scale(1) rotate(0deg); }
+  35% { transform: scale(1.35) rotate(-12deg); }
+  65% { transform: scale(1.1) rotate(8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+body.crown-glint .crown svg { animation: crown-flash 1.4s ease-out; }
+@keyframes crown-flash {
+  0% { filter: brightness(1); transform: scale(1) rotate(0deg); }
+  18% { filter: brightness(2.2) drop-shadow(0 0 8px rgba(251,191,36,0.95)); transform: scale(1.3) rotate(-10deg); }
+  45% { filter: brightness(1.4); transform: scale(1.1) rotate(6deg); }
+  100% { filter: brightness(1); transform: scale(1) rotate(0deg); }
+}
+.sprout { transition: transform 0.3s ease-out; transform-origin: 50% 90%; }
+.sprout[data-grow="1"] { transform: scale(1.08); }
+.sprout[data-grow="2"] { transform: scale(1.18); }
+.sprout[data-grow="3"] { transform: scale(1.3); filter: drop-shadow(0 0 5px rgba(159,232,112,0.6)); }
+.prospect-strip {
+  display: flex; align-items: center; gap: 10px; margin-top: 12px;
+  background: linear-gradient(90deg, rgba(159,232,112,0.14), transparent);
+  border-left: 4px solid #9fe870; border-radius: 4px; padding: 10px 12px;
+}
+.prospect-strip .grow { flex-grow: 1; min-width: 0; }
+.prospect-strip .t { font-weight: 600; font-size: 15px; }
+.pp-track { height: 6px; border-radius: 999px; background: var(--line-soft); margin-top: 6px; overflow: hidden; }
+.pp-track i { display: block; height: 100%; background: #9fe870; border-radius: 999px; transition: width 0.4s ease-out; }
+.pp-pct { font-family: var(--display); font-size: 17px; color: #9fe870; }
+
+/* ============ Medlemskort ============ */
+.mcard {
+  position: relative; overflow: hidden;
+  background: linear-gradient(165deg, var(--card) 0%, var(--bg) 100%);
+  border: 2px solid transparent;
+  border-radius: 14px; padding: 18px 16px 16px; text-align: center;
+  background-image:
+    linear-gradient(165deg, #1c2530 0%, #10141a 100%),
+    linear-gradient(150deg, #ffe08a, #fbbf24 45%, #8a6108);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 12px 34px rgba(0,0,0,0.5);
+}
+.mcard-shine {
+  position: absolute; top: -40%; left: -30%; width: 60%; height: 200%;
+  background: linear-gradient(105deg, transparent, rgba(255,240,200,0.09), transparent);
+  transform: rotate(8deg); pointer-events: none;
+  animation: mcard-shine 6s ease-in-out infinite;
+}
+@keyframes mcard-shine { 0%, 70% { left: -40%; } 92%, 100% { left: 110%; } }
+.mcard-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.mcard-role { font-size: 12px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--amber); }
+.mcard-club { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.mcard-av .avatar { width: 88px; height: 88px; font-size: 32px; }
+.mcard-name {
+  font-family: var(--display); font-size: 28px; letter-spacing: 0.03em;
+  text-transform: uppercase; margin-top: 10px; line-height: 1.05;
+}
+.mcard-years { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.mcard-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 8px;
+  margin: 16px 0 12px; padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+.mcard-grid b { display: block; font-family: var(--display); font-size: 22px; color: var(--amber); }
+.mcard-grid span { font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.mcard-sin { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.mcard-sin b { font-family: var(--display); font-size: 18px; letter-spacing: 0.02em; color: var(--text); text-transform: none; }
+.mcard .badge-row { justify-content: center; }
+.mcard-none { font-size: 13px; color: var(--faint); margin-top: 12px; }
+
+/* ============ Hall of Fame ============ */
+.hof-season { border-left: 4px solid var(--yc); border-radius: 4px; padding: 2px 0 6px 12px; margin-bottom: 14px; }
+.hof-season:last-child { margin-bottom: 0; }
+.hof-year {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--display); font-size: 19px; letter-spacing: 0.04em; color: var(--yc); margin-bottom: 4px;
+}
+.hof-year span { font-size: 15px; color: var(--muted); }
+.hof-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  min-height: 54px; padding: 6px 0; border-top: 1px solid var(--line-soft); text-align: left;
+}
+.hof-row:first-of-type { border-top: none; }
+.hof-row .grow { flex-grow: 1; min-width: 0; }
+.hof-row .t { font-size: 16px; font-weight: 600; }
+.hof-row .s { font-size: 13px; color: var(--muted); }
+.hof-row .amount { font-family: var(--display); font-size: 18px; color: var(--amber); white-space: nowrap; }
+.hof-row .amount.zero { color: var(--green); }
+.hof-row .rank.medal svg { width: 24px; height: 30px; }
+.hof-row.now .t { color: var(--amber); }
+.rec-ic.green { color: var(--green); }
+.rec-ic.gold { color: var(--amber); }
+.hof-awards { padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.hof-awards:first-child { border-top: none; }
+.hof-awards .t { font-size: 15px; font-weight: 600; }
+
+/* Fanetekst: "Hall of Fame" på brede skærme, "Hall" på smalle */
+.tab .lbl-short { display: none; }
+.tab .lbl-long { display: inline; }
+@media (max-width: 560px) {
+  .tab .lbl-long { display: none; }
+  .tab .lbl-short { display: inline; }
+}
+
+/* ============ Levende baggrund pr. fane ============ */
+body::before {
+  background:
+    radial-gradient(120% 60% at 50% -10%, var(--view-glow, rgba(251,191,36,0.07)) 0%, rgba(16,20,26,0) 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  transition: background 0.5s ease-out;
+}
+body::after {
+  content: ''; position: fixed; inset: -20% -20% auto -20%; height: 70%; z-index: 0; pointer-events: none;
+  background: radial-gradient(40% 50% at 30% 20%, var(--view-glow, rgba(251,191,36,0.07)), transparent 70%);
+  opacity: 0.8; animation: drift 26s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  from { transform: translate3d(-4%, 0, 0) scale(1); }
+  to { transform: translate3d(6%, 3%, 0) scale(1.12); }
+}
+:root { --view-glow: rgba(251,191,36,0.07); }
+html[data-view="liga"] { --view-glow: rgba(251,191,36,0.09); }
+html[data-view="aar"], html[data-view="aar-detalje"], html[data-view="mode"] { --view-glow: rgba(94,234,212,0.07); }
+html[data-view="medlemmer"] { --view-glow: rgba(167,139,250,0.07); }
+html[data-view="statistik"] { --view-glow: rgba(63,158,99,0.09); }
+html[data-view="takster"] { --view-glow: rgba(94,176,245,0.07); }
+html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
+
+@media (prefers-reduced-motion: reduce) {
+  body::after, .mcard-shine, .pod-1 .pod-box { animation: none !important; }
+}
+
+@media (max-width: 380px) {
+  .podium { gap: 3px; }
+  .pod-name { font-size: 13px; }
+  .pod-sum { font-size: 18px; }
+  .pod-1 .pod-sum { font-size: 21px; }
+  .pod-sub { font-size: 11px; }
+  .pod-medal { padding: 2px 5px 0; }
+  .pod-medal .rank.medal svg { width: 26px; height: 32px; }
+  .pod-1 .pod-medal .rank.medal svg { width: 29px; height: 36px; }
+  .pod-title { font-size: 9.5px; }
+  .mcard-name { font-size: 23px; }
+}
+
+/* ============ Justeringer efter seks faner ============ */
+/* Beløb i statstriben må aldrig brække midt i tallet */
+.stat .v { white-space: nowrap; }
+@media (max-width: 420px) {
+  .stat { padding: 10px 9px 9px; }
+  .stat .v { font-size: 21px; }
+  .stat .k { font-size: 12px; letter-spacing: 0.08em; }
+}
+/* Seks faner skal have luft imellem sig hele vejen ned til 320 px */
+.tab { padding: 0 3px; }
+@media (max-width: 480px) {
+  .tab { font-size: 10.5px; letter-spacing: 0.01em; gap: 2px; padding: 0 1px; }
+  .tab svg { width: 19px; height: 19px; }
+}
+@media (max-width: 360px) {
+  .tab { font-size: 9px; }
+  .tab svg { width: 17px; height: 17px; }
+}
+
+
+/* ============ Indholdssøjlen: én bredde til alle blokke ============ */
+/* Søjlen fylder skærmen ud, men aldrig mere end --col, og hver blok i
+   indholdet deler den samme bredde — ellers stikker statstriben og
+   streak-panelet ud i forhold til resten af siden på brede skærme. */
+:root { --col: 1040px; }
+.content > *, .content .stats, .content .streak-panel, .content .chart-card, .content .info-card {
+  max-width: min(100%, var(--col));
+  margin-inline: auto;
+}
+/* Grafkortenes indhold må stadig ikke sprænge kortet */
+.chart-card > *, .sheet-body .stats { max-width: 100%; }
+
+/* ============ To udgange i arkets hoved ============ */
+/* Pilen fører ét skridt tilbage (fx til medlemmets profil), krydset lukker helt ud */
+.sheet-back {
+  width: 44px; height: 44px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); border-radius: 6px;
+  margin-left: -6px;
+}
+.sheet-back:hover { background: var(--card); color: var(--amber); }
+.sheet-head .t { min-width: 0; }
+
+/* ============ Prospect-forløb i måneder ============ */
+.prospect-strip .pp-meta { font-size: 12px; color: var(--faint); margin-top: 4px; letter-spacing: 0.04em; }
+.prospect-strip .btn.small { flex-shrink: 0; }
+.prospect-strip.klar { background: linear-gradient(90deg, rgba(159,232,112,0.24), transparent); }
+.prospect-strip.klar .t { color: #9fe870; }
+
+/* "Bødeligaen" i amber, så navnet og ligaen skiller sig fra hinanden */
+.bn-suffix { color: var(--amber); }
+
+/* ============ Bødemesteren: klubbens maskot ============ */
+.mascot { display: flex; align-items: flex-start; gap: 10px; }
+.buddy { width: 46px; height: 46px; flex-shrink: 0; animation: buddy-bob 4.5s ease-in-out infinite; }
+@keyframes buddy-bob {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-3px) rotate(1.5deg); }
+}
+.mc-bubble {
+  position: relative; flex-grow: 1; min-width: 0;
+  background: var(--card); border: 1px solid var(--card-raised); border-radius: 8px;
+  padding: 9px 11px 7px;
+}
+.mc-bubble::before {
+  content: ''; position: absolute; left: -6px; top: 14px;
+  width: 10px; height: 10px; background: var(--card);
+  border-left: 1px solid var(--card-raised); border-bottom: 1px solid var(--card-raised);
+  transform: rotate(45deg);
+}
+.mc-msg { margin: 0; font-size: 14px; line-height: 1.35; color: var(--text); overflow-wrap: anywhere; }
+.mc-msg.fade { animation: mc-fade 0.4s ease-out; }
+@keyframes mc-fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+/* På telefon står maskotten på forsiden, på desktop i sidebaren */
+#mascot-side { display: none; }
+#mascot-inline { margin: 0 0 18px; }
+@media (min-width: 900px) {
+  #mascot-inline { display: none; }
+  /* Maskotten står midt i det ledige felt mellem menuen og værktøjerne */
+  #mascot-side {
+    display: flex; align-items: center; position: fixed; left: 12px; width: 196px;
+    top: var(--mascot-top, 500px); bottom: var(--mascot-bottom, 170px); z-index: 21;
+    pointer-events: none;
+  }
+  #mascot-side > * { pointer-events: auto; width: 100%; }
+  #mascot-side.cramped { display: none; }
+  .mascot.side { flex-direction: column; gap: 7px; }
+  .mascot.side .buddy { width: 54px; height: 54px; align-self: flex-start; margin-left: 2px; }
+  .mascot.side .mc-bubble::before { left: 14px; top: -6px; border: none; border-top: 1px solid var(--card-raised); border-left: 1px solid var(--card-raised); }
+  .mascot.side .mc-msg { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) { .buddy { animation: none; } }
+
+/* Bødekassen lever: mønten falder i, øjenbrynet vipper, blyanten banker */
+.bm-coin { animation: bm-coin 6s ease-in-out infinite; transform-origin: 32px 9px; }
+@keyframes bm-coin {
+  0%, 62% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  74% { transform: translateY(11px) rotate(180deg); opacity: 1; }
+  80%, 100% { transform: translateY(11px) rotate(180deg); opacity: 0; }
+}
+.bm-brow { animation: bm-brow 6s ease-in-out infinite; transform-origin: 22px 29px; }
+@keyframes bm-brow {
+  0%, 70%, 100% { transform: translateY(0); }
+  78%, 90% { transform: translateY(-2.5px); }
+}
+.bm-pen { animation: bm-pen 6s ease-in-out infinite; transform-origin: 58px 43px; }
+@keyframes bm-pen {
+  0%, 66%, 100% { transform: rotate(0deg); }
+  76% { transform: rotate(-24deg); }
+  86% { transform: rotate(6deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bm-coin, .bm-brow, .bm-pen { animation: none; }
+  .bm-coin { opacity: 0; }
+}
+
+/* Kompakt maskot når sidebaren er lav: figur ved siden af boblen */
+@media (min-width: 900px) {
+  #mascot-side.tight .mascot.side { flex-direction: row; align-items: flex-start; gap: 8px; }
+  #mascot-side.tight .buddy { width: 34px; height: 34px; margin-left: 0; }
+  #mascot-side.tight .mc-bubble { padding: 7px 9px 6px; }
+  #mascot-side.tight .mc-bubble::before { left: -6px; top: 12px; border: none; border-left: 1px solid var(--card-raised); border-bottom: 1px solid var(--card-raised); }
+  #mascot-side.tight .mc-msg { font-size: 12.5px; }
+}
+
+/* ============ Konflikt ved delt gem ============ */
+.conflict-banner {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  background: rgba(255,159,67,0.10);
+  border: 1px solid rgba(255,159,67,0.35);
+  color: #ff9f43; border-radius: 6px;
+  padding: 11px 14px; margin-bottom: 14px; font-size: 14px;
+}
+.conflict-banner svg { flex-shrink: 0; }
+.conflict-banner .grow { flex-grow: 1; min-width: 190px; color: var(--text); line-height: 1.4; }
+.conflict-banner b { color: #ff9f43; }
+.conflict-banner .btn.small { flex-grow: 0; flex-basis: auto; }
+
+/* ============ Backup-påmindelse ============ */
+.note.warn { display: flex; align-items: flex-start; gap: 8px; color: #ff9f43; }
+.note.warn svg { flex-shrink: 0; margin-top: 1px; }
+.iconbtn.needs-backup { position: relative; }
+.iconbtn.needs-backup::after {
+  content: ''; position: absolute; top: 7px; right: 7px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #ff9f43; box-shadow: 0 0 0 2px var(--panel);
+}
+.conflict-banner .cb-actions { display: flex; gap: 8px; flex-shrink: 0; }

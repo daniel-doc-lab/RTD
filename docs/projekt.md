@@ -102,7 +102,8 @@ Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeho
 
 ### Runde 8 (4. sep. 2026) — udgivelse på GitHub Pages
 
-- **Pages-arbejdsgang**: `.github/workflows/pages.yml` bygger og udgiver appen ved hvert push til `main`. Den udgivne udgave er datafri: `node build.mjs` skriver en tom `#rtd-state`, og `.github/scripts/check-no-data.mjs` afbryder udgivelsen, hvis en HTML-fil alligevel bærer data. Kræver at Pages sættes til »GitHub Actions« som kilde.
+- **Pages-arbejdsgang**: `.github/workflows/pages.yml` bygger og udgiver appen ved hvert push til `main` — kørte grønt første gang ved merge af PR #1. Den udgivne udgave er datafri: `node build.mjs` skriver en tom `#rtd-state`, og `.github/scripts/check-no-data.mjs` afbryder udgivelsen, hvis en HTML-fil alligevel bærer data.
+- **Gem-kredsløbet er testdækket**: afsnit 20 i testsuiten stubber `claude.use('artifact')`, registrerer en bøde gennem UI'et og læser det dokument, appen ville publicere. Kontrollerer migrering v5 → v7, at alle medlemmer, takster, møder og klubår er med, at den nye bøde kom med, at formandsrækken blev oprettet, og at `localStorage` er enig med det publicerede. Sidste del afviser gemmet med `conflict` og kontrollerer, at alt lander i `rtd-conflict`.
 - Pages kan kun servere filer, ikke tage imod et gem. Derfor får hver besøgende sin egen private kopi i browseren, og det delte gem findes kun i Claude-artifact'en. Pages er altså et permanent, uafhængigt hjem for **appen**, ikke for **dataene**.
 - Repoet er offentligt, og `dist/rtd-boedeliga.html` bærer klubbens rigtige data. Det er et bevidst valg (se README), men det er værd at kende.
 

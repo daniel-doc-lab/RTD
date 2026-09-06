@@ -67,7 +67,7 @@ node test/test-app.mjs
 | `styles.css` | Hele designsystemet: scoreboard-tema, animationer, print-CSS |
 | `app.js` | Al logik: state, migrering, views, handlinger, grafer (~3.700 linjer vanilla JS) |
 | `build.mjs` | Samler appen i én HTML-fil til deling |
-| `test/test-app.mjs` | Ende-til-ende røgtest (Playwright), 44 tjek af alle flows |
+| `test/test-app.mjs` | Ende-til-ende røgtest (Playwright), 48 tjek af alle flows — inkl. at klubbens rigtige data migreres og gemmes uden tab |
 | `design/` | De 10 oprindelige mockup-retninger (nr. 06 "Bødeligaen" blev valgt) |
 | `docs/` | Projektmål, feature-katalog, visuelt oplæg |
 | `.github/` | Pages-arbejdsgang + `check-no-data.mjs`, der holder den offentlige udgave datafri |

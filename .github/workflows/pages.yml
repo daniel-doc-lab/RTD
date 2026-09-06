@@ -34,13 +34,14 @@ jobs:
 
       - name: Byg en datafri udgave
         run: |
+          cp dist/rtd-boedeliga.html dist-reference.html   # klubbens data, kun til kontrollen
           node build.mjs
           mkdir -p site
           cp index.html styles.css app.js site/
           cp dist/rtd-boedeliga.html site/enkeltfil.html
 
       - name: Kontrollér at ingen klubdata følger med
-        run: node .github/scripts/check-no-data.mjs site
+        run: node .github/scripts/check-no-data.mjs site dist-reference.html
 
       - uses: actions/upload-pages-artifact@v3
         with:

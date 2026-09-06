@@ -63,10 +63,10 @@ Kommentar: vandret scroll på statistiksiden. Systematisk måling af hvert eleme
 ## Nuværende tilstand (pr. 4. sep. 2026)
 
 - State-version **7**; live-data: klub "RT 11 Frederiksberg", 15 medlemmer, formand = Marco Brøndsted, 3 klubår (2024/25, 2025/26, 2026/27 à 20 møder = 60 møder i alt), 19 takster, "Møde 1 - Fisketur" (1.250 kr.) og "Møde 2 - Formuepleje" (510 kr.) afsluttet, i alt 15 bøder registreret, ingen indbetalinger endnu, 33 poster i revisionsloggen. Senest gemt 1. sep. 2026.
-- Testsuite `test/test-app.mjs`: 44 tjek, alle grønne.
+- Testsuite `test/test-app.mjs`: 48 tjek, alle grønne. Afsnit 20 stubber artifact-runtimen og kontrollerer det dokument, appen faktisk ville publicere: v5 → v7 uden tab, hele datasættet med, og ved `conflict` henlægges alt i `rtd-conflict` frem for at gå tabt.
 - Repoets `dist/rtd-boedeliga.html` er verificeret identisk med den publicerede live-udgave — samme kode og samme data.
-- Alt arbejde ligger på grenen `claude/fines-app-mockups-kvz4pe`, som er åben som pull request #1 mod `main`.
-- GitHub Pages er sat op i `.github/workflows/pages.yml` (datafri udgave, udgives ved push til `main`). Kilden skal sættes til »GitHub Actions« i repoets indstillinger, og arbejdsgangen kører først, når grenen er flettet ind i `main`.
+- Pull request #1 er flettet ind i `main` (merge-commit `56ce468`, 4. sep. 2026). `main` er nu projektets hjem; `claude/fines-app-mockups-kvz4pe` genstartes fra `main` ved videre arbejde.
+- GitHub Pages kører: `.github/workflows/pages.yml` udgav den datafri udgave ved merge-commit `56ce468` — begge jobs grønne, inkl. datavagten. Appen ligger på https://daniel-doc-lab.github.io/RTD/ og opdateres ved hvert push til `main`.
 - Visuelle idéer: `docs/visuelle-ideer.md` — runde 1 (11 implementeret), runde 2 (10 implementeret i runde 6) + runde 3 (nye forslag).
 - Uimplementerede idéer: `docs/feature-ideer.md` uden ✅ (MobilePay-genvej, rykkerbesked, fremmøderegistrering, mødeskabelon, notifikationer, PWA, flettende import) + Pakke C-rest i `docs/visuelt-oplaeg.md`.
 

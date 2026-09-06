@@ -4,7 +4,9 @@ Klubbens digitale bødekasse — bygget til RT 11 Frederiksberg. Registrer bøde
 
 **Live-udgave:** Appen kører som en delt Claude-artifact (delbart link med fælles gemte data). Det er dér klubbens rigtige tal bor.
 
-**GitHub Pages:** `.github/workflows/pages.yml` udgiver appen på `https://daniel-doc-lab.github.io/RTD/` ved hvert push til `main`. Den udgave er bevidst **tom** — arbejdsgangen bygger en frisk kopi uden data, og `check-no-data.mjs` afbryder udgivelsen, hvis der alligevel skulle ligge klubdata i filerne. Pages kan ikke tage imod et gem, så hver besøgende ville få sin egen private kopi; det delte gem findes kun i artifact-udgaven.
+**GitHub Pages:** `.github/workflows/pages.yml` udgiver appen på `https://daniel-doc-lab.github.io/RTD/` ved hvert push til `main`. Den udgave er bevidst en **tom demo**: ingen bøder, ingen gæld, og startdataene er opdigtede navne (Anders Bak, Birger Colding, …), så intet offentligt peger på klubben. `check-no-data.mjs` afbryder udgivelsen, hvis en fil bærer data i `#rtd-state` eller nævner et af klubbens rigtige medlemsnavne — navnelisten læses fra den committede `dist`, så kontrollen følger med af sig selv.
+
+Pages kan ikke tage imod et gem og synkroniserer derfor ikke. Send medlemmerne Claude-linket i stedet: det er altid ajour.
 
 Sådan slås det til: **Settings → Pages → Build and deployment → Source: GitHub Actions.** Derefter kører udgivelsen af sig selv.
 
@@ -16,7 +18,7 @@ Sådan slås det til: **Settings → Pages → Build and deployment → Source: 
 - **Bøderegistrering** — klik en spiller → klik bøderne. Tællere på hver takst, hurtig skift mellem medlemmer, fortryd i mødeloggen. Særbøder med frit beløb og egen tekst.
 - **Bulk-bøde** — vælg én takst, vælg flere medlemmer, giv bøden til alle på én gang.
 - **Takster** — klubbens 18 bøder forudindlæst (Mobil 30 kr. … Ingen fremmøde ved tilmelding på RTD 800 kr.), fuldt redigerbare med eget ikon.
-- **Medlemmer** — dynamisk liste (forudindlæst med 11 medlemmer), medlemskab pr. klubår, filtre (Aktive, Prospects, Udgåede, Skylder, Alle), omdøb, udmeld/genindmeld, slet med gendannelse.
+- **Medlemmer** — dynamisk liste (forudindlæst med 11 demomedlemmer, som overskrives af klubbens egne), medlemskab pr. klubår, filtre (Aktive, Prospects, Udgåede, Skylder, Alle), omdøb, udmeld/genindmeld, slet med gendannelse.
 - **Indbetalinger** — forudfyldt med hele gælden, delbetaling, note (fx MobilePay). Saldo falder, kassen vokser.
 - **Kassen** — beholdning = indbetalinger − udgifter. Udgiftsposter registreres og trækkes fra, både i statistikken og i kassererrapporten.
 - **Fortryd/gendan** — undo/redo over de seneste 20 dataændringer, med Ctrl/Cmd+Z og Ctrl+Shift+Z. Stryg en bøde til venstre i mødets liste for at fjerne den.
@@ -70,7 +72,7 @@ node test/test-app.mjs
 | `test/test-app.mjs` | Ende-til-ende røgtest (Playwright), 48 tjek af alle flows — inkl. at klubbens rigtige data migreres og gemmes uden tab |
 | `design/` | De 10 oprindelige mockup-retninger (nr. 06 "Bødeligaen" blev valgt) |
 | `docs/` | Projektmål, feature-katalog, visuelt oplæg |
-| `.github/` | Pages-arbejdsgang + `check-no-data.mjs`, der holder den offentlige udgave datafri |
+| `.github/` | Pages-arbejdsgang + `check-no-data.mjs`, der holder den offentlige udgave fri for klubdata og rigtige navne |
 
 **Datamodel (state v7):** `clubYears` → `meetings` → `fines` (takst- eller særbøde) pr. `member`; `payments` reducerer saldo, `writeoffs` nulstiller den uden at fylde kassen, `expenses` tømmer kassen; `fineTypes` er takstkataloget; `formandHistory` er formandsrækken; `audit` er revisionsloggen; `trash` er papirkurven. Medlemskab er pr. klubår (`members[].years`). Se `docs/projekt.md` for felter og regler.
 

@@ -40,7 +40,7 @@ await page.waitForSelector('.member-grid');
 await page.click('[data-action="edit-meeting"]');
 await page.fill('#meet-title', 'Sæsonstart');
 await page.fill('#meet-date', '2025-09-05');
-await page.fill('#meet-desc', 'Første møde efter sommer.\nIndlæg ved Toke.');
+await page.fill('#meet-desc', 'Første møde efter sommer.\nIndlæg ved Jonas.');
 await page.fill('#meet-links', 'Referat: https://example.com/referat\nhttps://example.com/slides');
 await page.click('[data-action="meeting-save"]');
 await page.waitForSelector('.info-card');
@@ -51,8 +51,8 @@ if (nLinks !== 2) fail('forventede 2 links, fik ' + nLinks);
 const linkText = await page.locator('.link-line a').first().textContent();
 if (linkText !== 'Referat') fail('link-etiket forkert: ' + linkText);
 
-// 4) Giv bøder: Martin Mobil x2, dyre bøde (Mads bøde 500) til Miki, særbøde til Thomas
-await page.click('.member-cell:has-text("Martin Mollerup")');
+// 4) Giv bøder: Anders Mobil x2, dyre bøde (Mads bøde 500) til Birger, særbøde til Christoffer
+await page.click('.member-cell:has-text("Anders Bak")');
 await page.waitForSelector('.fine-grid');
 const mobil = page.locator('.fine-btn:has-text("Mobil")').first();
 await mobil.click();
@@ -66,8 +66,8 @@ await page.click('.fine-btn:has-text("Mads bøde")');
 await page.click('.sheet-close');
 // Kasseapparatet ruller på plads, når totalen springer med en dyr bøde
 if (await page.locator('.meet-head .total .dgt').count() < 1) fail('kasseapparat-rulning mangler ved dyr bøde'); else ok('cifrene ruller ved dyre bøder');
-// Særbøden gives eksplicit til Thomas, så podiet bliver forudsigeligt
-await page.click('.member-cell:has-text("Thomas Jarløv")');
+// Særbøden gives eksplicit til Christoffer, så podiet bliver forudsigeligt
+await page.click('.member-cell:has-text("Christoffer Dam")');
 await page.waitForSelector('.fine-grid');
 await page.click('[data-action="special-fine"]');
 await page.fill('#sp-label', 'Tabt væddemål');
@@ -89,11 +89,11 @@ await page.waitForTimeout(450);
 const total2 = await page.locator('.meet-head .total').textContent();
 if (!total2.includes('605')) fail('total efter fortryd: ' + total2);
 
-// 6) Møde 2: giv Martin en bøde mere → streak på 2 møder
+// 6) Møde 2: giv Anders en bøde mere → streak på 2 møder
 await page.click('.meet-head [data-action="goto"]');
 await page.click('.row:has-text("Møde 2")');
 await page.waitForSelector('.member-grid');
-await page.click('.member-cell:has-text("Martin Mollerup")');
+await page.click('.member-cell:has-text("Anders Bak")');
 await page.click('.fine-btn:has-text("Afbryde")');
 await page.locator('.fine-btn:has-text("Mobil")').first().click(); // → 2× Mobil i alt = typestreak
 await page.click('.sheet-close');
@@ -104,28 +104,28 @@ await page.waitForSelector('.lb-row');
 await page.waitForSelector('.podium');
 if (await page.locator('.pod').count() !== 3) fail('podiet mangler tre pladser');
 const gold = await page.locator('.pod-1').textContent();
-if (!gold.includes('Miki')) fail('guldpladsen er ikke Miki (500 kr.): ' + gold.slice(0, 60)); else ok('podiet rangerer korrekt');
-if (!(await page.locator('.pod-2').textContent()).includes('Martin')) fail('sølvpladsen er ikke Martin');
-if (!(await page.locator('.pod-3').textContent()).includes('Thomas')) fail('bronzepladsen er ikke Thomas');
+if (!gold.includes('Birger')) fail('guldpladsen er ikke Birger (500 kr.): ' + gold.slice(0, 60)); else ok('podiet rangerer korrekt');
+if (!(await page.locator('.pod-2').textContent()).includes('Anders')) fail('sølvpladsen er ikke Anders');
+if (!(await page.locator('.pod-3').textContent()).includes('Christoffer')) fail('bronzepladsen er ikke Christoffer');
 if (await page.locator('.zaps').count() < 1) fail('zap-markering for dyr bøde mangler');
 await page.waitForSelector('.streak-panel');
 const streakTxt = await page.locator('.streak-panel').textContent();
-if (!streakTxt.includes('Martin') || !streakTxt.includes('2 møder i træk')) fail('mødestreak mangler: ' + streakTxt.slice(0, 120)); else ok('mødestreak vises');
+if (!streakTxt.includes('Anders') || !streakTxt.includes('2 møder i træk')) fail('mødestreak mangler: ' + streakTxt.slice(0, 120)); else ok('mødestreak vises');
 if (!streakTxt.includes('Stamkunde')) fail('typestreak (Stamkunde) mangler');
 // Forsideknappen foreslår at fortsætte et åbent møde med bøder
 const cta = await page.locator('.actionbar .btn').textContent();
 if (!cta.includes('Fortsæt')) fail('forsideknap foreslår ikke Fortsæt: ' + cta);
 await page.screenshot({ path: shots + '/shot-liga.png' });
 
-// 8) Formand: kron Thomas
-await page.click('.pod:has-text("Thomas")');
+// 8) Formand: kron Christoffer
+await page.click('.pod:has-text("Christoffer")');
 await page.click('[data-action="toggle-formand"]');
 await page.waitForSelector('.sheet-head .crown');
 ok('formand kronet');
 await page.click('.sheet-close');
-if (await page.locator('.pod:has-text("Thomas") .crown').count() !== 1) fail('krone mangler på podiet');
+if (await page.locator('.pod:has-text("Christoffer") .crown').count() !== 1) fail('krone mangler på podiet');
 
-// 9) Indbetaling: Miki betaler alt (500)
+// 9) Indbetaling: Birger betaler alt (500)
 await page.click('.pod-1');
 await page.click('[data-action="pay-form"]');
 if (await page.inputValue('#pay-amount') !== '500') fail('forudfyldt beløb: ' + await page.inputValue('#pay-amount'));
@@ -134,7 +134,7 @@ await page.waitForSelector('.modal-root', { state: 'detached' });
 await page.waitForTimeout(450);
 const stats = await page.locator('.stats').textContent();
 if (!stats.includes('500 kr.')) fail('kassen viser ikke 500: ' + stats);
-if (!(await page.locator('.lb-row:has-text("Miki")').textContent()).includes('Rent ark')) fail('Miki ikke rent ark efter betaling');
+if (!(await page.locator('.lb-row:has-text("Birger")').textContent()).includes('Rent ark')) fail('Birger ikke rent ark efter betaling');
 ok('indbetaling virker');
 
 // 10) Takster: tilføj, rediger, fjern
@@ -208,7 +208,7 @@ await page.waitForSelector('.chart-card');
 if (await page.locator('.chart-card').count() < 5) fail('statistik: for få kort'); else ok('statistikside renderer');
 if (await page.locator('svg.chart').count() < 1) fail('ingen SVG-grafer');
 const cmpTxt = await page.locator('table.cmp').textContent();
-if (!cmpTxt.includes('2025/26') || !cmpTxt.includes('Miki')) fail('sammenligningstabel mangler data: ' + cmpTxt.slice(0, 80));
+if (!cmpTxt.includes('2025/26') || !cmpTxt.includes('Birger')) fail('sammenligningstabel mangler data: ' + cmpTxt.slice(0, 80));
 const recTxt = await page.locator('.chart-card:has-text("Sæsonrekorder")').textContent();
 if (!recTxt.includes('Dyreste møde')) fail('sæsonrekorder mangler');
 
@@ -216,7 +216,7 @@ if (!recTxt.includes('Dyreste møde')) fail('sæsonrekorder mangler');
 await page.click('[data-action="report-open"]');
 await page.waitForSelector('.report-paper');
 const rpt = await page.locator('.report-paper').textContent();
-if (!rpt.includes('Kassererrapport') || !rpt.includes('Martin Mollerup')) fail('rapport mangler indhold');
+if (!rpt.includes('Kassererrapport') || !rpt.includes('Anders Bak')) fail('rapport mangler indhold');
 await page.click('[data-action="report-close"]');
 ok('kassererrapport virker');
 
@@ -262,7 +262,7 @@ await page.click('[data-action="viewer-toggle"]');
 await page.waitForSelector('.viewer-banner');
 await page.click('[data-tab="medlemmer"]');
 if (await page.locator('.actionbar').count() !== 0) fail('visningstilstand: actionbar stadig synlig');
-await page.click('.row:has-text("Martin")');
+await page.click('.row:has-text("Anders")');
 if (await page.locator('[data-action="pay-form"]').count() !== 0) fail('visningstilstand: betalingsknap synlig');
 await page.click('.sheet-close');
 await page.click('[data-action="settings"]');
@@ -279,7 +279,7 @@ await page.click('[data-action="edit-meeting"]');
 const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 await page.fill('#meet-date', tomorrow);
 await page.click('[data-action="meeting-save"]');
-await page.click('.member-cell:has-text("Toke")');
+await page.click('.member-cell:has-text("Jonas")');
 await page.waitForSelector('.fine-grid');
 if (await page.locator('.fine-btn.suggested:has-text("Afmelding 24 timer")').count() !== 1) fail('afbudsforslag mangler');
 if (await page.locator('.sug-strip').count() !== 1) fail('forslagsstribe mangler');
@@ -288,7 +288,7 @@ ok('afbudsforslag virker');
 
 // 22) Historikfilter i medlemsprofil
 await page.click('[data-tab="liga"]');
-await page.click('.lb-row:has-text("Martin")');
+await page.click('.lb-row:has-text("Anders")');
 await page.waitForSelector('.hist-chips');
 await page.locator('.hist-chips .chip:has-text("2025/26")').click();
 await page.waitForSelector('.hist-chips .chip.active:has-text("2025/26")');
@@ -331,10 +331,10 @@ ok('fortryd og gendan virker');
 
 // 25) Søg og spring til
 await page.click('[data-action="search"]');
-await page.fill('#search-q', 'Miki');
+await page.fill('#search-q', 'Birger');
 await page.waitForSelector('.search-results .row');
-await page.click('.search-results .row:has-text("Miki")');
-await page.waitForSelector('.sheet-head:has-text("Miki")');
+await page.click('.search-results .row:has-text("Birger")');
+await page.waitForSelector('.sheet-head:has-text("Birger")');
 await page.click('.sheet-close');
 ok('søgning springer til medlem');
 
@@ -384,7 +384,7 @@ ok('prospects virker');
 
 // 30) Medlemskab pr. klubår: slå et år fra uden at miste regnskabet
 await page.click('[data-action="member-filter"][data-key="alle"]');
-await page.click('.row:has-text("Martin Mollerup")');
+await page.click('.row:has-text("Anders Bak")');
 await page.waitForSelector('.year-chips');
 const yearsOn = await page.locator('.year-chips .chip.active').count();
 await page.locator('.year-chips .chip:has-text("2026/27")').click();
@@ -395,11 +395,11 @@ await page.click('[data-tab="aar"]');
 await page.click('.row:has-text("2026/27")');
 await page.click('.row:has-text("Møde 3")');
 await page.waitForSelector('.member-grid');
-if (await page.locator('.member-cell:has-text("Martin Mollerup")').count() !== 0) fail('medlem uden for klubåret står stadig på mødetavlen');
-if (await page.locator('.member-cell:has-text("Miki")').count() !== 1) fail('øvrige medlemmer forsvandt fra mødetavlen');
+if (await page.locator('.member-cell:has-text("Anders Bak")').count() !== 0) fail('medlem uden for klubåret står stadig på mødetavlen');
+if (await page.locator('.member-cell:has-text("Birger")').count() !== 1) fail('øvrige medlemmer forsvandt fra mødetavlen');
 await page.click('[data-tab="liga"]');
 await page.waitForSelector('.lb-row');
-if (await page.locator('.lb-row:has-text("Martin Mollerup")').count() !== 1) fail('medlem forsvandt fra ligaen');
+if (await page.locator('.lb-row:has-text("Anders Bak")').count() !== 1) fail('medlem forsvandt fra ligaen');
 ok('medlemskab pr. klubår virker');
 
 // 31) Farvetema pr. bødekategori
@@ -423,12 +423,12 @@ ok('gruppefarver i statistikken');
 
 // 32) Metalliske hædersbevisninger
 await page.click('[data-tab="liga"]');
-await page.click('.lb-row:has-text("Toke"), .pod:has-text("Toke")');
+await page.click('.lb-row:has-text("Jonas"), .pod:has-text("Jonas")');
 await page.waitForSelector('.sheet-body');
 await page.click('.sheet-close');
 await page.click('[data-tab="medlemmer"]');
 await page.click('[data-action="member-filter"][data-key="alle"]');
-await page.click('.row:has-text("Miki")');
+await page.click('.row:has-text("Birger")');
 await page.waitForSelector('.sheet-body');
 const metalKlasser = await page.evaluate(() =>
   [...document.querySelectorAll('.sheet-body .award')].map(el => el.className));
@@ -439,7 +439,7 @@ ok('metalliske hædersbevisninger');
 await page.click('[data-action="member-card"]');
 await page.waitForSelector('.mcard');
 const kort = await page.locator('.mcard').textContent();
-if (!kort.includes('Miki')) fail('medlemskortet viser ikke navnet');
+if (!kort.includes('Birger')) fail('medlemskortet viser ikke navnet');
 if (await page.locator('.mcard-grid b').count() !== 4) fail('medlemskortet mangler nøgletal');
 if (await page.locator('[data-action="card-save"]').count() !== 1) fail('gem-kort-knappen mangler');
 await page.click('.sheet-close');
@@ -468,7 +468,7 @@ await page.waitForSelector('.hof-season, .art-empty');
 const hof = await page.locator('#app').textContent();
 if (!hof.includes('Hall of Fame')) fail('Hall of Fame-overskrift mangler');
 if (!hof.includes('Formandsrækken')) fail('formandsrækken mangler');
-if (!hof.includes('Thomas')) fail('formanden står ikke i formandsrækken: ' + hof.slice(0, 120));
+if (!hof.includes('Christoffer')) fail('formanden står ikke i formandsrækken: ' + hof.slice(0, 120));
 if (await page.locator('.chart-card').count() < 4) fail('Hall of Fame mangler kort');
 ok('Hall of Fame virker');
 
@@ -477,7 +477,7 @@ await page.click('[data-tab="aar"]');
 await page.click('.row:has-text("2026/27")');
 await page.click('.row:has-text("Møde 4")');
 await page.waitForSelector('.member-grid');
-await page.click('.member-cell:has-text("Miki")');
+await page.click('.member-cell:has-text("Birger")');
 await page.waitForSelector('.fine-grid');
 await page.click('.fine-btn:has-text("Nål")');
 await page.click('.sheet-close');
@@ -505,14 +505,14 @@ ok('stryg for at fortryde virker');
 // 38) To udgange i arkets hoved: tilbage til profilen eller helt ud
 await page.click('[data-tab="medlemmer"]');
 await page.click('[data-action="member-filter"][data-key="alle"]');
-await page.click('.row:has-text("Miki")');
+await page.click('.row:has-text("Birger")');
 await page.waitForSelector('.sheet-body');
 if (await page.locator('.sheet-back').count() !== 0) fail('profilen skal ikke have tilbage-pil');
 await page.click('[data-action="pay-form"]');
 await page.waitForSelector('.sheet-head:has-text("Indbetaling")');
 if (await page.locator('.sheet-back').count() !== 1) fail('indbetaling mangler tilbage-pil');
 await page.click('[data-action="sheet-back"]');
-await page.waitForSelector('.sheet-head:has-text("Miki")');
+await page.waitForSelector('.sheet-head:has-text("Birger")');
 if (await page.locator('[data-action="pay-form"]').count() !== 1) fail('tilbage-pilen førte ikke til profilen');
 // Krydset lukker stadig hele vejen ud
 await page.click('[data-action="member-card"]');
@@ -623,8 +623,30 @@ if (await page2.locator('.conflict-banner').count()) fail('banneret blev ståend
 if (await page2.evaluate(() => localStorage.getItem('rtd-conflict'))) fail('henlagte data blev ikke ryddet efter gendannelse');
 ok('konflikt ved delt gem lægger ændringer til side og henter dem frem');
 
-// 20) Gem-kredsløbet: migrering af den rigtige live-state og hvad der faktisk publiceres
-// Artifact-runtimen stubbes, så vi kan læse det dokument appen ville udgive.
+// 20) Gem-kredsløbet: migrering v5 → v7 og hvad der faktisk publiceres
+// Artifact-runtimen stubbes, så vi kan læse det dokument, appen ville udgive.
+// Testdata er en selvstændig v5-tilstand, så prøven ikke afhænger af, hvad
+// der tilfældigvis ligger i dist.
+const v5 = {
+  version: 5, updatedAt: Date.now() + 3e9, clubName: 'Testklubben', formandId: 'p2',
+  clubYears: [{ id: 'y1', startYear: 2026, label: '2026/27', closedAt: null }],
+  meetings: [{ id: 'm1', clubYearId: 'y1', number: 1, title: 'Testmøde', date: '2026-08-10', description: '', links: '', closedAt: null }],
+  members: [
+    { id: 'p1', name: 'Ada Nord', active: true, prospect: false, years: ['y1'], createdAt: 1 },
+    { id: 'p2', name: 'Bent Syd', active: true, prospect: false, years: ['y1'], createdAt: 2 },
+    { id: 'p3', name: 'Cille Vest', active: true, prospect: true, years: ['y1'], createdAt: 3 }
+  ],
+  fineTypes: [
+    { id: 't1', category: 'Mobil', description: 'Kigger på mobilen', amount: 30, active: true, icon: '' },
+    { id: 't2', category: 'For sent', description: 'Kommer for sent', amount: 50, active: true, icon: '' }
+  ],
+  fines: [{ id: 'f1', meetingId: 'm1', memberId: 'p1', fineTypeId: 't1', label: null, amount: 30, ts: 1000 }],
+  payments: [{ id: 'b1', memberId: 'p1', amount: 10, date: '2026-08-11', note: 'delvis', ts: 2000 }],
+  expenses: [], writeoffs: [],
+  audit: [{ ts: 3000, text: 'Ada Nord fik »Mobil« (30 kr.) i Testmøde' }],
+  trash: []
+};
+
 const page3 = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 page3.on('pageerror', (e) => fail('gem-test pageerror: ' + e.message));
 await page3.route('**://fonts.googleapis.com/**', (r) => r.abort());
@@ -646,17 +668,19 @@ await page3.addInitScript(() => {
   };
 });
 await page3.goto('file://' + join(root, 'dist/rtd-boedeliga.html'));
-await page3.waitForSelector('.lb-row, .podium');
-const foer = JSON.parse(await page3.evaluate(() => document.getElementById('rtd-state').textContent));
+await page3.waitForSelector('.appbar');
+await page3.evaluate((s) => localStorage.setItem('rtd-boedeliga-v1', JSON.stringify(s)), v5);
+await page3.reload();
+await page3.waitForSelector('#brand-name:has-text("Testklubben")');
 
 await page3.click('[data-tab="aar"]');
 await page3.click('.row:has-text("2026/27")');
 await page3.waitForSelector('.meet-head');
-await page3.click('.row:has-text("Møde 3")');
+await page3.click('.row:has-text("Testmøde")');
 await page3.waitForSelector('.member-grid');
-await page3.click('.member-cell >> nth=0');
+await page3.click('.member-cell:has-text("Cille Vest")');
 await page3.waitForSelector('.fine-grid');
-await page3.click('.fine-btn >> nth=0');
+await page3.click('.fine-btn:has-text("For sent")');
 await page3.click('.sheet-close');
 if (!/Gem ændringer/.test(await page3.locator('#save-btn').textContent())) fail('gem-knappen markerer ikke ugemte ændringer');
 
@@ -668,32 +692,36 @@ if (!sm) fail('den publicerede fil mangler state-blokken');
 const efter = JSON.parse(sm[1].replace(/\\u003c/g, '<'));
 
 if (efter.version !== 7) fail('publiceret state er v' + efter.version + ', ikke v7');
-for (const k of ['members', 'fineTypes', 'meetings', 'clubYears']) {
-  if (efter[k].length !== foer[k].length) fail(k + ' tabte poster ved gem: ' + foer[k].length + ' → ' + efter[k].length);
+if (efter.clubName !== 'Testklubben') fail('klubnavnet gik tabt ved gem');
+for (const [k, n] of [['members', 3], ['fineTypes', 2], ['meetings', 1], ['clubYears', 1], ['payments', 1]]) {
+  if (efter[k].length !== n) fail(k + ' tabte poster ved gem: forventede ' + n + ', fik ' + efter[k].length);
 }
-if (efter.fines.length !== foer.fines.length + 1) fail('den nye bøde kom ikke med i det publicerede');
-if (efter.members.map(x => x.name).sort().join('|') !== foer.members.map(x => x.name).sort().join('|')) fail('medlemsnavne ændret ved gem');
-if (efter.formandId !== foer.formandId) fail('formanden ændret ved gem');
-if (!Array.isArray(efter.formandHistory) || !efter.formandHistory.length) fail('formandsrækken blev ikke oprettet ved migreringen');
-if (efter.members.some(x => x.prospectGoal === undefined || !Array.isArray(x.years))) fail('medlemmer mangler v7-felter efter migrering');
-if (efter.audit.length <= foer.audit.length) fail('revisionsloggen voksede ikke');
+if (efter.fines.length !== 2) fail('den nye bøde kom ikke med: ' + efter.fines.length + ' bøder');
+if (efter.fines.reduce((a, f) => a + f.amount, 0) !== 80) fail('bødesummen er forkert efter gem');
+if (efter.members.map(x => x.name).sort().join('|') !== 'Ada Nord|Bent Syd|Cille Vest') fail('medlemsnavne ændret ved gem');
+if (efter.formandId !== 'p2') fail('formanden ændret ved gem');
+if (!Array.isArray(efter.formandHistory) || efter.formandHistory.length !== 1 || efter.formandHistory[0].memberId !== 'p2') fail('v6-migreringen oprettede ikke formandsrækken');
+if (efter.members.some(x => x.prospectGoal === undefined || x.prospectFrom === undefined || x.prospectDone === undefined)) fail('v7-felterne blev ikke sat på alle medlemmer');
+if (efter.members.some(x => !Array.isArray(x.years))) fail('medlemskab pr. klubår gik tabt');
+if (!Array.isArray(efter.expenses) || !Array.isArray(efter.writeoffs) || !Array.isArray(efter.trash)) fail('udgifter/afskrivninger/papirkurv mangler efter migrering');
+if (efter.audit.length <= v5.audit.length) fail('revisionsloggen voksede ikke');
 const lokal = JSON.parse(await page3.evaluate(() => localStorage.getItem('rtd-boedeliga-v1')));
-if (lokal.fines.length !== efter.fines.length) fail('localStorage og det publicerede er ikke enige');
+if (lokal.fines.length !== efter.fines.length || lokal.version !== 7) fail('localStorage og det publicerede er ikke enige');
 if (!/Alt gemt/.test(await page3.locator('#save-btn').textContent())) fail('knappen skifter ikke til »Alt gemt«');
-ok('gem publicerer hele datasættet og migrerer v' + foer.version + ' → v7 uden tab');
+ok('gem publicerer hele datasættet og migrerer v5 → v7 uden tab');
 
 // Konflikt: ugemte ændringer skal henlægges frem for at forsvinde
 await page3.evaluate(() => { window.__afvis = 'conflict'; });
 await page3.waitForSelector('.member-grid');
-await page3.click('.member-cell >> nth=1');
+await page3.click('.member-cell:has-text("Ada Nord")');
 await page3.waitForSelector('.fine-grid');
-await page3.click('.fine-btn >> nth=0');
+await page3.click('.fine-btn:has-text("Mobil")');
 await page3.click('.sheet-close');
 await page3.click('#save-btn');
 await page3.waitForFunction(() => localStorage.getItem('rtd-conflict'), null, { timeout: 8000 })
   .catch(() => fail('konflikten henlagde ikke de ugemte ændringer'));
 const henlagt = JSON.parse(await page3.evaluate(() => localStorage.getItem('rtd-conflict')) || '{}');
-if (!henlagt.state || henlagt.state.fines.length !== efter.fines.length + 1) fail('de henlagte data er ikke komplette');
+if (!henlagt.state || henlagt.state.fines.length !== 3) fail('de henlagte data er ikke komplette');
 else ok('afvist gem henlægger hele datasættet i stedet for at tabe det');
 
 await browser.close();

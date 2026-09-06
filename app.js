@@ -34,9 +34,9 @@
   }
 
   var SEED_MEMBERS = [
-    'Martin Mollerup', 'Miki Kjeldsen', 'Thomas Jarløv', 'Asger Holmsted',
-    'Marco Brøndsted', 'Daniel Kuntkes', 'Steffen Desmond', 'Casper Infeld',
-    'Benjamin Rasmussen', 'Toke Suhr', 'Rasmus De Martino'
+    'Anders Bak', 'Birger Colding', 'Christoffer Dam', 'Dorthe Elkjær',
+    'Emil Frandsen', 'Frederik Gram', 'Gustav Hjorth', 'Henrik Iversen',
+    'Ingrid Juhl', 'Jonas Kragh', 'Katrine Lund'
   ];
 
   function seedMembers() {

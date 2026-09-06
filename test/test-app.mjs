@@ -623,6 +623,79 @@ if (await page2.locator('.conflict-banner').count()) fail('banneret blev ståend
 if (await page2.evaluate(() => localStorage.getItem('rtd-conflict'))) fail('henlagte data blev ikke ryddet efter gendannelse');
 ok('konflikt ved delt gem lægger ændringer til side og henter dem frem');
 
+// 20) Gem-kredsløbet: migrering af den rigtige live-state og hvad der faktisk publiceres
+// Artifact-runtimen stubbes, så vi kan læse det dokument appen ville udgive.
+const page3 = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+page3.on('pageerror', (e) => fail('gem-test pageerror: ' + e.message));
+await page3.route('**://fonts.googleapis.com/**', (r) => r.abort());
+await page3.addInitScript(() => {
+  window.__udgivet = [];
+  window.__afvis = null;
+  window.claude = {
+    use: (navn) => new Promise((res) => {
+      if (navn === 'artifact') return res({
+        publish: (html) => {
+          window.__udgivet.push(html);
+          if (window.__afvis) { const e = new Error('x'); e.code = window.__afvis; return Promise.reject(e); }
+          return Promise.resolve();
+        }
+      });
+      if (navn === 'downloads') return res({ save: () => Promise.resolve() });
+      res(null);
+    })
+  };
+});
+await page3.goto('file://' + join(root, 'dist/rtd-boedeliga.html'));
+await page3.waitForSelector('.lb-row, .podium');
+const foer = JSON.parse(await page3.evaluate(() => document.getElementById('rtd-state').textContent));
+
+await page3.click('[data-tab="aar"]');
+await page3.click('.row:has-text("2026/27")');
+await page3.waitForSelector('.meet-head');
+await page3.click('.row:has-text("Møde 3")');
+await page3.waitForSelector('.member-grid');
+await page3.click('.member-cell >> nth=0');
+await page3.waitForSelector('.fine-grid');
+await page3.click('.fine-btn >> nth=0');
+await page3.click('.sheet-close');
+if (!/Gem ændringer/.test(await page3.locator('#save-btn').textContent())) fail('gem-knappen markerer ikke ugemte ændringer');
+
+await page3.click('#save-btn');
+await page3.waitForFunction(() => window.__udgivet.length > 0);
+const udgivet = await page3.evaluate(() => window.__udgivet[0]);
+const sm = udgivet.match(/<script[^>]*id="rtd-state"[^>]*>([\s\S]*?)<\/script>/);
+if (!sm) fail('den publicerede fil mangler state-blokken');
+const efter = JSON.parse(sm[1].replace(/\\u003c/g, '<'));
+
+if (efter.version !== 7) fail('publiceret state er v' + efter.version + ', ikke v7');
+for (const k of ['members', 'fineTypes', 'meetings', 'clubYears']) {
+  if (efter[k].length !== foer[k].length) fail(k + ' tabte poster ved gem: ' + foer[k].length + ' → ' + efter[k].length);
+}
+if (efter.fines.length !== foer.fines.length + 1) fail('den nye bøde kom ikke med i det publicerede');
+if (efter.members.map(x => x.name).sort().join('|') !== foer.members.map(x => x.name).sort().join('|')) fail('medlemsnavne ændret ved gem');
+if (efter.formandId !== foer.formandId) fail('formanden ændret ved gem');
+if (!Array.isArray(efter.formandHistory) || !efter.formandHistory.length) fail('formandsrækken blev ikke oprettet ved migreringen');
+if (efter.members.some(x => x.prospectGoal === undefined || !Array.isArray(x.years))) fail('medlemmer mangler v7-felter efter migrering');
+if (efter.audit.length <= foer.audit.length) fail('revisionsloggen voksede ikke');
+const lokal = JSON.parse(await page3.evaluate(() => localStorage.getItem('rtd-boedeliga-v1')));
+if (lokal.fines.length !== efter.fines.length) fail('localStorage og det publicerede er ikke enige');
+if (!/Alt gemt/.test(await page3.locator('#save-btn').textContent())) fail('knappen skifter ikke til »Alt gemt«');
+ok('gem publicerer hele datasættet og migrerer v' + foer.version + ' → v7 uden tab');
+
+// Konflikt: ugemte ændringer skal henlægges frem for at forsvinde
+await page3.evaluate(() => { window.__afvis = 'conflict'; });
+await page3.waitForSelector('.member-grid');
+await page3.click('.member-cell >> nth=1');
+await page3.waitForSelector('.fine-grid');
+await page3.click('.fine-btn >> nth=0');
+await page3.click('.sheet-close');
+await page3.click('#save-btn');
+await page3.waitForFunction(() => localStorage.getItem('rtd-conflict'), null, { timeout: 8000 })
+  .catch(() => fail('konflikten henlagde ikke de ugemte ændringer'));
+const henlagt = JSON.parse(await page3.evaluate(() => localStorage.getItem('rtd-conflict')) || '{}');
+if (!henlagt.state || henlagt.state.fines.length !== efter.fines.length + 1) fail('de henlagte data er ikke komplette');
+else ok('afvist gem henlægger hele datasættet i stedet for at tabe det');
+
 await browser.close();
 console.log(failures ? 'FÆRDIG MED ' + failures + ' FEJL' : 'ALLE TJEK BESTÅET');
 process.exitCode = failures ? 1 : 0;

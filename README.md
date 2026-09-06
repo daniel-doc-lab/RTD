@@ -2,7 +2,11 @@
 
 Klubbens digitale bødekasse — bygget til RT 11 Frederiksberg. Registrer bøder på klubmøder med få tryk, følg ranglisten over syndere, håndtér indbetalinger og få statistik og kassererrapporter. Designet som et mørkt stadion-scoreboard, mobil-først med fuldt desktop-layout.
 
-**Live-udgave:** Appen kører som en delt Claude-artifact (delbart link med fælles gemte data). Den kan også åbnes direkte fra `index.html` eller hostes via GitHub Pages — dog uden det delte gem, som kun findes i artifact-udgaven.
+**Live-udgave:** Appen kører som en delt Claude-artifact (delbart link med fælles gemte data). Det er dér klubbens rigtige tal bor.
+
+**GitHub Pages:** `.github/workflows/pages.yml` udgiver appen på `https://daniel-doc-lab.github.io/RTD/` ved hvert push til `main`. Den udgave er bevidst **tom** — arbejdsgangen bygger en frisk kopi uden data, og `check-no-data.mjs` afbryder udgivelsen, hvis der alligevel skulle ligge klubdata i filerne. Pages kan ikke tage imod et gem, så hver besøgende ville få sin egen private kopi; det delte gem findes kun i artifact-udgaven.
+
+Sådan slås det til: **Settings → Pages → Build and deployment → Source: GitHub Actions.** Derefter kører udgivelsen af sig selv.
 
 ## Funktioner
 
@@ -66,10 +70,20 @@ node test/test-app.mjs
 | `test/test-app.mjs` | Ende-til-ende røgtest (Playwright), 44 tjek af alle flows |
 | `design/` | De 10 oprindelige mockup-retninger (nr. 06 "Bødeligaen" blev valgt) |
 | `docs/` | Projektmål, feature-katalog, visuelt oplæg |
+| `.github/` | Pages-arbejdsgang + `check-no-data.mjs`, der holder den offentlige udgave datafri |
 
 **Datamodel (state v7):** `clubYears` → `meetings` → `fines` (takst- eller særbøde) pr. `member`; `payments` reducerer saldo, `writeoffs` nulstiller den uden at fylde kassen, `expenses` tømmer kassen; `fineTypes` er takstkataloget; `formandHistory` er formandsrækken; `audit` er revisionsloggen; `trash` er papirkurven. Medlemskab er pr. klubår (`members[].years`). Se `docs/projekt.md` for felter og regler.
 
 **Lagring:** localStorage (autosave ved hver handling) + delt lagring når appen kører som Claude-artifact ("Gem ændringer"-knappen publicerer til alle med linket). `migrate()` løfter automatisk gamle dataversioner (v1→v7), og `normalize()` gør importeret data ufarligt. Ved republicering skal den nyeste live-state altid flettes ind i den nye `dist`-fil — se `CLAUDE.md`.
+
+## Data og offentlighed
+
+Repoet er offentligt. `dist/rtd-boedeliga.html` er et øjebliksbillede af den delte udgave og indeholder derfor klubbens rigtige data — navne, bøder, gæld og revisionslog — som alle kan læse på GitHub. Det er bevidst, så længe det kun er RT 11's interne bødehumor; skal det ikke være offentligt, er der to veje:
+
+1. Gør repoet privat (Settings → General → Change visibility). Pages kræver da et betalt GitHub-abonnement.
+2. Behold repoet offentligt, men fjern data fra `dist` og opbevar backup som JSON uden for GitHub.
+
+Pages-udgaven er upåvirket af valget — den er datafri i begge tilfælde.
 
 ## Videre arbejde
 

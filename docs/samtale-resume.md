@@ -66,6 +66,7 @@ Kommentar: vandret scroll på statistiksiden. Systematisk måling af hvert eleme
 - Testsuite `test/test-app.mjs`: 44 tjek, alle grønne.
 - Repoets `dist/rtd-boedeliga.html` er verificeret identisk med den publicerede live-udgave — samme kode og samme data.
 - Alt arbejde ligger på grenen `claude/fines-app-mockups-kvz4pe`, som er åben som pull request #1 mod `main`.
+- GitHub Pages er sat op i `.github/workflows/pages.yml` (datafri udgave, udgives ved push til `main`). Kilden skal sættes til »GitHub Actions« i repoets indstillinger, og arbejdsgangen kører først, når grenen er flettet ind i `main`.
 - Visuelle idéer: `docs/visuelle-ideer.md` — runde 1 (11 implementeret), runde 2 (10 implementeret i runde 6) + runde 3 (nye forslag).
 - Uimplementerede idéer: `docs/feature-ideer.md` uden ✅ (MobilePay-genvej, rykkerbesked, fremmøderegistrering, mødeskabelon, notifikationer, PWA, flettende import) + Pakke C-rest i `docs/visuelt-oplaeg.md`.
 

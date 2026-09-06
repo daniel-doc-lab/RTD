@@ -100,6 +100,12 @@ Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeho
 - **Konflikt ved delt gem**: gemmer en anden først, afviser runtimen vores publicering og genindlæser alle visninger til vinderens udgave. Er vinderens tidsstempel nyere end vores, ville vores ugemte ændringer forsvinde lydløst. `stashConflict()` lægger dem derfor i `localStorage` under `rtd-conflict` (7 dage), og efter genindlæsningen tilbyder et banner øverst at hente dem frem eller kassere dem. Gendannelsen ligger i `MUTATING`, så den også kan fortrydes.
 - **Backup-påmindelse**: `rtd-last-export` husker, hvornår denne enhed sidst tog en JSON-eksport. Indstillinger viser datoen, og er der aldrig taget backup (med 30+ poster i revisionsloggen) eller er der gået over 30 dage, markeres linjen med amber og tandhjulet får en lille prik. Ingen modal, ingen nag.
 
+### Runde 8 (4. sep. 2026) — udgivelse på GitHub Pages
+
+- **Pages-arbejdsgang**: `.github/workflows/pages.yml` bygger og udgiver appen ved hvert push til `main`. Den udgivne udgave er datafri: `node build.mjs` skriver en tom `#rtd-state`, og `.github/scripts/check-no-data.mjs` afbryder udgivelsen, hvis en HTML-fil alligevel bærer data. Kræver at Pages sættes til »GitHub Actions« som kilde.
+- Pages kan kun servere filer, ikke tage imod et gem. Derfor får hver besøgende sin egen private kopi i browseren, og det delte gem findes kun i Claude-artifact'en. Pages er altså et permanent, uafhængigt hjem for **appen**, ikke for **dataene**.
+- Repoet er offentligt, og `dist/rtd-boedeliga.html` bærer klubbens rigtige data. Det er et bevidst valg (se README), men det er værd at kende.
+
 ## Udestående / kendte begrænsninger
 
 - Telefonens tilbage-knap lukker ikke dialoger (history-håndtering ikke implementeret).

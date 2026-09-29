@@ -109,6 +109,12 @@ Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeho
 - Vagten kontrollerer nu to ting: at `#rtd-state` er tom, og at ingen fil nævner et af klubbens rigtige medlemsnavne. Navnelisten læses fra den committede `dist`, så den ikke skal vedligeholdes i hånden. Kun HELE navne matches — enkeltord som »Daniel« og »Mads« optræder legitimt i kreditlinjen og i et takstnavn.
 - Repoet er offentligt, og `dist/rtd-boedeliga.html` bærer stadig klubbens rigtige data. Det er et bevidst valg (se README), men det er værd at kende.
 
+### Runde 9 (29. sep. 2026) — takster slår igennem i det åbne klubår
+
+- Bøder gemmer stadig deres eget beløb, men i klubår uden `closedAt` følger de nu taksten. Når en takst gemmes, sættes alle bøder med den takst i åbne klubår til takstens beløb — også bøder i allerede afsluttede møder i et åbent år, og bøder der var kommet ud af trit. Afsluttede sæsoner og særbøder røres ikke.
+- Formularen viser, hvor langt en ændring rækker (»slår igennem på de 3 bøder med taksten i 2026/27«), revisionsloggen skriver »fra 30 kr. til 100 kr. — 3 bøder i 2026/27 opdateret«, og en toast bekræfter. Hele ændringen er ét fortryd-punkt.
+- Klubbens data havde ved udgivelsen ingen afvigelser: alle 30 bøder i 2026/27 fulgte taksterne. 2024/25 og 2025/26 står formelt som åbne, men er tomme.
+
 ## Udestående / kendte begrænsninger
 
 - Telefonens tilbage-knap lukker ikke dialoger (history-håndtering ikke implementeret).

@@ -1984,6 +1984,26 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
     var y = findYear(m.clubYearId);
     return y ? y.label : '';
   }
+  /* Takster slår igennem i de klubår, der ikke er afsluttet: bøder dér følger
+     altid taksten. Afsluttede sæsoner står urørt, så gamle regnskaber holder. */
+  function openTypeFines(typeId) {
+    var open = {};
+    state.clubYears.forEach(function (y) { if (!y.closedAt) open[y.id] = y; });
+    return state.fines.filter(function (f) {
+      if (f.fineTypeId !== typeId) return false;
+      var m = findMeeting(f.meetingId);
+      return !!(m && open[m.clubYearId]);
+    });
+  }
+  /* Klubår-etiketter for en samling bøder, ældste først */
+  function finesYearLabels(fines) {
+    var ids = {};
+    fines.forEach(function (f) { var m = findMeeting(f.meetingId); if (m) ids[m.clubYearId] = 1; });
+    return state.clubYears.filter(function (y) { return ids[y.id]; })
+      .sort(function (a, b) { return a.startYear - b.startYear; })
+      .map(function (y) { return y.label; });
+  }
+
   function currentClubYear() {
     return state.clubYears.reduce(function (a, y) { return !a || y.startYear > a.startYear ? y : a; }, null);
   }
@@ -4357,8 +4377,16 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
       '<div class="btn-row"><button class="btn" data-action="finetype-save" data-id="' + (t ? esc(t.id) : '') + '">Gem takst</button>' +
       (t ? '<button class="btn danger" data-action="finetype-remove" data-id="' + esc(t.id) + '">Fjern</button>' : '') +
       '</div>' +
-      (t ? '<div class="note">At fjerne taksten sletter ikke allerede givne bøder.</div>' : '');
+      (t ? typeReachNote(t) + '<div class="note">At fjerne taksten sletter ikke allerede givne bøder.</div>' : '');
     openModal(t ? 'Rediger takst' : 'Ny takst', body);
+  }
+
+  /* Hvor langt en ændret takst rækker: de åbne klubårs bøder følger med */
+  function typeReachNote(t) {
+    var hit = openTypeFines(t.id);
+    if (!hit.length) return '<div class="note">Beløbet gælder nye bøder og alle bøder med taksten i åbne klubår. Afsluttede sæsoner røres ikke.</div>';
+    return '<div class="note">Beløbet slår igennem på ' + (hit.length === 1 ? 'den ene bøde' : 'de ' + hit.length + ' bøder') +
+      ' med taksten i ' + esc(finesYearLabels(hit).join(' og ')) + ' — i ligaen, statistikken og kassererrapporten. Afsluttede sæsoner røres ikke.</div>';
   }
 
   function openSettings() {
@@ -4920,9 +4948,18 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
       var id = el.getAttribute('data-id');
       var t = id ? findFineType(id) : null;
       var icon = pickedIcon !== null ? pickedIcon : (t && t.icon) || '';
+      var repriced = 0;
       if (t) {
+        var before = t.amount;
         t.category = cat; t.description = val('ft-desc').trim(); t.amount = amount; t.icon = icon;
-        log('Redigerede taksten »' + cat + '« (' + kr(amount) + ')');
+        // Bøderne i åbne klubår følger taksten — også hvis de var kommet ud af trit
+        var hit = openTypeFines(t.id);
+        hit.forEach(function (f) { if (f.amount !== amount) { f.amount = amount; repriced++; } });
+        log(before !== amount
+          ? 'Ændrede taksten »' + cat + '« fra ' + kr(before) + ' til ' + kr(amount) +
+            (repriced ? ' — ' + repriced + ' bøde' + (repriced === 1 ? '' : 'r') + ' i ' + finesYearLabels(hit).join(' og ') + ' opdateret' : '')
+          : 'Redigerede taksten »' + cat + '« (' + kr(amount) + ')' +
+            (repriced ? ' — ' + repriced + ' bøde' + (repriced === 1 ? '' : 'r') + ' rettet til takstens beløb' : ''));
       } else {
         state.fineTypes.push({ id: uid(), category: cat, description: val('ft-desc').trim(), amount: amount, active: true, icon: icon });
         log('Oprettede taksten »' + cat + '« (' + kr(amount) + ')');
@@ -4930,6 +4967,7 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
       pickedIcon = null;
       closeModal();
       commit();
+      if (repriced) toast('»' + cat + '« er nu ' + kr(amount) + ' — ' + repriced + ' bøde' + (repriced === 1 ? '' : 'r') + ' opdateret');
     },
     'finetype-remove': function (el) {
       var t = findFineType(el.getAttribute('data-id'));

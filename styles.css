@@ -1324,3 +1324,9 @@ html[data-view="hall"] { --view-glow: rgba(176,123,69,0.10); }
   background: #ff9f43; box-shadow: 0 0 0 2px var(--panel);
 }
 .conflict-banner .cb-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ============ Bekræftelse inde i appen ============ */
+/* Erstatter browserens confirm(), som er blokeret i Claudes visning */
+.confirm-msg { font-size: 17px; line-height: 1.45; color: var(--text); margin: 2px 0 4px; }
+.btn.danger.solid { background: var(--red); border-color: var(--red); color: #fff; font-family: var(--display); font-weight: 400; }
+.btn.danger.solid:hover { background: #c94a5b; border-color: #c94a5b; }

@@ -17,7 +17,7 @@ Sådan slås det til: **Settings → Pages → Build and deployment → Source: 
 - **Klubår** — møder organiseret i regnskabsår (2024/25, 2025/26, …). Hvert år autogenereres med 20 placeholder-møder (hver 14. dag fra første mandag i september), som frit kan redigeres med titel, dato, beskrivelse og links.
 - **Bøderegistrering** — klik en spiller → klik bøderne. Tællere på hver takst, hurtig skift mellem medlemmer, fortryd i mødeloggen. Særbøder med frit beløb og egen tekst.
 - **Bulk-bøde** — vælg én takst, vælg flere medlemmer, giv bøden til alle på én gang.
-- **Takster** — klubbens 18 bøder forudindlæst (Mobil 30 kr. … Ingen fremmøde ved tilmelding på RTD 800 kr.), fuldt redigerbare med eget ikon.
+- **Takster** — klubbens 18 bøder forudindlæst (Mobil 30 kr. … Ingen fremmøde ved tilmelding på RTD 800 kr.), fuldt redigerbare med eget ikon. Ændres et beløb, slår det igennem på alle bøder med taksten i åbne klubår — ligaen, statistikken og kassererrapporten følger med. Afsluttede sæsoner og særbøder står urørt.
 - **Medlemmer** — dynamisk liste (forudindlæst med 11 demomedlemmer, som overskrives af klubbens egne), medlemskab pr. klubår, filtre (Aktive, Prospects, Udgåede, Skylder, Alle), omdøb, udmeld/genindmeld, slet med gendannelse.
 - **Indbetalinger** — forudfyldt med hele gælden, delbetaling, note (fx MobilePay). Saldo falder, kassen vokser.
 - **Kassen** — beholdning = indbetalinger − udgifter. Udgiftsposter registreres og trækkes fra, både i statistikken og i kassererrapporten.
@@ -69,7 +69,7 @@ node test/test-app.mjs
 | `styles.css` | Hele designsystemet: scoreboard-tema, animationer, print-CSS |
 | `app.js` | Al logik: state, migrering, views, handlinger, grafer (~3.700 linjer vanilla JS) |
 | `build.mjs` | Samler appen i én HTML-fil til deling |
-| `test/test-app.mjs` | Ende-til-ende røgtest (Playwright), 48 tjek af alle flows — inkl. at klubbens rigtige data migreres og gemmes uden tab |
+| `test/test-app.mjs` | Ende-til-ende røgtest (Playwright), 50 tjek af alle flows — inkl. at klubbens rigtige data migreres og gemmes uden tab |
 | `design/` | De 10 oprindelige mockup-retninger (nr. 06 "Bødeligaen" blev valgt) |
 | `docs/` | Projektmål, feature-katalog, visuelt oplæg |
 | `.github/` | Pages-arbejdsgang + `check-no-data.mjs`, der holder den offentlige udgave fri for klubdata og rigtige navne |

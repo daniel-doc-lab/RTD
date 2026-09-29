@@ -14,7 +14,9 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 page.on('pageerror', (e) => fail('pageerror: ' + e.message));
 page.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('net::ERR')) fail('console: ' + m.text()); });
-page.on('dialog', (d) => d.accept());
+// Browserens egne dialoger (confirm/prompt/alert) er blokeret i Claudes visning og
+// svarer lydløst »nej«. Dukker én op her, er det en fejl — appen skal spørge selv.
+page.on('dialog', (d) => { fail('indbygget browserdialog brugt: »' + d.message() + '«'); d.dismiss(); });
 
 await page.goto(APP);
 
@@ -153,6 +155,11 @@ await page.click('[data-action="finetype-save"]');
 if (!(await page.locator('.row:has-text("Testbøde")').textContent()).includes('45')) fail('takst ikke opdateret');
 await page.click('.row:has-text("Testbøde")');
 await page.click('[data-action="finetype-remove"]');
+await page.waitForSelector('.modal-root:has-text("Fjern taksten »Testbøde«")');
+await page.click('[data-action="confirm-no"]');
+if (!(await page.locator('.sheet-head').textContent()).includes('Rediger takst')) fail('Annullér førte ikke tilbage til taksten');
+await page.click('[data-action="finetype-remove"]');
+await page.click('[data-action="confirm-yes"]');
 if (await page.locator('.row').count() !== 18) fail('takst ikke fjernet');
 ok('takst-CRUD virker');
 
@@ -174,6 +181,13 @@ await page.click('[data-action="revive-member"]');
 await page.click('[data-action="member-filter"][data-key="aktive"]');
 if (await page.locator('.row.inactive').count() !== 0) fail('genindmeldelse virker ikke');
 if (await page.locator('.row:has-text("Testperson")').count() !== 1) fail('genindmeldt medlem mangler');
+await page.click('.row:has-text("Testperson")');
+await page.click('[data-action="rename-member"]');
+await page.fill('#rn-name', 'Testperson Omdøbt');
+await page.click('[data-action="rename-save"]');
+await page.waitForSelector('.sheet-head:has-text("Testperson Omdøbt")');
+await page.click('.sheet-close');
+if (await page.locator('.row:has-text("Testperson Omdøbt")').count() !== 1) fail('omdøbning slog ikke igennem i listen');
 ok('medlems-CRUD + filtre virker');
 
 // 12) Nyt klubår 2026/27
@@ -226,6 +240,8 @@ await page.click('.row:has-text("2025/26")');
 await page.click('.row:has-text("Møde 5")');
 await page.waitForSelector('.member-grid');
 await page.click('[data-action="delete-meeting"]');
+await page.waitForSelector('.modal-root:has-text("Slet Møde 5")');
+await page.click('[data-action="confirm-yes"]');
 await page.waitForSelector('.meet-head:has-text("Klubår 2025/26")');
 if (await page.locator('.row').count() !== 19) fail('møde ikke slettet');
 await page.click('[data-action="settings"]');
@@ -241,6 +257,8 @@ ok('papirkurv: slet + gendan virker');
 await page.click('[data-action="goto"][data-view="aar"]');
 await page.click('.row:has-text("2024/25")');
 await page.click('[data-action="season-close"]');
+await page.waitForSelector('.sheet-head:has-text("Afslut sæson 2024/25")');
+await page.click('[data-action="confirm-yes"]');
 await page.waitForSelector('.modal-root:has-text("Sæsonen 2024/25 er slut")');
 await page.click('.sheet-close');
 if (!(await page.locator('.meet-head .s').textContent()).includes('sæson afsluttet')) fail('sæson ikke markeret afsluttet');
@@ -357,12 +375,15 @@ ok('udgifter og betalingsdisciplin virker');
 await page.click('[data-tab="aar"]');
 await page.click('.row:has-text("2025/26")');
 await page.click('[data-action="season-close"]');
+await page.click('[data-action="confirm-yes"]');
 await page.waitForSelector('.sheet-head:has-text("Sæsonen 2025/26 er slut")');
 await page.click('[data-action="settle-open"]');
 await page.waitForSelector('.sheet-head:has-text("Årsopgørelse")');
 const owing = await page.locator('[data-action="settle-writeoff"]').count();
 if (owing < 1) fail('årsopgørelse: ingen med gæld');
 await page.locator('[data-action="settle-writeoff"]').first().click();
+await page.waitForSelector('.sheet-head:has-text("Afskriv gæld")');
+await page.click('[data-action="confirm-yes"]');
 await page.waitForSelector('.sheet-head:has-text("Årsopgørelse")');
 if (await page.locator('[data-action="settle-writeoff"]').count() !== owing - 1) fail('afskrivning nulstillede ikke gælden');
 await page.click('.sheet-close');
@@ -723,6 +744,78 @@ await page3.waitForFunction(() => localStorage.getItem('rtd-conflict'), null, { 
 const henlagt = JSON.parse(await page3.evaluate(() => localStorage.getItem('rtd-conflict')) || '{}');
 if (!henlagt.state || henlagt.state.fines.length !== 3) fail('de henlagte data er ikke komplette');
 else ok('afvist gem henlægger hele datasættet i stedet for at tabe det');
+
+// 21) Takstændring slår igennem i åbne klubår — afsluttede sæsoner røres ikke
+const tfix = {
+  version: 7, updatedAt: Date.now() + 4e9, clubName: 'Takstklubben', formandId: null, formandHistory: [],
+  clubYears: [
+    { id: 'y0', startYear: 2025, label: '2025/26', closedAt: 1000 },
+    { id: 'y1', startYear: 2026, label: '2026/27', closedAt: null }
+  ],
+  meetings: [
+    { id: 'm0', clubYearId: 'y0', number: 1, title: 'Gammelt møde', date: '2025-09-01', description: '', links: '', closedAt: 1000 },
+    { id: 'm1', clubYearId: 'y1', number: 1, title: 'Åbent møde', date: '2026-09-07', description: '', links: '', closedAt: null },
+    { id: 'm2', clubYearId: 'y1', number: 2, title: 'Afsluttet møde', date: '2026-09-21', description: '', links: '', closedAt: 2000 }
+  ],
+  members: [
+    { id: 'p1', name: 'Ada Nord', active: true, prospect: false, years: ['y0', 'y1'], prospectGoal: 3, prospectFrom: null, prospectDone: null },
+    { id: 'p2', name: 'Bent Syd', active: true, prospect: false, years: ['y0', 'y1'], prospectGoal: 3, prospectFrom: null, prospectDone: null }
+  ],
+  fineTypes: [
+    { id: 't1', category: 'Mobil', description: 'Kigger på mobilen', amount: 30, active: true, icon: '' },
+    { id: 't2', category: 'For sent', description: 'Kommer for sent', amount: 50, active: true, icon: '' }
+  ],
+  fines: [
+    { id: 'f0', meetingId: 'm0', memberId: 'p1', fineTypeId: 't1', label: null, amount: 30, ts: 1 },   // afsluttet sæson
+    { id: 'f1', meetingId: 'm1', memberId: 'p1', fineTypeId: 't1', label: null, amount: 30, ts: 2 },   // åbent år
+    { id: 'f2', meetingId: 'm2', memberId: 'p2', fineTypeId: 't1', label: null, amount: 30, ts: 3 },   // afsluttet møde i åbent år
+    { id: 'f3', meetingId: 'm1', memberId: 'p2', fineTypeId: null, label: 'Mobil-særbøde', amount: 30, ts: 4 }, // særbøde
+    { id: 'f4', meetingId: 'm1', memberId: 'p2', fineTypeId: 't2', label: null, amount: 50, ts: 5 },   // anden takst
+    { id: 'f5', meetingId: 'm1', memberId: 'p1', fineTypeId: 't1', label: null, amount: 25, ts: 6 }    // kommet ud af trit
+  ],
+  payments: [], expenses: [], writeoffs: [], audit: [], trash: []
+};
+const page4 = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+page4.on('pageerror', (e) => fail('takst-test pageerror: ' + e.message));
+await page4.route('**://fonts.googleapis.com/**', (r) => r.abort());
+await page4.goto(APP);
+await page4.waitForSelector('.appbar');
+await page4.evaluate((s) => localStorage.setItem('rtd-boedeliga-v1', JSON.stringify(s)), tfix);
+await page4.reload();
+await page4.waitForSelector('#brand-name:has-text("Takstklubben")');
+
+await page4.click('[data-tab="takster"]');
+await page4.click('.row:has-text("Mobil")');
+await page4.waitForSelector('#ft-amount');
+const reach = await page4.locator('.sheet .note').first().textContent();
+if (!/3 bøder/.test(reach) || !/2026\/27/.test(reach)) fail('formularen fortæller ikke, hvor langt taksten rækker: ' + reach);
+await page4.fill('#ft-amount', '100');
+await page4.click('[data-action="finetype-save"]');
+await page4.waitForSelector('.modal-root', { state: 'detached' });
+
+const tefter = JSON.parse(await page4.evaluate(() => localStorage.getItem('rtd-boedeliga-v1')));
+const amt = (id) => tefter.fines.find((f) => f.id === id).amount;
+if (tefter.fineTypes.find((x) => x.id === 't1').amount !== 100) fail('taksten fik ikke det nye beløb');
+if (amt('f1') !== 100) fail('bøden i det åbne klubår fulgte ikke taksten: ' + amt('f1'));
+if (amt('f2') !== 100) fail('bøden i et afsluttet møde i det åbne år fulgte ikke taksten: ' + amt('f2'));
+if (amt('f5') !== 100) fail('bøden der var ude af trit blev ikke rettet: ' + amt('f5'));
+if (amt('f0') !== 30) fail('bøden i den afsluttede sæson blev ændret: ' + amt('f0'));
+if (amt('f3') !== 30) fail('særbøden blev ændret: ' + amt('f3'));
+if (amt('f4') !== 50) fail('en bøde med en anden takst blev ændret: ' + amt('f4'));
+if (!/fra 30 kr\. til 100 kr\. — 3 bøder i 2026\/27 opdateret/.test(tefter.audit[0].text)) fail('revisionsloggen beskriver ikke ændringen: ' + tefter.audit[0].text);
+
+await page4.click('[data-tab="liga"]');
+const ada = (await page4.locator('.lb-row:has-text("Ada Nord") .sum').textContent()).trim();
+const bent = (await page4.locator('.lb-row:has-text("Bent Syd") .sum').textContent()).trim();
+if (ada !== '230') fail('ligaen viser ikke Adas nye gæld (230), men ' + ada);
+if (bent !== '180') fail('ligaen viser ikke Bents nye gæld (180), men ' + bent);
+ok('takstændring slår igennem i åbne klubår og i ligaen — afsluttede sæsoner og særbøder urørt');
+
+await page4.click('[data-action="undo"]');
+const tundo = JSON.parse(await page4.evaluate(() => localStorage.getItem('rtd-boedeliga-v1')));
+const uamt = (id) => tundo.fines.find((f) => f.id === id).amount;
+if (uamt('f1') !== 30 || uamt('f2') !== 30 || uamt('f5') !== 25 || tundo.fineTypes.find((x) => x.id === 't1').amount !== 30) fail('fortryd satte ikke takst og bøder tilbage');
+else ok('takstændringen kan fortrydes i ét hug');
 
 await browser.close();
 console.log(failures ? 'FÆRDIG MED ' + failures + ' FEJL' : 'ALLE TJEK BESTÅET');

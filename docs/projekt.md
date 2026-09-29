@@ -115,6 +115,13 @@ Regler: saldo = bøder − indbetalinger − afskrivninger pr. medlem; kassebeho
 - Formularen viser, hvor langt en ændring rækker (»slår igennem på de 3 bøder med taksten i 2026/27«), revisionsloggen skriver »fra 30 kr. til 100 kr. — 3 bøder i 2026/27 opdateret«, og en toast bekræfter. Hele ændringen er ét fortryd-punkt.
 - Klubbens data havde ved udgivelsen ingen afvigelser: alle 30 bøder i 2026/27 fulgte taksterne. 2024/25 og 2025/26 står formelt som åbne, men er tomme.
 
+### Runde 10 (29. sep. 2026) — bekræftelser inde i appen
+
+- **Fejl:** »Afslut sæson« reagerede ikke i den delte udgave. Årsagen var browserens `window.confirm()`, som er blokeret i Claudes visning og lydløst svarer »nej«. Klubbens revisionslog bekræftede det: ingen af de ti handlinger bag en bekræftelsesdialog var lykkedes på en måned — afslut sæson, slet møde, slet medlem, fjern takst, slet indbetaling, slet udgift, afskriv gæld, importér og nulstil, plus omdøb medlem via `window.prompt()`.
+- **Rettelse:** `askConfirm()` viser bekræftelsen som et ark i appen med en tydelig ja-knap (rød ved sletning) og »Annullér«, der fører tilbage til det ark, man kom fra. Omdøb har fået sin egen lille formular. Fjern takst og omdøb logger nu også i revisionsloggen.
+- Testsuiten fejler nu, hvis en indbygget browserdialog dukker op — tidligere accepterede den dem automatisk og skjulte dermed fejlen. Omdøb er desuden kommet med i testen.
+- Takstændringen på »Afmelding 24 timer« (300 → 400 kr.) er verificeret mod live-data: 6 bøder opdateret, alle 30 bøder i 2026/27 følger taksterne, udestående 4.870 kr. i både liga og statistik.
+
 ## Udestående / kendte begrænsninger
 
 - Telefonens tilbage-knap lukker ikke dialoger (history-håndtering ikke implementeret).

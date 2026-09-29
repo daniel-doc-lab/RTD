@@ -374,7 +374,7 @@
     'expense-form': 1, 'expense-save': 1, 'remove-expense': 1,
     'settle-writeoff': 1, 'toggle-prospect': 1, 'toggle-member-year': 1,
     'prospect-edit': 1, 'prospect-save': 1, 'prospect-auto': 1,
-    'conflict-restore': 1
+    'conflict-restore': 1, 'confirm-yes': 1, 'rename-save': 1
   };
 
   function commit() {
@@ -2475,7 +2475,21 @@
     var f = root.querySelector('input, textarea');
     if (f && window.matchMedia('(min-width: 900px)').matches) f.focus();
   }
+  /* Bekræftelse inde i appen. Browserens egne window.confirm/prompt/alert er
+     blokeret i Claudes visning og svarer lydløst »nej« — brug aldrig dem.
+     Selve ændringen sker i »confirm-yes«, som ligger i MUTATING: dermed
+     blokeres den i visningstilstand og får sit eget fortryd-punkt. */
+  var pendingConfirm = null;
+  function askConfirm(o) {
+    openModal(esc(o.title),
+      '<div class="confirm-msg">' + esc(o.text) + '</div>' +
+      '<div class="btn-row"><button class="btn' + (o.danger ? ' danger solid' : '') + '" data-action="confirm-yes">' + esc(o.yes) + '</button>' +
+      '<button class="btn secondary" data-action="confirm-no">Annullér</button></div>');
+    pendingConfirm = { run: o.run, cancel: o.cancel || null };   // efter openModal, som rydder
+  }
+
   function closeModal() {
+    pendingConfirm = null;
     var m = document.querySelector('.modal-root');
     if (m) m.parentNode.removeChild(m);
   }
@@ -3115,6 +3129,16 @@
       render();
     },
     'close-modal': function () { closeModal(); pickerMemberId = null; render(); },
+    'confirm-yes': function () {
+      var p = pendingConfirm;
+      closeModal();
+      if (p && p.run) p.run(); else render();
+    },
+    'confirm-no': function () {
+      var p = pendingConfirm;
+      closeModal();
+      if (p && p.cancel) p.cancel(); else render();
+    },
     'publish': function () { publishShared(); },
     'settings': function () { openSettings(); },
     'undo': function () { undo(); },
@@ -3197,10 +3221,16 @@
     'remove-expense': function (el) {
       var id = el.getAttribute('data-id');
       var x = state.expenses.find(function (e) { return e.id === id; });
-      if (!x || !window.confirm('Slet udgiften på ' + kr(x.amount) + '?')) return;
-      state.expenses = state.expenses.filter(function (e) { return e.id !== id; });
-      log('Slettede udgiften på ' + kr(x.amount) + (x.note ? ' (' + x.note + ')' : ''));
-      commit();
+      if (!x) return;
+      askConfirm({
+        title: 'Slet udgift', text: 'Slet udgiften på ' + kr(x.amount) + (x.note ? ' (' + x.note + ')' : '') + '? Beløbet lægges tilbage i kassen.',
+        yes: 'Slet udgiften', danger: true,
+        run: function () {
+          state.expenses = state.expenses.filter(function (e) { return e.id !== id; });
+          log('Slettede udgiften på ' + kr(x.amount) + (x.note ? ' (' + x.note + ')' : ''));
+          commit();
+        }
+      });
     },
 
     'settle-open': function (el) { openSettlement(el.getAttribute('data-id')); },
@@ -3215,12 +3245,18 @@
       if (!m || !y) return;
       var bal = memberBalance(m.id);
       if (bal <= 0) return;
-      if (!window.confirm('Afskriv ' + kr(bal) + ' for ' + m.name + '? Gælden nulstilles uden at der kommer penge i kassen.')) return;
-      state.writeoffs.push({ id: uid(), memberId: m.id, clubYearId: y.id, amount: bal, date: todayISO(), ts: Date.now() });
-      log('Afskrev ' + kr(bal) + ' for ' + m.name + ' ved årsopgørelsen ' + y.label);
-      commitQuiet();
-      toast(kr(bal) + ' afskrevet for ' + m.name);
-      openSettlement(y.id);
+      askConfirm({
+        title: 'Afskriv gæld', text: 'Afskriv ' + kr(bal) + ' for ' + m.name + '? Gælden nulstilles, uden at der kommer penge i kassen.',
+        yes: 'Afskriv ' + kr(bal), danger: true,
+        cancel: function () { openSettlement(y.id); },
+        run: function () {
+          state.writeoffs.push({ id: uid(), memberId: m.id, clubYearId: y.id, amount: bal, date: todayISO(), ts: Date.now() });
+          log('Afskrev ' + kr(bal) + ' for ' + m.name + ' ved årsopgørelsen ' + y.label);
+          commitQuiet();
+          toast(kr(bal) + ' afskrevet for ' + m.name);
+          openSettlement(y.id);
+        }
+      });
     },
 
     'prospect-edit': function (el) { openProspectForm(el.getAttribute('data-id')); },
@@ -3325,31 +3361,41 @@
       var m = findMeeting(el.getAttribute('data-id'));
       if (!m) return;
       var cnt = meetingFineCount(m.id);
-      if (!window.confirm('Slet ' + m.title + (cnt ? ' og dets ' + cnt + ' bøder' : '') + '? (Kan gendannes fra papirkurven i ' + TRASH_DAYS + ' dage)')) return;
-      state.trash.push({
-        id: uid(), kind: 'meeting', deletedAt: Date.now(), meeting: m,
-        fines: state.fines.filter(function (f) { return f.meetingId === m.id; })
+      askConfirm({
+        title: 'Slet møde', text: 'Slet ' + m.title + (cnt ? ' og dets ' + cnt + ' bøder' : '') + '? Det kan gendannes fra papirkurven i ' + TRASH_DAYS + ' dage.',
+        yes: 'Slet mødet', danger: true,
+        run: function () {
+          state.trash.push({
+            id: uid(), kind: 'meeting', deletedAt: Date.now(), meeting: m,
+            fines: state.fines.filter(function (f) { return f.meetingId === m.id; })
+          });
+          state.fines = state.fines.filter(function (f) { return f.meetingId !== m.id; });
+          state.meetings = state.meetings.filter(function (x) { return x.id !== m.id; });
+          log('Slettede ' + m.title + ' (' + cnt + ' bøder) — lagt i papirkurven');
+          view = { name: 'aar-detalje', yearId: m.clubYearId };
+          commit();
+        }
       });
-      state.fines = state.fines.filter(function (f) { return f.meetingId !== m.id; });
-      state.meetings = state.meetings.filter(function (x) { return x.id !== m.id; });
-      log('Slettede ' + m.title + ' (' + cnt + ' bøder) — lagt i papirkurven');
-      view = { name: 'aar-detalje', yearId: m.clubYearId };
-      commit();
     },
     'delete-member': function (el) {
       var m = findMember(el.getAttribute('data-id'));
       if (!m) return;
       var fines = state.fines.filter(function (f) { return f.memberId === m.id; });
       var pays = state.payments.filter(function (p) { return p.memberId === m.id; });
-      if (!window.confirm('Slet ' + m.name + ' helt, inkl. ' + fines.length + ' bøder og ' + pays.length + ' indbetalinger? (Kan gendannes fra papirkurven i ' + TRASH_DAYS + ' dage)')) return;
-      state.trash.push({ id: uid(), kind: 'member', deletedAt: Date.now(), member: m, fines: fines, payments: pays, wasFormand: state.formandId === m.id });
-      state.members = state.members.filter(function (x) { return x.id !== m.id; });
-      state.fines = state.fines.filter(function (f) { return f.memberId !== m.id; });
-      state.payments = state.payments.filter(function (p) { return p.memberId !== m.id; });
-      if (state.formandId === m.id) { closeFormandPeriod(); state.formandId = null; }
-      log('Slettede medlemmet ' + m.name + ' — lagt i papirkurven');
-      closeModal();
-      commit();
+      askConfirm({
+        title: 'Slet medlem', text: 'Slet ' + m.name + ' helt, inkl. ' + fines.length + ' bøder og ' + pays.length + ' indbetalinger? Det kan gendannes fra papirkurven i ' + TRASH_DAYS + ' dage.',
+        yes: 'Slet ' + firstName(m.name), danger: true,
+        cancel: function () { openMemberSheet(m.id); },
+        run: function () {
+          state.trash.push({ id: uid(), kind: 'member', deletedAt: Date.now(), member: m, fines: fines, payments: pays, wasFormand: state.formandId === m.id });
+          state.members = state.members.filter(function (x) { return x.id !== m.id; });
+          state.fines = state.fines.filter(function (f) { return f.memberId !== m.id; });
+          state.payments = state.payments.filter(function (p) { return p.memberId !== m.id; });
+          if (state.formandId === m.id) { closeFormandPeriod(); state.formandId = null; }
+          log('Slettede medlemmet ' + m.name + ' — lagt i papirkurven');
+          commit();
+        }
+      });
     },
     'trash-open': function () { openTrash(); },
     'trash-restore': function (el) {
@@ -3407,12 +3453,17 @@
     'season-close': function (el) {
       var y = findYear(el.getAttribute('data-id'));
       if (!y || y.closedAt) return;
-      if (!window.confirm('Afslut sæsonen ' + y.label + '? Alle årets møder låses.')) return;
-      y.closedAt = Date.now();
-      yearMeetings(y.id).forEach(function (m) { if (!m.closedAt) m.closedAt = y.closedAt; });
-      log('Afsluttede sæsonen ' + y.label + ' — ' + kr(yearTotal(y.id)) + ' i bøder');
-      commit();
-      openSeasonResult(y);
+      askConfirm({
+        title: 'Afslut sæson ' + y.label, text: 'Alle årets møder låses, og podiet kåres. Sæsonen kan genåbnes bagefter.',
+        yes: 'Afslut sæsonen',
+        run: function () {
+          y.closedAt = Date.now();
+          yearMeetings(y.id).forEach(function (m) { if (!m.closedAt) m.closedAt = y.closedAt; });
+          log('Afsluttede sæsonen ' + y.label + ' — ' + kr(yearTotal(y.id)) + ' i bøder');
+          commit();
+          openSeasonResult(y);
+        }
+      });
     },
     'season-reopen': function (el) {
       var y = findYear(el.getAttribute('data-id'));
@@ -3474,8 +3525,17 @@
     'rename-member': function (el) {
       var m = findMember(el.getAttribute('data-id'));
       if (!m) return;
-      var name = window.prompt('Nyt navn:', m.name);
-      if (name && name.trim()) { m.name = name.trim(); closeModal(); commit(); }
+      openModal('Omdøb', '<label for="rn-name">Nyt navn</label>' +
+        '<input id="rn-name" type="text" value="' + esc(m.name) + '" autocomplete="off">' +
+        '<div class="btn-row"><button class="btn" data-action="rename-save" data-id="' + esc(m.id) + '">Gem navn</button></div>',
+        esc(m.name), { kind: 'member', id: m.id, label: 'Tilbage til ' + m.name });
+    },
+    'rename-save': function (el) {
+      var m = findMember(el.getAttribute('data-id'));
+      var name = val('rn-name').trim();
+      if (!m || !name) { toast('Skriv et navn'); return; }
+      if (name !== m.name) { log('Omdøbte ' + m.name + ' til ' + name); m.name = name; commit(); }
+      openMemberSheet(m.id);
     },
     'retire-member': function (el) {
       var m = findMember(el.getAttribute('data-id'));
@@ -3535,16 +3595,21 @@
       toast(m.name + ' indbetalte ' + kr(amount));
     },
     'remove-payment': function (el) {
-      if (!window.confirm('Slet denne indbetaling?')) return;
       var id = el.getAttribute('data-id');
       var p = state.payments.find(function (x) { return x.id === id; });
-      state.payments = state.payments.filter(function (x) { return x.id !== id; });
-      if (p) {
-        var pm = findMember(p.memberId);
-        log('Slettede indbetaling på ' + kr(p.amount) + ' fra ' + (pm ? pm.name : '?'));
-      }
-      commit();
-      if (p) openMemberSheet(p.memberId);
+      if (!p) return;
+      var pm = findMember(p.memberId);
+      askConfirm({
+        title: 'Slet indbetaling', text: 'Slet indbetalingen på ' + kr(p.amount) + (pm ? ' fra ' + pm.name : '') + '? Beløbet lægges tilbage på gælden.',
+        yes: 'Slet indbetalingen', danger: true,
+        cancel: function () { openMemberSheet(p.memberId); },
+        run: function () {
+          state.payments = state.payments.filter(function (x) { return x.id !== id; });
+          log('Slettede indbetaling på ' + kr(p.amount) + ' fra ' + (pm ? pm.name : '?'));
+          commit();
+          openMemberSheet(p.memberId);
+        }
+      });
     },
 
     'pick-icon': function (el) {
@@ -3586,7 +3651,13 @@
     },
     'finetype-remove': function (el) {
       var t = findFineType(el.getAttribute('data-id'));
-      if (t && window.confirm('Fjern taksten »' + t.category + '«?')) { t.active = false; closeModal(); commit(); }
+      if (!t) return;
+      askConfirm({
+        title: 'Fjern takst', text: 'Fjern taksten »' + t.category + '«? Allerede givne bøder bliver stående.',
+        yes: 'Fjern taksten', danger: true,
+        cancel: function () { openFineTypeForm(t.id); },
+        run: function () { t.active = false; log('Fjernede taksten »' + t.category + '«'); commit(); }
+      });
     },
 
     'settings-save': function () {
@@ -3642,13 +3713,19 @@
           try {
             var s = JSON.parse(String(reader.result));
             if (!s || typeof s.version !== 'number' || s.version < 1 || s.version > 7 || !Array.isArray(s.members)) throw new Error('bad');
-            if (!window.confirm('Erstat alle nuværende data med det importerede?')) return;
-            pushUndo(JSON.stringify(state), 'import af data');
-            state = migrate(s);
-            view = { name: 'liga' };
-            closeModal();
-            commit();
-            toast('Data importeret');
+            // Selve udskiftningen sker i confirm-yes, som lægger fortryd-punktet
+            askConfirm({
+              title: 'Importér data', text: 'Erstat alle nuværende data med indholdet af filen? Det kan fortrydes med fortryd-knappen.',
+              yes: 'Erstat data', danger: true,
+              cancel: function () { openSettings(); },
+              run: function () {
+                state = migrate(s);
+                log('Importerede data fra fil');
+                view = { name: 'liga' };
+                commit();
+                toast('Data importeret');
+              }
+            });
           } catch (e) { toast('Kunne ikke læse filen'); }
         };
         reader.readAsText(file);
@@ -3656,14 +3733,25 @@
       input.click();
     },
     'reset-all': function () {
-      if (!window.confirm('Slet ALLE medlemmer, møder, bøder og indbetalinger?')) return;
-      if (!window.confirm('Helt sikker? Dette kan ikke fortrydes.')) return;
-      state = freshState();
-      log('Nulstillede alle data');
-      view = { name: 'liga' };
-      statsYearId = null;
-      closeModal();
-      commit();
+      askConfirm({
+        title: 'Nulstil alt', text: 'Slet ALLE medlemmer, møder, bøder og indbetalinger? Tag en eksport først, hvis du vil kunne komme tilbage.',
+        yes: 'Ja, nulstil', danger: true,
+        cancel: function () { openSettings(); },
+        run: function () {
+          askConfirm({
+            title: 'Helt sikker?', text: 'Alt forsvinder fra denne enhed — og fra den delte udgave, når du gemmer.',
+            yes: 'Nulstil alt', danger: true,
+            cancel: function () { openSettings(); },
+            run: function () {
+              state = freshState();
+              log('Nulstillede alle data');
+              view = { name: 'liga' };
+              statsYearId = null;
+              commit();
+            }
+          });
+        }
+      });
     }
   };
 

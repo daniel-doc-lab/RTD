@@ -14,7 +14,9 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 page.on('pageerror', (e) => fail('pageerror: ' + e.message));
 page.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('net::ERR')) fail('console: ' + m.text()); });
-page.on('dialog', (d) => d.accept());
+// Browserens egne dialoger (confirm/prompt/alert) er blokeret i Claudes visning og
+// svarer lydløst »nej«. Dukker én op her, er det en fejl — appen skal spørge selv.
+page.on('dialog', (d) => { fail('indbygget browserdialog brugt: »' + d.message() + '«'); d.dismiss(); });
 
 await page.goto(APP);
 
@@ -153,6 +155,11 @@ await page.click('[data-action="finetype-save"]');
 if (!(await page.locator('.row:has-text("Testbøde")').textContent()).includes('45')) fail('takst ikke opdateret');
 await page.click('.row:has-text("Testbøde")');
 await page.click('[data-action="finetype-remove"]');
+await page.waitForSelector('.modal-root:has-text("Fjern taksten »Testbøde«")');
+await page.click('[data-action="confirm-no"]');
+if (!(await page.locator('.sheet-head').textContent()).includes('Rediger takst')) fail('Annullér førte ikke tilbage til taksten');
+await page.click('[data-action="finetype-remove"]');
+await page.click('[data-action="confirm-yes"]');
 if (await page.locator('.row').count() !== 18) fail('takst ikke fjernet');
 ok('takst-CRUD virker');
 
@@ -174,6 +181,13 @@ await page.click('[data-action="revive-member"]');
 await page.click('[data-action="member-filter"][data-key="aktive"]');
 if (await page.locator('.row.inactive').count() !== 0) fail('genindmeldelse virker ikke');
 if (await page.locator('.row:has-text("Testperson")').count() !== 1) fail('genindmeldt medlem mangler');
+await page.click('.row:has-text("Testperson")');
+await page.click('[data-action="rename-member"]');
+await page.fill('#rn-name', 'Testperson Omdøbt');
+await page.click('[data-action="rename-save"]');
+await page.waitForSelector('.sheet-head:has-text("Testperson Omdøbt")');
+await page.click('.sheet-close');
+if (await page.locator('.row:has-text("Testperson Omdøbt")').count() !== 1) fail('omdøbning slog ikke igennem i listen');
 ok('medlems-CRUD + filtre virker');
 
 // 12) Nyt klubår 2026/27
@@ -226,6 +240,8 @@ await page.click('.row:has-text("2025/26")');
 await page.click('.row:has-text("Møde 5")');
 await page.waitForSelector('.member-grid');
 await page.click('[data-action="delete-meeting"]');
+await page.waitForSelector('.modal-root:has-text("Slet Møde 5")');
+await page.click('[data-action="confirm-yes"]');
 await page.waitForSelector('.meet-head:has-text("Klubår 2025/26")');
 if (await page.locator('.row').count() !== 19) fail('møde ikke slettet');
 await page.click('[data-action="settings"]');
@@ -241,6 +257,8 @@ ok('papirkurv: slet + gendan virker');
 await page.click('[data-action="goto"][data-view="aar"]');
 await page.click('.row:has-text("2024/25")');
 await page.click('[data-action="season-close"]');
+await page.waitForSelector('.sheet-head:has-text("Afslut sæson 2024/25")');
+await page.click('[data-action="confirm-yes"]');
 await page.waitForSelector('.modal-root:has-text("Sæsonen 2024/25 er slut")');
 await page.click('.sheet-close');
 if (!(await page.locator('.meet-head .s').textContent()).includes('sæson afsluttet')) fail('sæson ikke markeret afsluttet');
@@ -357,12 +375,15 @@ ok('udgifter og betalingsdisciplin virker');
 await page.click('[data-tab="aar"]');
 await page.click('.row:has-text("2025/26")');
 await page.click('[data-action="season-close"]');
+await page.click('[data-action="confirm-yes"]');
 await page.waitForSelector('.sheet-head:has-text("Sæsonen 2025/26 er slut")');
 await page.click('[data-action="settle-open"]');
 await page.waitForSelector('.sheet-head:has-text("Årsopgørelse")');
 const owing = await page.locator('[data-action="settle-writeoff"]').count();
 if (owing < 1) fail('årsopgørelse: ingen med gæld');
 await page.locator('[data-action="settle-writeoff"]').first().click();
+await page.waitForSelector('.sheet-head:has-text("Afskriv gæld")');
+await page.click('[data-action="confirm-yes"]');
 await page.waitForSelector('.sheet-head:has-text("Årsopgørelse")');
 if (await page.locator('[data-action="settle-writeoff"]').count() !== owing - 1) fail('afskrivning nulstillede ikke gælden');
 await page.click('.sheet-close');
